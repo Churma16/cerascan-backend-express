@@ -10,7 +10,7 @@ app.use(express.urlencoded({extended: true}));
 
 // Rute Test Dasar
 app.get('/', (req: Request, res: Response) => {
-    res.json({message: "Welcome to Ceramik AI API Gateway (TypeScript Version)"});
+    res.json({message: "Welcome to Ceramic AI API Gateway (TypeScript Version)"});
 });
 
 export default app;
