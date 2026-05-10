@@ -36,25 +36,26 @@ export class AuthService {
     }
 
     static async loginUser(email: string, passwordInput: string) {
-        // Search if User Exist
-        const user = await User.findOne({where: {email}})
-        if (!user) {
-            throw new Error('Email atau Password Salah');
+        // Cari user berdasarkan email
+        const user = await User.findOne({where: {email}});
+
+        if (!user || !user.password) {
+            throw new Error('Email atau password salah');
         }
 
-        // Compare Password
+        // Cocokkan password
         const isPasswordMatch = await bcrypt.compare(passwordInput, user.password);
         if (!isPasswordMatch) {
-            throw new Error('Email atau Password Salah');
+            throw new Error('Email atau password salah');
         }
 
-        // Generate Token with Payload {id, role}
+        // Buat JWT Token (Bungkus ID dan Role di dalamnya)
         const token = generateToken({
             id: user.id,
             role: user.role
         });
 
-        const loginInfo = {
+        return {
             user: {
                 id: user.id,
                 full_name: user.full_name,
@@ -62,12 +63,6 @@ export class AuthService {
                 role: user.role
             },
             token
-        }
-
-        return {
-            ...loginInfo
         };
     }
-
-
 }
