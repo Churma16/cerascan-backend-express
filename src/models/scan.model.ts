@@ -1,4 +1,4 @@
-import { DataTypes, Model } from 'sequelize';
+import {DataTypes, Model} from 'sequelize';
 import sequelize from '../config/database';
 
 // 1. Definisikan bentuk tipe datanya (Interface)
@@ -13,15 +13,15 @@ export interface ScanAttributes {
 
 // 2. Buat Class Model
 class Scan extends Model<ScanAttributes> implements ScanAttributes {
-    public id!: number;
-    public scan_id!: string;
-    public file_name!: string;
-    public prediction!: string;
-    public confidence!: number;
-    public inference_time!: string;
+    declare id: number;
+    declare scan_id: string;
+    declare file_name: string;
+    declare prediction: string;
+    declare confidence: number;
+    declare inference_time: string;
 
-    public readonly createdAt!: Date;
-    public readonly updatedAt!: Date;
+    declare readonly createdAt: Date;
+    declare readonly updatedAt: Date;
 }
 
 // 3. Inisialisasi struktur tabelnya
