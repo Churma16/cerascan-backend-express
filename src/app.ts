@@ -3,6 +3,7 @@ import cors from 'cors';
 
 // Import Routes
 import authRoutes from './modules/auth/auth.routes';
+import userRoutes from './modules/user/user.routes';
 
 const app: Application = express();
 
@@ -12,6 +13,7 @@ app.use(express.urlencoded({extended: true}));
 
 // Daftarkan jalur API di sini
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 app.get('/', (req: Request, res: Response) => {
     res.json({message: "Welcome to Ceramic AI API Gateway (TypeScript Version)"});
