@@ -2,6 +2,10 @@ import app from './app';
 import sequelize from './config/database';
 import dotenv from 'dotenv';
 
+// Import model agar Sequelize mengenali tabelnya
+import './models/scan.model';
+import './models/user.model';
+
 dotenv.config();
 
 const PORT = process.env.PORT || 3000;
