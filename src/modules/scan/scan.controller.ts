@@ -1,0 +1,29 @@
+import {Request, Response} from "express";
+import {sendResponse, sendResponseMulti} from "../../utils/response";
+import {ScanService} from "./scan.service";
+
+export class ScanController {
+    static async scanImage(req: Request, res: Response) {
+        try {
+            if (!req.file) {
+                return sendResponse(res, 401, "No file found");
+            }
+
+            const results = await ScanService.processImage(req.file.path, req.file.originalname);
+
+            return sendResponse(res, 200, "Scan berhasil", results);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message);
+        }
+    }
+
+    static async getScanHistory(req: Request, res: Response) {
+        try {
+            const history = await ScanService.getHistory();
+            return sendResponseMulti(res, 200, "Scan berhasil", history);
+
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message);
+        }
+    }
+}
