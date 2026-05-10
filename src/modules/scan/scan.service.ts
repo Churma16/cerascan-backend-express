@@ -47,5 +47,7 @@ export class ScanService {
             order: [['createdAt', 'DESC']],
             limit: 50
         })
+
+        return scans;
     }
 }

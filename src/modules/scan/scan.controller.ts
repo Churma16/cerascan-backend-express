@@ -6,7 +6,7 @@ export class ScanController {
     static async scanImage(req: Request, res: Response) {
         try {
             if (!req.file) {
-                return sendResponse(res, 401, "No file found");
+                return sendResponse(res, 404, "No file found");
             }
 
             const results = await ScanService.processImage(req.file.path, req.file.originalname);
