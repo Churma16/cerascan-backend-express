@@ -1,12 +1,12 @@
 import {UserService} from "./user.service";
-import {sendResponse} from "../../utils/response";
+import {sendResponse, sendResponseMulti} from "../../utils/response";
 import {Request, Response} from "express";
 
 export class UserController {
     static async getAll(req: Request, res: Response) {
         try {
             const users = await UserService.getAllUsers();
-            return sendResponse(res, 200, "Daftar pengguna berhasil diambil", users);
+            return sendResponseMulti(res, 200, "Daftar pengguna berhasil diambil", users);
         } catch (error: any) {
             return sendResponse(res, 401, error);
         }
