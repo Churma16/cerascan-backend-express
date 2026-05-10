@@ -32,7 +32,7 @@ export class ScanService {
                 inference_time: `${inferenceTimeMs}ms`
             });
 
-            fs.unlinkSync(filePath);
+            // fs.unlinkSync(filePath);
 
             return newScan;
         } catch (error: any) {
