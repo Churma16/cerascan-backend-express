@@ -1,6 +1,7 @@
 import {UserService} from "./user.service";
 import {sendResponse, sendResponseMulti} from "../../utils/response";
 import {Request, Response} from "express";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 export class UserController {
     static async getAll(req: Request, res: Response) {
@@ -23,6 +24,27 @@ export class UserController {
 
             const user = await UserService.getUserById(userId);
             return sendResponse(res, 200, "Pengguna berhasil diambil", user);
+
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getMe(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+
+            if (!userId) {
+                return sendResponse(res, 401, "Sesi tidak valid atau pengguna tidak dikenali");
+            }
+
+            const user = await UserService.getUserById(userId);
+
+            if (!user) {
+                return sendResponse(res, 404, "Data pengguna tidak ditemukan");
+            }
+
+            return sendResponse(res, 200, "Profil berhasil diambil", user);
 
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
