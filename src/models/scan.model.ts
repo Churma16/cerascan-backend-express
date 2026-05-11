@@ -6,6 +6,7 @@ export interface ScanAttributes {
     id?: number;
     scan_id: string;
     file_name: string;
+    saved_file_name: string;
     prediction: string;
     confidence: number;
     inference_time: string;
@@ -16,6 +17,7 @@ class Scan extends Model<ScanAttributes> implements ScanAttributes {
     declare id: number;
     declare scan_id: string;
     declare file_name: string;
+    declare saved_file_name: string;
     declare prediction: string;
     declare confidence: number;
     declare inference_time: string;
@@ -40,6 +42,10 @@ Scan.init(
             type: DataTypes.STRING(255),
             allowNull: false,
         },
+        saved_file_name: {
+            type: DataTypes.STRING(255),
+            allowNull: true,
+        },
         prediction: {
             type: DataTypes.STRING(50),
             allowNull: false,
@@ -56,7 +62,7 @@ Scan.init(
     {
         sequelize,
         tableName: 'scan_histories',
-        timestamps: true, // Otomatis membuat kolom createdAt & updatedAt
+        timestamps: true,
     }
 );
 

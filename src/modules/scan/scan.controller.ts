@@ -9,7 +9,7 @@ export class ScanController {
                 return sendResponse(res, 404, "No file found");
             }
 
-            const results = await ScanService.processImage(req.file.path, req.file.originalname);
+            const results = await ScanService.processImage(req.file.path, req.file.originalname, req.file.filename);
 
             return sendResponse(res, 200, "Scan berhasil", results);
         } catch (error: any) {

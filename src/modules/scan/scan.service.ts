@@ -3,7 +3,7 @@ import axios from "axios";
 import Scan from "../../models/scan.model";
 
 export class ScanService {
-    static async processImage(filePath: string, originalName: string) {
+    static async processImage(filePath: string, originalName: string, savedFileName: string) {
         const startTime = Date.now();
         try {
             const fileBuffer = fs.readFileSync(filePath);
@@ -27,6 +27,7 @@ export class ScanService {
             const newScan = await Scan.create({
                 scan_id: scanId,
                 file_name: originalName,
+                saved_file_name: savedFileName,
                 prediction: result.prediction,
                 confidence: result.confidence_score,
                 inference_time: `${inferenceTimeMs}ms`
