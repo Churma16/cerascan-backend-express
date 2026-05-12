@@ -47,14 +47,5 @@ export class ScanController {
         }
     }
 
-    static async getLatestScanDataTrend(req: Request, res: Response) {
-        try {
 
-            const result = await ScanService.get7DaysScanDataCount()
-            return sendResponseMulti(res, 200, 'Scan berhasil', result);
-        } catch (error: any) {
-            return sendResponse(res, 500, error.message);
-        }
-
-    }
 }
