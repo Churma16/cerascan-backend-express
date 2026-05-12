@@ -6,6 +6,7 @@ import path from 'path';
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
 import scanRoutes from './modules/scan/scan.routes';
+import dashboardRoute from "./modules/dashboard/dashboard.route";
 
 const app: Application = express();
 
@@ -18,6 +19,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/scans', scanRoutes);
+app.use('/api/dashboard', dashboardRoute);
 
 
 app.get('/', (req: Request, res: Response) => {
