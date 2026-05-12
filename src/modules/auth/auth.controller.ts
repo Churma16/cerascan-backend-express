@@ -1,6 +1,7 @@
 import {AuthService} from "./auth.service";
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 
 export class AuthController {
@@ -34,6 +35,27 @@ export class AuthController {
         } catch (error: any) {
 
             return sendResponse(res, 401, error.message)
+        }
+    }
+
+    static async changePassword(req: AuthRequest, res: Response) {
+        try {
+            const {old_password, new_password} = req.body;
+            const userId = req.user?.id;
+
+            if (!userId) {
+                return sendResponse(res, 401, "Sesi tidak valid");
+            }
+
+            if (!old_password || !new_password) {
+                return sendResponse(res, 400, "old_password dan new_password wajib diisi");
+            }
+
+            const result = await AuthService.changePassword(userId, old_password, new_password);
+            return sendResponse(res, 200, "Password berhasil diganti", result);
+
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message);
         }
     }
 }
