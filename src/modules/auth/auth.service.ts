@@ -65,4 +65,26 @@ export class AuthService {
             token
         };
     }
+
+    static async changePassword(userId: number, currentPassword: string, newPassword: string) {
+        const user = await User.findOne({where: {id: userId}});
+
+        if (!user) {
+            throw new Error('User tidak ditemukan');
+        }
+
+        const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordMatch) {
+            throw new Error('Password tidak valid');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        user.password = hashedPassword;
+
+        await user.save();
+
+        return true;
+    }
+
 }
