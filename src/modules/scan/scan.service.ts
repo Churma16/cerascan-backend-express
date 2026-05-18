@@ -14,7 +14,8 @@ export class ScanService {
             const formData = new FormData();
             formData.append('file', blob, originalName);
 
-            const pythonResponse = await axios.post('http://127.0.0.1:8000/predict', formData, {
+            const microserviceUrl = process.env.MICROSERVICES_URL || 'http://127.0.0.1:8000';
+            const pythonResponse = await axios.post(microserviceUrl + '/predict', formData, {
                 headers: {'Content-Type': 'multipart/form-data'},
             });
 
