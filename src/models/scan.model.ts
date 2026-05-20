@@ -10,6 +10,8 @@ export interface ScanAttributes {
     prediction: string;
     confidence: number;
     inference_time: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 // 2. Buat Class Model
