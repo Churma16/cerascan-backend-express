@@ -7,7 +7,7 @@ const router = Router();
 
 
 router.get('/history', ScanController.getScanHistory);
-router.post('/', requireAuth, uploadMiddleware.single('image'), ScanController.scanImage);
-router.delete('/:id', requireRole(['admin']), ScanController.deleteScan);
+router.post('/', uploadMiddleware.single('image'), ScanController.scanImage);
+router.delete('/:id', requireAuth, requireRole(['admin']), ScanController.deleteScan);
 
 export default router;
