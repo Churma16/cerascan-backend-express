@@ -12,4 +12,7 @@ router.post('/change-password', requireAuth, AuthController.changePassword);
 router.post('/forgot-password', forgotPasswordLimiter, AuthController.forgotPassword);
 router.post('/verify-otp', AuthController.verifyOtp);
 router.post('/reset-password', AuthController.resetPassword);
+router.post('/v2/register', AuthController.registerV2);
+router.get('/verify-email', AuthController.verifyEmail);
+
 export default router;

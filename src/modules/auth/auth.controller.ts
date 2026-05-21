@@ -22,6 +22,16 @@ export class AuthController {
         }
     }
 
+    static async registerV2(req: Request, res: Response) {
+        try {
+            const result = await AuthService.registerUserV2(req.body);
+            return sendResponse(res, 201, 'Registrasi berhasil', result)
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message)
+        }
+
+    }
+
     static async login(req: Request, res: Response) {
         try {
             const {email, password} = req.body;
@@ -104,4 +114,22 @@ export class AuthController {
             return sendResponse(res, 400, error.message);
         }
     }
+
+    static async verifyEmail(req: Request, res: Response) {
+        try {
+            const {token} = req.query;
+
+            if (!token) {
+                return sendResponse(res, 400, "Token verifikasi tidak ditemukan");
+            }
+
+            await AuthService.verifyEmail(token as string);
+
+            return sendResponse(res, 200, "Email Anda berhasil diverifikasi");
+        } catch (error: any) {
+            return sendResponse(res, 400, error.message);
+        }
+    }
+
+
 }

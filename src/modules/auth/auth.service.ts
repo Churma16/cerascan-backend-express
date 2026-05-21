@@ -5,13 +5,14 @@ import {Resend} from "resend";
 import dotenv from "dotenv";
 import UserOtp from "../../models/user_otp.model";
 import crypto from "crypto";
-
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class AuthService {
+
 
     static async registerUser(data: Partial<UserAttributes>) {
         const existingUser = await User.findOne({
@@ -23,7 +24,6 @@ export class AuthService {
             throw new Error('Email sudah terdaftar');
         }
 
-        // Encrypt
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(data.password as string, salt);
 
@@ -44,6 +44,55 @@ export class AuthService {
         return userJSON;
     }
 
+    static async registerUserV2(data: Partial<UserAttributes>) {
+        const existingUser = await User.findOne({
+            where: {
+                email: data.email,
+            }
+        })
+
+        if (existingUser) {
+            throw new Error('Email sudah terdaftar');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(data.password as string, salt);
+
+        const payload = {
+            full_name: data.full_name as string,
+            email: data.email as string,
+            password: hashedPassword,
+            role: data.role || 'user',
+        }
+
+        const newUser = await User.create({
+            ...payload,
+        })
+
+        const verificationToken = jwt.sign(
+            {userId: newUser.id},
+            process.env.JWT_SECRET as string,
+            {expiresIn: '24h'}
+        );
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const verifiedLink = `${frontendUrl}/verify-email?token=${verificationToken}`;
+
+        this.sendVerificationEmail(newUser.email, newUser.full_name, verifiedLink).then((emailSent) => {
+            if (!emailSent.success) {
+                console.error(`[Background Task] Gagal mengirim verifikasi ke ${newUser.email}`);
+            }
+        }).catch((err) => {
+            console.error(`[Background Task] Error sistem saat kirim email:`, err);
+        });
+
+        const userJSON = newUser.toJSON();
+        delete userJSON.password;
+
+        return userJSON;
+    }
+
+
     static async loginUser(email: string, passwordInput: string) {
         const user = await User.findOne({where: {email}});
 
@@ -56,7 +105,6 @@ export class AuthService {
             throw new Error('Email atau password salah');
         }
 
-        // Buat JWT Token (Bungkus ID dan Role di dalamnya)
         const token = generateToken({
             id: user.id,
             role: user.role
@@ -94,34 +142,80 @@ export class AuthService {
         return true;
     }
 
-    static async sendOtpEmail(toEmail: string, userName: string, otpCode: string) {
+    static async resetPassword(id: string, newPassword: string) {
+        const user = await User.findOne({where: {id}});
+        if (!user) {
+            throw new Error('id tidak valid');
+        }
+
+        user.password = await this.hashPassword(newPassword);
+        await user.save();
+
+        return true;
+    }
+
+
+    static async verifyEmail(token: string) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+            const userId = decoded.userId;
+
+            const user = await User.findByPk(userId);
+
+            if (!user) {
+                throw new Error('Pengguna tidak ditemukan');
+            }
+
+            if (user.verified_at) {
+                throw new Error('Email sudah diverifikasi sebelumnya');
+            }
+
+            user.verified_at = new Date();
+            await user.save();
+
+            return true;
+        } catch (error: any) {
+            if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+                throw new Error('Tautan verifikasi tidak valid atau telah kedaluwarsa');
+            }
+            throw error;
+        }
+    }
+
+    static async sendVerificationEmail(toEmail: string, fullName: string, verificationLink: string) {
         try {
             const data = await resend.emails.send({
                 from: 'CeraScan <noreply@churma.codes>',
                 to: toEmail,
-                subject: '🔒 Kode OTP Reset Password CeraScan',
+                subject: 'Verifikasi Email untuk Akun CeraScan Anda',
                 html: `
                     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0; border-radius: 12px;">
                         <h2 style="color: #042B1F; margin-bottom: 5px;">CeraScan</h2>
-                        <p style="color: #666; margin-top: 0;">Sistem Deteksi Cacat Keramik</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p>Halo <strong>${userName}</strong>,</p>
-                        <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda. Gunakan kode OTP di bawah ini untuk melanjutkan:</p>
-                        <div style="background-color: #FAFAFA; border: 1px solid #eee; padding: 15px; text-align: center; border-radius: 12px; margin: 25px 0;">
-                            <span style="font-size: 32px; font-weight: 900; letter-spacing: 4px; color: #FF645A;">${otpCode}</span>
+                        <p style="color: #666; margin-top: 0;">Sistem Deteksi Cacat Keramik</p>                     
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />                        
+                        <p>Halo <strong>${fullName}</strong>,</p>
+                        <p>Terima kasih telah mendaftar di CeraScan. Untuk menyelesaikan proses pendaftaran dan mengaktifkan akun Anda, silakan verifikasi alamat email dengan menekan tombol di bawah ini:</p>
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${verificationLink}" style="display: inline-block; padding: 14px 28px; background-color: #042B1F; color: #ffffff; text-decoration: none; font-weight: bold; border-radius: 10px; font-size: 15px;">
+                                Verifikasi Email Saya
+                            </a>
                         </div>
-                        <p style="color: #666; font-size: 13px;">Kode ini hanya berlaku selama <strong>10 menit</strong>. Demi keamanan akun Anda, jangan sebarkan kode ini kepada siapa pun.</p>
-                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                        <p style="color: #666; font-size: 13px;">Tautan ini hanya berlaku selama <strong>24 jam</strong>. Jika Anda tidak merasa mendaftar di CeraScan, abaikan saja email ini.</p>
+                        <div style="background-color: #FAFAFA; border: 1px solid #eee; padding: 15px; border-radius: 8px; margin-top: 25px; word-break: break-all;">
+                            <p style="color: #999; font-size: 11px; margin: 0; margin-bottom: 5px;">Jika tombol di atas tidak berfungsi, salin dan tempel tautan berikut ke browser Anda:</p>
+                            <a href="${verificationLink}" style="color: #FF645A; font-size: 11px; text-decoration: none;">${verificationLink}</a>
+                        </div>                       
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />                       
                         <p style="color: #999; font-size: 11px; text-align: center;">Email ini dikirim otomatis oleh sistem CeraScan, mohon tidak membalas.</p>
-                    </div>
-                `,
-            });
+                    </div>`
+            })
             return {success: true, data};
         } catch (error) {
             console.error('Gagal mengirim email via Resend:', error);
             return {success: false, error};
         }
     }
+
 
     static async forgotPassword(email: string) {
         const user = await User.findOne({where: {email}});
@@ -139,7 +233,6 @@ export class AuthService {
             is_used: false
         });
 
-        // fire and forget
         this.sendOtpEmail(user.email, user.full_name, otpCode).then((emailSent) => {
             if (!emailSent.success) {
                 console.error(`[Background Task] Gagal mengirim OTP ke ${user.email}`);
@@ -147,19 +240,6 @@ export class AuthService {
         }).catch((err) => {
             console.error(`[Background Task] Error sistem saat kirim email:`, err);
         });
-
-        return true;
-    }
-
-    static async resetPassword(id: string, newPassword: string) {
-        const user = await User.findOne({where: {id}});
-        if (!user) {
-            throw new Error('id tidak valid');
-        }
-
-        // Simpan password baru
-        user.password = await this.hashPassword(newPassword);
-        await user.save();
 
         return true;
     }
@@ -194,11 +274,39 @@ export class AuthService {
         return user.id;
     }
 
+    static async sendOtpEmail(toEmail: string, userName: string, otpCode: string) {
+        try {
+            const data = await resend.emails.send({
+                from: 'CeraScan <noreply@churma.codes>',
+                to: toEmail,
+                subject: 'Kode OTP Reset Password CeraScan',
+                html: `
+                    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #f0f0f0; border-radius: 12px;">
+                        <h2 style="color: #042B1F; margin-bottom: 5px;">CeraScan</h2>
+                        <p style="color: #666; margin-top: 0;">Sistem Deteksi Cacat Keramik</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                        <p>Halo <strong>${userName}</strong>,</p>
+                        <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda. Gunakan kode OTP di bawah ini untuk melanjutkan:</p>
+                        <div style="background-color: #FAFAFA; border: 1px solid #eee; padding: 15px; text-align: center; border-radius: 12px; margin: 25px 0;">
+                            <span style="font-size: 32px; font-weight: 900; letter-spacing: 4px; color: #FF645A;">${otpCode}</span>
+                        </div>
+                        <p style="color: #666; font-size: 13px;">Kode ini hanya berlaku selama <strong>10 menit</strong>. Demi keamanan akun Anda, jangan sebarkan kode ini kepada siapa pun.</p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                        <p style="color: #999; font-size: 11px; text-align: center;">Email ini dikirim otomatis oleh sistem CeraScan, mohon tidak membalas.</p>
+                    </div>
+                `,
+            });
+            return {success: true, data};
+        } catch (error) {
+            console.error('Gagal mengirim email via Resend:', error);
+            return {success: false, error};
+        }
+    }
+
+
     private static async hashPassword(newPassword: string) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
         return hashedPassword;
     }
-
-
 }
