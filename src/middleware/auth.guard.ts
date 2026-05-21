@@ -23,8 +23,8 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
 
     try {
         const decoded = jwt.verify(token, SECRET_KEY) as { id: number; role: string };
-        req.user = decoded; // Simpan data user ke dalam request untuk dibaca controller
-        next(); // Persilakan masuk ke controller
+        req.user = decoded;
+        next();
     } catch (error) {
         return sendResponse(res, 401, "Sesi Anda telah kedaluwarsa atau token tidak valid.");
     }
