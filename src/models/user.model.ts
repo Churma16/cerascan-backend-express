@@ -7,6 +7,7 @@ export interface UserAttributes {
     email: string;
     password?: string;
     role: 'admin' | 'operator' | 'user';
+    verified_at?: Date;
 }
 
 class User extends Model<UserAttributes> implements UserAttributes {
@@ -15,6 +16,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
     declare email: string;
     declare password: string;
     declare role: 'admin' | 'operator' | 'user';
+    declare verified_at: Date;
 
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
@@ -48,6 +50,10 @@ User.init(
             defaultValue: 'user',
             allowNull: false,
         },
+        verified_at: {
+            type: DataTypes.DATE,
+            allowNull: true,
+        }
     },
     {
         sequelize,
