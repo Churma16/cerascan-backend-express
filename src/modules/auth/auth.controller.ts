@@ -58,4 +58,50 @@ export class AuthController {
             return sendResponse(res, 500, error.message);
         }
     }
+
+    static async forgotPassword(req: Request, res: Response) {
+        try {
+            const {email} = req.body;
+
+            if (!email) {
+                return sendResponse(res, 400, "Email wajib diisi");
+            }
+
+            await AuthService.forgotPassword(email);
+            return sendResponse(res, 200, "Kode OTP berhasil dikirim ke email Anda");
+        } catch (error: any) {
+            return sendResponse(res, 400, error.message);
+        }
+    }
+
+    static async verifyOtp(req: Request, res: Response) {
+        try {
+            const {email, otp} = req.body;
+
+            if (!email || !otp) {
+                return sendResponse(res, 400, "Email dan OTP wajib diisi");
+            }
+
+            const userId = await AuthService.verifyOtp(email, otp);
+
+            return sendResponse(res, 200, "OTP valid, silakan lanjutkan untuk reset password", {user_id: userId});
+        } catch (error: any) {
+            return sendResponse(res, 400, error.message);
+        }
+    }
+
+    static async resetPassword(req: Request, res: Response) {
+        try {
+            const {id, new_password} = req.body;
+
+            if (!id || !new_password) {
+                return sendResponse(res, 400, "ID pengguna dan password baru wajib diisi");
+            }
+
+            await AuthService.resetPassword(id, new_password);
+            return sendResponse(res, 200, "Password Anda berhasil diperbarui. Silakan login kembali.");
+        } catch (error: any) {
+            return sendResponse(res, 400, error.message);
+        }
+    }
 }
