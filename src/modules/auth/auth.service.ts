@@ -139,10 +139,14 @@ export class AuthService {
             is_used: false
         });
 
-        const emailSent = await this.sendOtpEmail(user.email, user.full_name, otpCode);
-        if (!emailSent.success) {
-            throw new Error('Gagal mengirim email, silakan coba lagi nanti');
-        }
+        // fire and forget
+        this.sendOtpEmail(user.email, user.full_name, otpCode).then((emailSent) => {
+            if (!emailSent.success) {
+                console.error(`[Background Task] Gagal mengirim OTP ke ${user.email}`);
+            }
+        }).catch((err) => {
+            console.error(`[Background Task] Error sistem saat kirim email:`, err);
+        });
 
         return true;
     }
