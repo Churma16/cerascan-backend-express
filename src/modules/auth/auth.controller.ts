@@ -5,6 +5,7 @@ import {AuthRequest} from "../../middleware/auth.guard";
 
 
 export class AuthController {
+
     static async register(req: Request, res: Response) {
         try {
             const result = await AuthService.registerUser(req.body);
@@ -29,8 +30,24 @@ export class AuthController {
         } catch (error: any) {
             return sendResponse(res, 500, error.message)
         }
-
     }
+
+    static async verifyEmail(req: Request, res: Response) {
+        try {
+            const {token} = req.query;
+
+            if (!token) {
+                return sendResponse(res, 400, "Token verifikasi tidak ditemukan");
+            }
+
+            await AuthService.verifyEmail(token as string);
+
+            return sendResponse(res, 200, "Email Anda berhasil diverifikasi");
+        } catch (error: any) {
+            return sendResponse(res, 400, error.message);
+        }
+    }
+
 
     static async login(req: Request, res: Response) {
         try {
@@ -43,10 +60,10 @@ export class AuthController {
 
             return sendResponse(res, 201, "Login Berhasil", result)
         } catch (error: any) {
-
             return sendResponse(res, 401, error.message)
         }
     }
+
 
     static async changePassword(req: AuthRequest, res: Response) {
         try {
@@ -68,6 +85,7 @@ export class AuthController {
             return sendResponse(res, 500, error.message);
         }
     }
+
 
     static async forgotPassword(req: Request, res: Response) {
         try {
@@ -114,22 +132,4 @@ export class AuthController {
             return sendResponse(res, 400, error.message);
         }
     }
-
-    static async verifyEmail(req: Request, res: Response) {
-        try {
-            const {token} = req.query;
-
-            if (!token) {
-                return sendResponse(res, 400, "Token verifikasi tidak ditemukan");
-            }
-
-            await AuthService.verifyEmail(token as string);
-
-            return sendResponse(res, 200, "Email Anda berhasil diverifikasi");
-        } catch (error: any) {
-            return sendResponse(res, 400, error.message);
-        }
-    }
-
-
 }
