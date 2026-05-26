@@ -7,6 +7,7 @@ import './models/user.model';
 import {connectRabbitMQ} from "./config/rabbitmq_client";
 import {connectRedis} from "./config/redis_client";
 import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
+import {PaymentSubscriber} from "./subscribers/payment.subscribers";
 
 dotenv.config();
 
@@ -16,16 +17,17 @@ const startServer = async () => {
     try {
         // Check Connection
         await sequelize.authenticate();
-        console.log('Koneksi ke MySQL berhasil.');
+        console.log('[MySql] Koneksi ke MySQL berhasil.');
 
         // Sync Table
         await sequelize.sync();
         // await sequelize.sync({alter: true});
-        console.log(' Semua model telah disinkronisasi dengan database.');
+        console.log('[MySql] Semua model telah disinkronisasi dengan database.');
 
         await connectRedis();
         await connectRabbitMQ();
         await RabbitMQService.setupExchange();
+        await PaymentSubscriber.start();
 
         // Start Server
         app.listen(PORT, () => {
