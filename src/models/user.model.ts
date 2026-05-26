@@ -7,6 +7,7 @@ export interface UserAttributes {
     email: string;
     password?: string;
     role: 'admin' | 'operator' | 'user';
+    sub_tier: 'free' | 'paid'
     verified_at?: Date;
 }
 
@@ -16,6 +17,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
     declare email: string;
     declare password: string;
     declare role: 'admin' | 'operator' | 'user';
+    declare sub_tier: 'free' | 'paid';
     declare verified_at: Date;
 
     declare readonly createdAt: Date;
@@ -48,6 +50,11 @@ User.init(
         role: {
             type: DataTypes.ENUM('admin', 'operator', 'user'),
             defaultValue: 'user',
+            allowNull: false,
+        },
+        sub_tier: {
+            type: DataTypes.ENUM('free', 'paid'),
+            defaultValue: 'free',
             allowNull: false,
         },
         verified_at: {
