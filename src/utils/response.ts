@@ -1,4 +1,6 @@
-export const sendResponse = (res: any, code: number, message: string, data: any = null, source: string = 'db') => {
+import {Response} from "express";
+
+export const sendResponse = (res: Response, code: number, message: string, data: any = null, source: string = 'db') => {
     return res.status(code).json({
         meta: {
             code: code,
@@ -10,7 +12,7 @@ export const sendResponse = (res: any, code: number, message: string, data: any 
     });
 };
 
-export const sendResponseMulti = (res: any, code: number, message: string, data: any = null, source: string = 'db') => {
+export const sendResponseMulti = (res: Response, code: number, message: string, data: any = null, source: string = 'db') => {
     return res.status(code).json({
         meta: {
             code: code,
