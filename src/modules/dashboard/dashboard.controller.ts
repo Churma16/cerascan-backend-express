@@ -2,7 +2,7 @@ import {Request, Response} from "express";
 import {sendResponse, sendResponseMulti} from "../../utils/response";
 import {DashboardService} from "./dashboard.service";
 import {ScanService} from "../scan/scan.service";
-import {redisClient} from "../../config/redis_client";
+import {getRedisClient} from "../../config/redis_client";
 
 export class DashboardController {
     static async getDashboardKpi(req: Request, res: Response) {
@@ -15,7 +15,7 @@ export class DashboardController {
                 unnormal_scan_count: kpiData.unNormalScanCount
             };
 
-            await redisClient.setEx('dashboard:kpi', 300, JSON.stringify(response));
+            await getRedisClient().setEx('dashboard:kpi', 300, JSON.stringify(response));
 
             return sendResponse(res, 200, "KPI dashboard berhasil diambil", response);
         } catch (error: any) {
@@ -36,7 +36,7 @@ export class DashboardController {
         try {
             const result = await ScanService.get7DaysScanDataCount();
 
-            await redisClient.setEx('dashboard:trend', 3600, JSON.stringify(result));
+            await getRedisClient().setEx('dashboard:trend', 3600, JSON.stringify(result));
 
             return sendResponseMulti(res, 200, 'Trend scan berhasil diambil', result);
         } catch (error: any) {

@@ -1,16 +1,31 @@
 import {createClient} from 'redis';
 
-export const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://127.0.0.1:6379'
-});
+let redisClient: any = null;
 
-redisClient.on('error', (err) => console.error('Redis Client Error:', err));
-redisClient.on('connect', () => console.log('Koneksi ke Redis berhasil.'));
-
-(async () => {
+export const connectRedis = async (): Promise<void> => {
     try {
+        const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+        redisClient = createClient({
+            url: redisUrl
+        });
+
+        redisClient.on('error', (err: any) => console.error('[Redis] Redis Client Error:', err));
+        redisClient.on('connect', () => console.log('[Redis] Koneksi ke Redis berhasil.'));
+
         await redisClient.connect();
-    } catch (error) {
-        console.error('Gagal melakukan koneksi awal ke Redis:', error);
+
+        console.log('[Redis] Client berhasil terhubung');
+    } catch (error: unknown) {
+        console.error('[Redis] Client gagal terhubung:', error);
+        process.exit(1);
     }
-})();
+};
+
+// Fungsi ini digunakan oleh Service untuk mengambil client yang sudah aktif
+export const getRedisClient = (): any => {
+    if (!redisClient) {
+        throw new Error('Redis client belum diinisialisasi. Pastikan connectRedis() sudah dipanggil.');
+    }
+    return redisClient;
+};

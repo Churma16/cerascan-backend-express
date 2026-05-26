@@ -1,5 +1,5 @@
 import {NextFunction, Request, Response} from 'express';
-import {redisClient} from '../config/redis_client';
+import {getRedisClient} from '../config/redis_client';
 import {sendResponse, sendResponseMulti} from '../utils/response';
 
 export class CacheMiddleware {
@@ -13,7 +13,7 @@ export class CacheMiddleware {
             const cacheKey = keyPrefix;
 
             try {
-                const cachedData = await redisClient.get(cacheKey);
+                const cachedData = await getRedisClient().get(cacheKey);
 
                 if (cachedData) {
                     console.log(`Hit Cache: ${cacheKey}`);
