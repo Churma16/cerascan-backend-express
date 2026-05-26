@@ -3,7 +3,7 @@ import {sendResponse} from "../../utils/response";
 import {snap} from "../../config/midtrans_client";
 import {PAID_TIER_CONFIG} from "../../config/packages.config";
 import {AuthRequest} from "../../middleware/auth.guard";
-import {UserService} from "../user/user.service";
+import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 
 export class PaymentController {
     static async createTransaction(req: AuthRequest, res: Response) {
@@ -57,24 +57,28 @@ export class PaymentController {
             const transactionStatus = statusResponse.transaction_status;
             const fraudStatus = statusResponse.fraud_status;
 
-            // Ekstrak userId dari format ORDER-userId-PAID-timestamp
-            const segments = orderId.split("-");
-            const userId = segments[1];
-
             if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
                 if (fraudStatus === 'accept' || !fraudStatus) {
-                    await UserService.upgradeTier(userId, 'paid');
-                    console.log(`User ${userId} berhasil upgrade ke Paid Tier`);
+
+                    // Siapkan bungkusan data yang akan disiarkan
+                    const eventData = {
+                        orderId: orderId,
+                        status: transactionStatus,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    // Teriakkan event ke RabbitMQ dengan kunci 'payment.success'
+                    await RabbitMQService.publishEvent('payment.success', eventData);
                 }
-            } else if (['cancel', 'deny', 'expire'].includes(transactionStatus)) {
-                console.log(`Transaksi ${orderId} gagal atau kedaluwarsa`);
             }
 
-            return sendResponse(res, 200, "Webhook diterima");
-            // return res.status(200).json({status: "OK"});
-        } catch (error: any) {
-            return sendResponse(res, 500, error.message);
-            // return res.status(500).json({error: error.message});
+            // Express bisa langsung merespons Midtrans dengan sangat cepat!
+            return sendResponse(res, 200, "Webhook diterima, tugas dikirim ke antrean latar belakang");
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                return sendResponse(res, 500, error.message);
+            }
+            return sendResponse(res, 500, "Terjadi kesalahan internal pada webhook");
         }
     }
 }
