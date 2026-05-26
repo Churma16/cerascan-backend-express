@@ -8,6 +8,7 @@ export class UserController {
         try {
             const users = await UserService.getAllUsers();
             return sendResponseMulti(res, 200, "Daftar pengguna berhasil diambil", users);
+
         } catch (error: any) {
             return sendResponse(res, 401, error);
         }
@@ -17,7 +18,6 @@ export class UserController {
         try {
             const {id} = req.params;
             const userId = parseInt(id as string);
-
             if (isNaN(userId)) {
                 return sendResponse(res, 400, "ID tidak valid");
             }
@@ -33,13 +33,11 @@ export class UserController {
     static async getMe(req: AuthRequest, res: Response) {
         try {
             const userId = req.user?.id;
-
             if (!userId) {
                 return sendResponse(res, 401, "Sesi tidak valid atau pengguna tidak dikenali");
             }
 
             const user = await UserService.getUserById(userId);
-
             if (!user) {
                 return sendResponse(res, 404, "Data pengguna tidak ditemukan");
             }
