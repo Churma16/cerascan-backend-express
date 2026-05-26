@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 
 import './models/scan.model';
 import './models/user.model';
+import {connectRabbitMQ} from "./config/rabbitmq_client";
 import {connectRedis} from "./config/redis_client";
+import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
 
 dotenv.config();
 
@@ -21,6 +23,7 @@ const startServer = async () => {
         // await sequelize.sync({alter: true});
         console.log(' Semua model telah disinkronisasi dengan database.');
 
+        await connectRedis();
         await connectRabbitMQ();
         await RabbitMQService.setupExchange();
 
