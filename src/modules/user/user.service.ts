@@ -55,4 +55,19 @@ export class UserService {
         await user.destroy();
         return user;
     }
+
+    static async upgradeTier(id: number, tier: "free" | "paid") {
+        const user = await User.findOne({
+            where: {
+                id: id
+            }
+        });
+        if (!user) {
+            throw new Error('User tidak ditemukan');
+        }
+
+        user.sub_tier = tier
+        await user.save();
+        return user;
+    }
 }
