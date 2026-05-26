@@ -5,7 +5,7 @@ import {Resend} from "resend";
 import dotenv from "dotenv";
 import UserOtp from "../../models/user_otp.model";
 import crypto from "crypto";
-import jwt from "jsonwebtoken";
+import jwt, {JwtPayload} from "jsonwebtoken";
 
 dotenv.config();
 
@@ -27,15 +27,20 @@ export class AuthService {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(data.password as string, salt);
 
-        const payload = {
+        const payload: Partial<UserAttributes> = {
             full_name: data.full_name as string,
             email: data.email as string,
             password: hashedPassword,
             role: data.role || 'user',
+            sub_tier: 'free',
         }
 
         const newUser = await User.create({
-            ...payload,
+            full_name: payload.full_name!,
+            email: payload.email!,
+            password: payload.password!,
+            role: payload.role!,
+            sub_tier: payload.sub_tier!,
         })
 
         const userJSON = newUser.toJSON();
@@ -58,15 +63,20 @@ export class AuthService {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(data.password as string, salt);
 
-        const payload = {
+        const payload: Partial<UserAttributes> = {
             full_name: data.full_name as string,
             email: data.email as string,
             password: hashedPassword,
             role: data.role || 'user',
+            sub_tier: 'free',
         }
 
         const newUser = await User.create({
-            ...payload,
+            full_name: payload.full_name!,
+            email: payload.email!,
+            password: payload.password!,
+            role: payload.role!,
+            sub_tier: payload.sub_tier!,
         })
 
         const verificationToken = jwt.sign(
@@ -157,7 +167,7 @@ export class AuthService {
 
     static async verifyEmail(token: string) {
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload & { userId?: number };
             const userId = decoded.userId;
 
             const user = await User.findByPk(userId);
@@ -176,7 +186,7 @@ export class AuthService {
             return true;
         } catch (error: any) {
             if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
-                throw new Error('Tautan verifikasi tidak valid atau telah kedaluwarsa');
+                throw new Error('Tautan verifikasi tidak valid atau telah kedaluwarsa', {cause: error});
             }
             throw error;
         }
@@ -263,7 +273,7 @@ export class AuthService {
             throw new Error('Kode OTP tidak valid atau sudah digunakan');
         }
 
-        let isOtpExpired = new Date() > activeOtp.expired_at;
+        const isOtpExpired = new Date() > activeOtp.expired_at;
         if (isOtpExpired) {
             throw new Error('Kode OTP telah kadaluarsa, silakan minta kode baru');
         }
