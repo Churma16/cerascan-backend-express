@@ -22,7 +22,7 @@ export class PaymentSubscriber {
             console.log(`[Worker] Mendengarkan event '${this.ROUTING_KEY}' di antrean '${this.QUEUE_NAME}'...`);
 
             // 3. Mulai mengambil pesan yang masuk
-            channel.consume(this.QUEUE_NAME, async (msg) => {
+            await channel.consume(this.QUEUE_NAME, async (msg: { content: { toString: () => string; }; } | null) => {
                 if (msg !== null) {
                     try {
                         // Buka isi pesan (Buffer -> String -> JSON)
