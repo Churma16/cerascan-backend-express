@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "migrate": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +29,8 @@
     "node-cron": "^4.2.1",
     "redis": "^5.12.1",
     "resend": "^6.12.3",
-    "sequelize": "^6.37.8"
+    "sequelize": "^6.37.8",
+    "sequelize-typescript": "^2.1.6"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -43,6 +45,7 @@
     "@vercel/ncc": "^0.38.4",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
+    "sequelize-cli": "^6.6.5",
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4"
