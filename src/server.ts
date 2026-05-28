@@ -20,7 +20,7 @@ const startServer = async () => {
         console.log('[MySql] Koneksi ke MySQL berhasil.');
 
         // Sync Table
-        await sequelize.sync();
+        // await sequelize.sync();
         // await sequelize.sync({alter: true});
         console.log('[MySql] Semua model telah disinkronisasi dengan database.');
 
