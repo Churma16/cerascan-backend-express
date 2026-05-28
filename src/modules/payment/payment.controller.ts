@@ -4,6 +4,7 @@ import {snap} from "../../config/midtrans_client";
 import {PAID_TIER_CONFIG} from "../../config/packages.config";
 import {AuthRequest} from "../../middleware/auth.guard";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
+import {PaymentService} from "./payment.service";
 
 export class PaymentController {
     static async createTransaction(req: AuthRequest, res: Response) {
@@ -79,6 +80,106 @@ export class PaymentController {
                 return sendResponse(res, 500, error.message);
             }
             return sendResponse(res, 500, "Terjadi kesalahan internal pada webhook");
+        }
+    }
+
+    // ===== CRUD Payment Records =====
+
+    static async create(req: Request, res: Response) {
+        try {
+            const {user_id, plan_id, order_id, amount, payment_type} = req.body;
+            if (!user_id || !plan_id || !order_id || !amount) {
+                return sendResponse(res, 400, "Field user_id, plan_id, order_id, amount harus diisi");
+            }
+            const payload = {user_id, plan_id, order_id, amount, payment_type, status: 'pending' as const};
+
+            const newPayment = await PaymentService.createPayment(payload);
+            return sendResponse(res, 201, "Payment berhasil dibuat", newPayment);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getAll(req: Request, res: Response) {
+        try {
+            const payments = await PaymentService.getAllPayments();
+            return sendResponse(res, 200, "Daftar payment berhasil diambil", payments);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getById(req: Request, res: Response) {
+        try {
+            const {id} = req.params;
+            if (!id || isNaN(Number(id))) {
+                return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
+            }
+            const payment = await PaymentService.getPaymentById(Number(id));
+            return sendResponse(res, 200, "Payment berhasil diambil", payment);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getByOrderId(req: Request, res: Response) {
+        try {
+            const orderIdParam = req.params.order_id;
+            const order_id = Array.isArray(orderIdParam) ? orderIdParam[0] : orderIdParam;
+            if (!order_id) {
+                return sendResponse(res, 400, "Order ID harus diisi");
+            }
+            const payment = await PaymentService.getPaymentByOrderId(order_id);
+            return sendResponse(res, 200, "Payment berhasil diambil", payment);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getByUserId(req: Request, res: Response) {
+        try {
+            const {user_id} = req.params;
+            if (!user_id || isNaN(Number(user_id))) {
+                return sendResponse(res, 400, "User ID harus berupa angka yang valid");
+            }
+            const payments = await PaymentService.getPaymentByUserId(Number(user_id));
+            return sendResponse(res, 200, "Payment user berhasil diambil", payments);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async updateStatus(req: Request, res: Response) {
+        try {
+            const {id} = req.params;
+            if (!id || isNaN(Number(id))) {
+                return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
+            }
+            const {status, transaction_id} = req.body;
+            if (!status) {
+                return sendResponse(res, 400, "Status harus diisi");
+            }
+
+            const payload: any = {status};
+            if (transaction_id !== undefined) payload.transaction_id = transaction_id;
+
+            const updatedPayment = await PaymentService.updatePaymentStatus(Number(id), payload);
+            return sendResponse(res, 200, "Payment status berhasil diupdate", updatedPayment);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async delete(req: Request, res: Response) {
+        try {
+            const {id} = req.params;
+            if (!id || isNaN(Number(id))) {
+                return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
+            }
+            const result = await PaymentService.deletePayment(Number(id));
+            return sendResponse(res, 200, result.message, null);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
     }
 }
