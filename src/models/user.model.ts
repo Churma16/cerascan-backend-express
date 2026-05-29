@@ -7,7 +7,8 @@ export interface UserAttributes {
     email: string;
     password?: string;
     role: 'admin' | 'operator' | 'user';
-    sub_tier: 'free' | 'paid'
+    sub_tier: 'free' | 'paid';
+    plan_id: number; // Harus ada di DB
     verified_at?: Date;
 }
 
@@ -18,6 +19,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
     declare password: string;
     declare role: 'admin' | 'operator' | 'user';
     declare sub_tier: 'free' | 'paid';
+    declare plan_id: number; // Tambahkan ini agar TypeScript tidak protes
     declare verified_at: Date;
 
     declare readonly createdAt: Date;
@@ -39,9 +41,6 @@ User.init(
             type: DataTypes.STRING,
             allowNull: false,
             unique: true,
-            validate: {
-                isEmail: true,
-            }
         },
         password: {
             type: DataTypes.STRING,
@@ -55,6 +54,10 @@ User.init(
         sub_tier: {
             type: DataTypes.ENUM('free', 'paid'),
             defaultValue: 'free',
+            allowNull: false,
+        },
+        plan_id: {
+            type: DataTypes.INTEGER,
             allowNull: false,
         },
         verified_at: {
