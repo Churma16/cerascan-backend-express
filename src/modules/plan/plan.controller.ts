@@ -1,6 +1,7 @@
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {PlanService} from "./plan.service";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 export class PlanController {
 
@@ -73,6 +74,26 @@ export class PlanController {
             }
             const result = await PlanService.deletePlan(Number(id));
             return sendResponse(res, 200, result.message, null);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getSelectedAdjustedPlanPrice(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            if (!userId || isNaN(Number(userId))) {
+                return sendResponse(res, 400, "ID User plan harus berupa angka yang valid");
+            }
+
+            const {planId} = req.params
+            console.log(planId)
+            if (!planId || isNaN(Number(planId))) {
+                return sendResponse(res, 400, "ID Plan harus berupa angka yang valid");
+            }
+
+            const adjustedPriceData = await PlanService.calculateUpgradePrice(Number(userId), Number(planId));
+            return sendResponse(res, 200, "Harga plan yang disesuaikan berhasil dihitung", adjustedPriceData);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }

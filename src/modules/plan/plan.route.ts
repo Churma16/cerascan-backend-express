@@ -10,5 +10,6 @@ router.get("/", PlanController.getAll);
 router.get("/:id", PlanController.getById);
 router.put("/:id", requireRole(['admin']), PlanController.update);
 router.delete("/:id", requireRole(['admin']), PlanController.delete);
+router.get("/adjusted-price/:planId", PlanController.getSelectedAdjustedPlanPrice)
 
 export default router;
