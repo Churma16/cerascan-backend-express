@@ -1,6 +1,6 @@
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
-import {SubscriptionPayload, SubscriptionService} from "./subscription.service";
+import {SubscriptionService} from "./subscription.service";
 
 export class SubscriptionController {
 
@@ -10,9 +10,8 @@ export class SubscriptionController {
             if (!user_id || !plan_id || !start_date || !end_date) {
                 return sendResponse(res, 400, "Semua field (user_id, plan_id, start_date, end_date) harus diisi");
             }
-            const payload: SubscriptionPayload = {user_id, plan_id, start_date, end_date, status: 'active'};
 
-            const newSubscription = await SubscriptionService.createSubscription(payload);
+            const newSubscription = await SubscriptionService.createSubscription(user_id, plan_id, 'active');
             return sendResponse(res, 201, "Subscription berhasil dibuat", newSubscription);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
