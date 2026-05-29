@@ -7,7 +7,8 @@ import './models/user.model';
 import {connectRabbitMQ} from "./config/rabbitmq_client";
 import {connectRedis} from "./config/redis_client";
 import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
-import {PaymentSubscriber} from "./subscribers/payment.subscribers";
+import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
+import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 
 dotenv.config();
 
@@ -27,7 +28,8 @@ const startServer = async () => {
         await connectRedis();
         await connectRabbitMQ();
         await RabbitMQService.setupExchange();
-        await PaymentSubscriber.start();
+        await PaymentDBSubscriber.start();
+        await PaymentEmailSubscriber.start();
 
         // Start Server
         app.listen(PORT, () => {
