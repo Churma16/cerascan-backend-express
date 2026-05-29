@@ -1,5 +1,6 @@
 import User, {UserAttributes} from "../../models/user.model";
 import bcrypt from "bcryptjs";
+import {Transaction} from "sequelize";
 
 export class UserService {
     static async getAllUsers() {
@@ -56,18 +57,22 @@ export class UserService {
         return user;
     }
 
-    static async upgradeTier(id: number, tier: "free" | "paid") {
+    static async upgradeTier(id: number, planId: number, t?: Transaction) {
         const user = await User.findOne({
             where: {
                 id: id
-            }
+            },
+            transaction: t
         });
+
         if (!user) {
             throw new Error('User tidak ditemukan');
         }
 
-        user.sub_tier = tier
-        await user.save();
+        user.plan_id = planId;
+
+        await user.save({transaction: t});
+
         return user;
     }
 }
