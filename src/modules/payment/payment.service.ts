@@ -1,4 +1,8 @@
 import {Payment} from "../../models";
+import {UserService} from "../user/user.service";
+import sequelize from "../../config/database";
+import {SubscriptionService} from "../subscription/subscription.service";
+import {Transaction} from "sequelize";
 
 export interface PaymentPayload {
     user_id: number;
@@ -11,7 +15,7 @@ export interface PaymentPayload {
 }
 
 export class PaymentService {
-    static async createPayment(payload: PaymentPayload) {
+    static async createPayment(payload: PaymentPayload, t?: Transaction) {
         const newPayment = await Payment.create({
             user_id: payload.user_id,
             plan_id: payload.plan_id,
@@ -20,7 +24,7 @@ export class PaymentService {
             amount: payload.amount,
             payment_type: payload.payment_type,
             status: payload.status,
-        } as any);
+        } as any, {transaction: t});
         return newPayment.toJSON();
     }
 
@@ -73,6 +77,37 @@ export class PaymentService {
         await payment.destroy();
         return {message: `Payment dengan ID ${id} berhasil dihapus`};
     }
+
+    static async processDBPaymentsWebhook(eventData: any) {
+        const segments = eventData.orderId.split("-");
+        const userId = Number(segments[1]);
+        const planId = Number(segments[2]);
+
+        const t = await sequelize.transaction();
+
+        try {
+            await UserService.upgradeTier(userId, planId, t);
+
+            const paymentPayload: PaymentPayload = {
+                user_id: userId,
+                plan_id: planId,
+                order_id: eventData.orderId,
+                transaction_id: eventData.transactionId,
+                amount: eventData.amount,
+                payment_type: eventData.payment_type,
+                status: eventData.status,
+            };
+            await PaymentService.createPayment(paymentPayload, t);
+
+            await SubscriptionService.createSubscription(userId, planId, 'active', t);
+
+            await t.commit();
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
+    }
+
 }
 
 

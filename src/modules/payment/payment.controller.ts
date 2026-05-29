@@ -1,24 +1,36 @@
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {snap} from "../../config/midtrans_client";
-import {PAID_TIER_CONFIG} from "../../config/packages.config";
 import {AuthRequest} from "../../middleware/auth.guard";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 import {PaymentService} from "./payment.service";
+import {PlanService} from "../plan/plan.service";
+import {UserService} from "../user/user.service";
 
 export class PaymentController {
     static async createTransaction(req: AuthRequest, res: Response) {
         try {
             // Frontend cukup kirim userId yang sedang login
             const userId = req.user?.id;
-
             if (!userId) {
                 return sendResponse(res, 400, "User ID tidak boleh kosong");
             }
 
+            const user = await UserService.getUserById(userId);
+            if (!user) {
+                return sendResponse(res, 404, "User tidak ditemukan");
+            }
+
+            const planId: number = req.body.plan_id
+            const selectedPlan = await PlanService.getPlanById(planId);
+            if (!selectedPlan) {
+                return sendResponse(res, 404, `Plan dengan ID ${planId} tidak ditemukan`);
+            }
+
+
             // Harga dan detail diambil langsung dari config backend yang aman
-            const secureAmount = PAID_TIER_CONFIG.price;
-            const orderId = `ORDER-${userId}-PAID-${Date.now()}`;
+            const secureAmount = selectedPlan.price
+            const orderId = `ORDER-${userId}-${planId}-${Date.now()}`;
 
             const parameter = {
                 transaction_details: {
@@ -26,14 +38,14 @@ export class PaymentController {
                     gross_amount: secureAmount
                 },
                 item_details: [{
-                    id: PAID_TIER_CONFIG.id,
+                    id: selectedPlan.id,
                     price: secureAmount,
                     quantity: 1,
-                    name: PAID_TIER_CONFIG.name
+                    name: selectedPlan.name
                 }],
                 customer_details: {
                     first_name: `User ID: ${userId}`,
-                    email: "user@example.com" // Nanti bisa ditarik dari database sesuai userId jika mau riil
+                    email: user.email
                 }
             };
 
@@ -57,13 +69,19 @@ export class PaymentController {
             const orderId = statusResponse.order_id;
             const transactionStatus = statusResponse.transaction_status;
             const fraudStatus = statusResponse.fraud_status;
+            const transactionId = statusResponse.transaction_id;
+            const amount = statusResponse.gross_amount;
+            const paymentType = statusResponse.payment_type;
 
             if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
                 if (fraudStatus === 'accept' || !fraudStatus) {
 
-                    // Siapkan bungkusan data yang akan disiarkan
+                    // Siapkan bungkusan data yang akan disiarkan dengan lengkap dari Midtrans
                     const eventData = {
                         orderId: orderId,
+                        transactionId: transactionId,
+                        amount: amount,
+                        payment_type: paymentType,
                         status: transactionStatus,
                         timestamp: new Date().toISOString()
                     };
