@@ -2,20 +2,40 @@ import {getRabbitChannel} from "../../config/rabbitmq_client";
 
 export class RabbitMQService {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
+    private static readonly DLX_EXCHANGE_NAME = 'cerascan_events_dlx'; // Dead Letter Exchange
+    private static readonly DLX_QUEUE_NAME = 'payment_dead_letter_queue';
 
     // Dipanggil sekali saat server menyala untuk memastikan Exchange ada
     static async setupExchange(): Promise<void> {
         try {
             const channel = getRabbitChannel();
 
+            // Setup main exchange
             await channel.assertExchange(this.EXCHANGE_NAME, 'direct', {
                 durable: true // Exchange tidak hilang jika server restart
             });
 
+            // Setup Dead Letter Exchange untuk error handling
+            await channel.assertExchange(this.DLX_EXCHANGE_NAME, 'direct', {
+                durable: true
+            });
+
+            // Setup Dead Letter Queue untuk pesan yang gagal
+            await channel.assertQueue(this.DLX_QUEUE_NAME, {
+                durable: true
+            });
+
+            await channel.bindQueue(this.DLX_QUEUE_NAME, this.DLX_EXCHANGE_NAME, '#');
+
             console.log(`[RabbitMQ] Exchange '${this.EXCHANGE_NAME}' siap.`);
+            console.log(`[RabbitMQ] Dead Letter Exchange '${this.DLX_EXCHANGE_NAME}' siap.`);
         } catch (error: unknown) {
             console.error('[RabbitMQ] Gagal setup Exchange:', error);
         }
+    }
+
+    static getDLXExchangeName(): string {
+        return this.DLX_EXCHANGE_NAME;
     }
 
     static async publishEvent(routingKey: string, data: unknown): Promise<boolean> {
