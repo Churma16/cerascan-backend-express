@@ -31,11 +31,6 @@ UserOtp.init(
         user_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: {
-                model: User,
-                key: 'id',
-            },
-            onDelete: 'CASCADE',
         },
         otp: {
             type: DataTypes.STRING(6),
