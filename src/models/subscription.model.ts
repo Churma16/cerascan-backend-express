@@ -20,6 +20,9 @@ class Subscription extends Model<SubscriptionAttributes> implements Subscription
     declare start_date: Date;
     declare end_date: Date;
 
+    declare plan?: Plan;
+    declare user?: User;
+
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
 }
