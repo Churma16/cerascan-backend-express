@@ -41,6 +41,7 @@ export class AuthService {
             password: payload.password!,
             role: payload.role!,
             sub_tier: payload.sub_tier!,
+            plan_id: 1,
         })
 
         const userJSON = newUser.toJSON();
@@ -77,6 +78,7 @@ export class AuthService {
             password: payload.password!,
             role: payload.role!,
             sub_tier: payload.sub_tier!,
+            plan_id: 1,
         })
 
         const verificationToken = jwt.sign(
@@ -117,7 +119,8 @@ export class AuthService {
 
         const token = generateToken({
             id: user.id,
-            role: user.role
+            role: user.role,
+            plan_id: user.plan_id
         });
 
         return {
