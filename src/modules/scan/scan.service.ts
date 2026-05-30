@@ -1,48 +1,35 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
-import axios from 'axios';
 import Scan from '../../models/scan.model';
 import {col, fn, literal, Op} from "sequelize";
+import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 
 export class ScanService {
     static async processImage(filePath: string, originalName: string, savedFileName: string) {
-        const startTime = Date.now();
-        try {
-            const fileBuffer = fs.readFileSync(filePath);
-            const blob = new Blob([fileBuffer], {type: 'image/jpeg'});
+        // 1. Hitung ID
+        const ScanCount = await Scan.count();
+        const scanId = '#SCN-' + String(ScanCount + 1).padStart(4, '0');
 
-            const formData = new FormData();
-            formData.append('file', blob, originalName);
+        // 2. Insert ke Database (Status masih pending)
+        const newScan = await Scan.create({
+            scan_id: scanId,
+            file_name: originalName,
+            saved_file_name: savedFileName,
+            prediction: 'processing', // Sedang diproses!
+            confidence: 0,
+            inference_time: '0ms',
+        });
 
-            const microserviceUrl = process.env.MICROSERVICES_URL || 'http://127.0.0.1:8000';
-            const pythonResponse = await axios.post(microserviceUrl + '/predict', formData, {
-                headers: {'Content-Type': 'multipart/form-data'},
-            });
+        // 3. Lemparkan ke RabbitMQ!
+        await RabbitMQService.publishEvent('scan.process', {
+            db_id: newScan.id,
+            scan_id: scanId,
+            file_path: filePath,
+            original_name: originalName
+        });
 
-            const endTime = Date.now();
-            const inferenceTimeMs = endTime - startTime;
-
-            const result = pythonResponse.data;
-
-            const ScanCount = await Scan.count();
-            const scanId = '#SCN-' + String(ScanCount + 1).padStart(4, '0');
-
-            const newScan = await Scan.create({
-                scan_id: scanId,
-                file_name: originalName,
-                saved_file_name: savedFileName,
-                prediction: result.prediction,
-                confidence: result.confidence_score,
-                inference_time: `${inferenceTimeMs}ms`,
-            });
-
-            // fs.unlinkSync(filePath);
-
-            return newScan;
-        } catch (error: any) {
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-            throw new Error('Gagal memproses gambar ke server AI: ' + error.message);
-        }
+        // 4. Langsung return ke Controller (super cepat!)
+        return newScan;
     }
 
     static async getHistory(limit: number) {

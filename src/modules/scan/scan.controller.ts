@@ -15,7 +15,9 @@ export class ScanController {
                 req.file.filename
             );
 
-            return sendResponse(res, 200, 'Scan berhasil', results);
+            // Ubah pesannya, karena hasil AI-nya belum keluar di detik ini
+            return sendResponse(res, 202, 'Gambar diterima dan sedang diproses oleh AI', results);
+
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
