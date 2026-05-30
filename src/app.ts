@@ -9,6 +9,7 @@ import scanRoutes from './modules/scan/scan.routes';
 import dashboardRoute from "./modules/dashboard/dashboard.route";
 import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
+import subscriptionRoute from "./modules/subscription/subscription.route";
 
 const app: Application = express();
 
@@ -33,6 +34,7 @@ app.use('/api/scans', scanRoutes);
 app.use('/api/dashboard', dashboardRoute);
 app.use('/api/payment', paymentRoute);
 app.use('/api/plans', planRoute);
+app.use('/api/subscriptions', subscriptionRoute);
 
 
 app.get('/', (req: Request, res: Response) => {
