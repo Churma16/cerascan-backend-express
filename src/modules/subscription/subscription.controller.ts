@@ -1,6 +1,7 @@
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {SubscriptionService} from "./subscription.service";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 export class SubscriptionController {
 
@@ -85,6 +86,30 @@ export class SubscriptionController {
             return sendResponse(res, 200, result.message, null);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getCurrentUserActivePlan(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            console.log(userId);
+            const activePlan = await SubscriptionService.getActiveSubscriptionsByUserId(userId)
+
+            return sendResponse(res, 200, "Subscription aktif berhasil diambil", activePlan);
+        } catch (error: any) {
+            return sendResponse(res, 500, error);
+        }
+    }
+
+    static async getCurrentUserSubscriptionHistory(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+
+            const subsHistory = await SubscriptionService.getSubscriptionByUserId(userId);
+
+            return sendResponse(res, 200, "Riwayat subscription berhasil diambil", subsHistory);
+        } catch (error: any) {
+            return sendResponse(res, 500, error);
         }
     }
 }

@@ -1,4 +1,4 @@
-import {Subscription} from "../../models";
+import {Plan, Subscription} from "../../models";
 import {PlanService} from "../plan/plan.service";
 import {Transaction} from "sequelize";
 
@@ -56,8 +56,15 @@ export class SubscriptionService {
         return subscription.toJSON();
     }
 
-    static async getSubscriptionByUserId(user_id: number) {
-        const subscriptions = await Subscription.findAll({where: {user_id}});
+    static async getSubscriptionByUserId(user_id: number | undefined) {
+        const subscriptions = await Subscription.findAll({
+            where: {user_id}, include: {
+                model: Plan, as: 'plan'
+            },
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        });
         return subscriptions.map(subscription => subscription.toJSON());
     }
 
@@ -77,6 +84,25 @@ export class SubscriptionService {
         }
         await subscription.destroy();
         return {message: `Subscription dengan ID ${id} berhasil dihapus`};
+    }
+
+    static async getActiveSubscriptionsByUserId(userId: number | undefined) {
+        console.log(userId);
+        const subsDetail = await Subscription.findOne({
+            where: {
+                user_id: userId,
+                status: 'active'
+            },
+            include: {
+                model: Plan,
+                as: "plan"
+            },
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        })
+
+        return subsDetail?.toJSON();
     }
 }
 
