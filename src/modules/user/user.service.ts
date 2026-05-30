@@ -1,6 +1,7 @@
 import User, {UserAttributes} from "../../models/user.model";
 import bcrypt from "bcryptjs";
 import {Transaction} from "sequelize";
+import {Plan} from "../../models";
 
 export class UserService {
     static async getAllUsers() {
@@ -14,7 +15,11 @@ export class UserService {
             where: {
                 id: id
             },
-            attributes: {exclude: ['password']}
+            attributes: {exclude: ['password']},
+            include: [{
+                model: Plan,
+                as: "active_plan"
+            }]
 
         })
         if (!user) {
@@ -75,4 +80,6 @@ export class UserService {
 
         return user;
     }
+
+
 }

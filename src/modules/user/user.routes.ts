@@ -7,7 +7,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.get("/", requireRole(['admin']), UserController.getAll);
-router.get("/profile", UserController.getMe)
+router.get("/profile", UserController.getMe);
 router.get("/:id", UserController.getById);
 router.put("/:id", requireRole(['admin']), UserController.update);
 router.delete("/:id", requireRole(['admin']), UserController.delete);

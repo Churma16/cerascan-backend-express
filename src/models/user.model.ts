@@ -1,5 +1,6 @@
 import {DataTypes, Model} from "sequelize";
 import sequelize from "../config/database";
+import Plan from "./plan.model";
 
 export interface UserAttributes {
     id?: number;
@@ -9,6 +10,7 @@ export interface UserAttributes {
     role: 'admin' | 'operator' | 'user';
     sub_tier: 'free' | 'paid';
     plan_id: number; // Harus ada di DB
+    plan?: Plan;
     verified_at?: Date;
 }
 
@@ -20,6 +22,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
     declare role: 'admin' | 'operator' | 'user';
     declare sub_tier: 'free' | 'paid';
     declare plan_id: number; // Tambahkan ini agar TypeScript tidak protes
+    declare plan: Plan; // Tambahkan ini untuk relasi dengan Plan
     declare verified_at: Date;
 
     declare readonly createdAt: Date;

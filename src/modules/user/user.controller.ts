@@ -78,4 +78,6 @@ export class UserController {
             return sendResponse(res, 500, error);
         }
     }
+
+
 }
