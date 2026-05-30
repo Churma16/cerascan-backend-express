@@ -200,4 +200,14 @@ export class PaymentController {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
     }
+
+    static async getCurrentUserPaymentHistories(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            const payments = await PaymentService.getPaymentByUserId(userId);
+            return sendResponse(res, 200, "Riwayat pembayaran berhasil diambil", payments);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+        }
+    }
 }

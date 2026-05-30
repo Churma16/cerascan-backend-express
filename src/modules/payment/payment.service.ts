@@ -1,4 +1,4 @@
-import {Payment} from "../../models";
+import {Payment, Plan} from "../../models";
 import {UserService} from "../user/user.service";
 import sequelize from "../../config/database";
 import {SubscriptionService} from "../subscription/subscription.service";
@@ -49,8 +49,17 @@ export class PaymentService {
         return payment.toJSON();
     }
 
-    static async getPaymentByUserId(user_id: number) {
-        const payments = await Payment.findAll({where: {user_id}});
+    static async getPaymentByUserId(user_id: number | undefined) {
+        const payments = await Payment.findAll({
+            where: {user_id},
+            include: {
+                model: Plan,
+                as: "plan"
+            },
+            order: [
+                ['createdAt', 'DESC']
+            ]
+        });
         return payments.map(payment => payment.toJSON());
     }
 

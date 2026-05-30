@@ -8,13 +8,13 @@ const router = Router();
 router.post('/checkout', requireAuth, PaymentController.createTransaction);
 router.post('/webhook', PaymentController.handleWebhook);
 
-// CRUD Payment Records routes
-router.post('/records', requireRole(['admin']), PaymentController.create);
-router.get('/records', requireRole(['admin']), PaymentController.getAll);
-router.get('/records/:id', PaymentController.getById);
-router.get('/order/:order_id', PaymentController.getByOrderId);
-router.get('/user/:user_id', PaymentController.getByUserId);
-router.put('/records/:id/status', requireRole(['admin']), PaymentController.updateStatus);
-router.delete('/records/:id', requireRole(['admin']), PaymentController.delete);
+router.get('/me', requireAuth, PaymentController.getCurrentUserPaymentHistories);
+router.get('/', requireRole(['admin']), PaymentController.getAll);
+router.post('/', requireRole(['admin']), PaymentController.create);
+router.get('/users/:user_id', requireRole(['admin']), PaymentController.getByUserId);
+router.get('/orders/:order_id', PaymentController.getByOrderId);
+router.get('/:id', PaymentController.getById);
+router.put('/:id/status', requireRole(['admin']), PaymentController.updateStatus);
+router.delete('/:id', requireRole(['admin']), PaymentController.delete);
 
 export default router;
