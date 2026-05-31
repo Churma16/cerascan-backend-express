@@ -12,6 +12,7 @@ import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
 import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
 import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
+import {CronWorker} from "./worker/cron_worker";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ const startServer = async () => {
         await PaymentEmailSubscriber.start();
         await AiScanSubscriber.start();
 
+        CronWorker.start();
 
         server.listen(PORT, () => {
             console.log(`🚀 API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
