@@ -110,29 +110,55 @@ export class UserQuotaService {
         return true; // Diizinkan!
     }
 
-    static async syncUserQuotaToDB(key: any, redis: any) {
-        const userId = parseInt(key.split(':')[1]);
-        const remainingQuotaStr = await redis.get(key);
+    static async syncUserQuotaToDB(redis: any) {
+        const keys = await redis.keys('user:*:remaining_quota');
 
-        if (!remainingQuotaStr) return;
-        const remainingQuota = parseInt(remainingQuotaStr);
+        if (keys && keys.length > 0) {
+            const redisValues = await redis.mget(keys);
+            const quotaMap = new Map();
+            const userIds: number[] = [];
 
-        // Cari data kuota di database
-        const userQuota = await UserQuota.findOne({where: {user_id: userId}});
-        if (!userQuota) return;
+            keys.forEach((key: string, index: string | number) => {
+                const value = redisValues[index];
+                if (value !== null && value !== undefined) {
+                    const userId = parseInt(key.split(':')[1]);
+                    quotaMap.set(userId, parseInt(value as string));
+                    userIds.push(userId);
+                }
+            });
 
-        // Hitung pemakaian riil: Total dikurangi sisa di Redis
-        const used = userQuota.total_quota - remainingQuota;
+            if (userIds.length > 0) {
+                const userQuotas = await UserQuota.findAll({
+                    where: {user_id: {[Op.in]: userIds}}
+                });
 
-        // Update database
-        userQuota.used_quota = used >= 0 ? used : 0; // Cegah angka minus
-        await userQuota.save();
+                const quotasToUpdate: any[] = [];
 
-        console.log(`[Cron] User ${userId} tersinkronisasi. Terpakai: ${userQuota.used_quota}`);
+                for (const userQuota of userQuotas) {
+                    const remainingQuota = quotaMap.get(userQuota.user_id);
+                    if (remainingQuota !== undefined) {
+                        const used = userQuota.total_quota - remainingQuota;
+                        quotasToUpdate.push({
+                            id: userQuota.id,
+                            user_id: userQuota.user_id,
+                            used_quota: used >= 0 ? used : 0
+                        });
+                    }
+                }
+
+                if (quotasToUpdate.length > 0) {
+                    await UserQuota.bulkCreate(quotasToUpdate, {
+                        updateOnDuplicate: ['used_quota']
+                    });
+                    console.log(`[Cron] Berhasil mensinkronisasi ${quotasToUpdate.length} data user.`);
+                }
+            }
+        }
     }
 
-    static async getExpiredQuotas() {
+    static async downgradeExpiredUserQuota(redis: any) {
         const today = new Date();
+
         const expiredQuotas = await UserQuota.findAll({
             where: {
                 next_reset_date: {
@@ -140,39 +166,47 @@ export class UserQuotaService {
                 }
             }
         });
-        return expiredQuotas.map(quota => quota.toJSON());
-    }
 
-    static async resetAndDowngradeQuota(userId: number, downgradeToFree: boolean = false) {
-        const quota = await UserQuota.findOne({where: {user_id: userId}});
-        if (!quota) {
-            throw new Error(`Quota untuk user ${userId} tidak ditemukan`);
+        if (expiredQuotas.length > 0) {
+            const quotasToReset: any[] = [];
+            const redisPipeline = redis.multi(); // Buka jalur khusus ke Redis untuk antrean tugas
+
+            for (const quota of expiredQuotas) {
+                let newTotalQuota = quota.total_quota;
+
+                if (quota.total_quota > 10) {
+                    newTotalQuota = 10;
+                    // TODO: Anda bisa menambahkan logika update role 'user' menjadi 'free' di tabel Users
+                    // sini
+                }
+
+                const nextMonth = new Date(quota.next_reset_date);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+                // Kumpulkan data untuk update massal DB
+                quotasToReset.push({
+                    id: quota.id,
+                    user_id: quota.user_id,
+                    used_quota: 0,
+                    total_quota: newTotalQuota,
+                    next_reset_date: nextMonth
+                });
+
+                // Titipkan perintah set ke antrean Redis Pipeline
+                const redisKey = `user:${quota.user_id}:remaining_quota`;
+                redisPipeline.set(redisKey, newTotalQuota.toString(), 'EX', 86400);
+            }
+
+            // 1. Eksekusi DB secara massal
+            await UserQuota.bulkCreate(quotasToReset, {
+                updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date']
+            });
+
+            // 2. Eksekusi Redis secara massal
+            await redisPipeline.exec();
+
+            console.log(`[Cron] Berhasil mereset ${quotasToReset.length} user secara massal.`);
         }
-
-        // 1. Reset pemakaian menjadi 0
-        quota.used_quota = 0;
-
-        // 2. Logika Downgrade (Jika Premium, kembalikan ke Free Tier)
-        if (downgradeToFree && quota.total_quota > 10) {
-            quota.total_quota = 10;
-            // TODO: Anda bisa menambahkan logika update role 'user' menjadi 'free' di tabel Users sini
-
-        }
-
-        // 3. Tambahkan masa aktif 1 bulan ke depan untuk bulan berikutnya
-        const nextMonth = new Date(quota.next_reset_date);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        quota.next_reset_date = nextMonth;
-
-        await quota.save();
-        return quota.toJSON();
-    }
-
-    static async resetRedisQuota(userId: number, newQuota: number) {
-        const redis = getRedisClient();
-        const redisKey = `user:${userId}:remaining_quota`;
-        await redis.set(redisKey, newQuota.toString(), 'EX', 86400);
-        return true;
     }
 
 }
