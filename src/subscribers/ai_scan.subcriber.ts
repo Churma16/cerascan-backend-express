@@ -25,13 +25,12 @@ export class AiScanSubscriber {
                     taskData = JSON.parse(msg.content.toString());
                     console.log(`👷 [AI Worker] Memproses gambar: ${taskData.file_name}...`);
 
-                    // 1. SIAPKAN FILE UNTUK DIKIRIM KE PYTHON
                     const fileBuffer = fs.readFileSync(taskData.file_path);
                     const blob = new Blob([fileBuffer], {type: 'image/jpeg'});
                     const formData = new FormData();
                     formData.append('file', blob, taskData.original_name);
 
-                    // 2. TEMBAK API PYTHON ANDA (Sama persis seperti kode lama Anda!)
+
                     const microserviceUrl = process.env.MICROSERVICES_URL || 'http://127.0.0.1:8000';
                     const pythonResponse = await axios.post(microserviceUrl + '/predict', formData, {
                         headers: {'Content-Type': 'multipart/form-data'},
