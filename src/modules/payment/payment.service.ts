@@ -3,6 +3,7 @@ import {UserService} from "../user/user.service";
 import sequelize from "../../config/database";
 import {SubscriptionService} from "../subscription/subscription.service";
 import {Transaction} from "sequelize";
+import {UserQuotaService} from "../user_quota/user_quota.service";
 
 export interface PaymentPayload {
     user_id: number;
@@ -109,6 +110,8 @@ export class PaymentService {
             await PaymentService.createPayment(paymentPayload, t);
 
             await SubscriptionService.createSubscription(userId, planId, 'active', t);
+
+            await UserQuotaService.createUserQuotaFromPayment(userId, planId, t)
 
             await t.commit();
         } catch (error) {
