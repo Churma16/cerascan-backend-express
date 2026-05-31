@@ -2,6 +2,7 @@ import {getRedisClient} from "../../config/redis_client";
 import {PlanService} from "../plan/plan.service";
 import {Op, Transaction} from "sequelize";
 import {UserQuota} from "../../models";
+import {getSocket} from "../../config/websocket_client";
 
 export interface UserQuotaPayload {
     user_id: number;
@@ -107,7 +108,11 @@ export class UserQuotaService {
         // Operasi ini kebal dari race condition walau ditembak ribuan request bersamaan
         await redis.decrBy(quotaKey, totalImages);
 
-        return true; // Diizinkan!
+        this.broadcastCurrentUserLiveQuota(userId).catch(err => {
+            console.error('[Quota] Gagal memancarkan update kuota live:', err);
+        });
+
+        return true;
     }
 
     static async syncUserQuotaToDB(redis: any) {
@@ -197,16 +202,31 @@ export class UserQuotaService {
                 redisPipeline.set(redisKey, newTotalQuota.toString(), 'EX', 86400);
             }
 
-            // 1. Eksekusi DB secara massal
             await UserQuota.bulkCreate(quotasToReset, {
                 updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date']
             });
 
-            // 2. Eksekusi Redis secara massal
             await redisPipeline.exec();
 
             console.log(`[Cron] Berhasil mereset ${quotasToReset.length} user secara massal.`);
         }
+    }
+
+    static async broadcastCurrentUserLiveQuota(userId: number | undefined) {
+        if (!userId) {
+            return null; // Mencegah pencarian key 'user:undefined:remaining_quota'
+        }
+
+        const redis = getRedisClient();
+        const quotaKey = `user:${userId}:remaining_quota`;
+
+        let currentQuota = await redis.get(quotaKey);
+
+        // Kirimkan pembaruan ke klien via WebSocket
+        const io = getSocket();
+        io.to(`user_${userId}_quota_left`).emit("quota_update", currentQuota);
+
+        return currentQuota;
     }
 
 }

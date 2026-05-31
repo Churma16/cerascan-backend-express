@@ -1,6 +1,7 @@
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {UserQuotaService} from "./user_quota.service";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 export class UserQuotaController {
 
@@ -82,6 +83,23 @@ export class UserQuotaController {
 
             const updatedQuota = await UserQuotaService.resetQuota(Number(user_id));
             return sendResponse(res, 200, "Quota berhasil direset", updatedQuota);
+        } catch (error: any) {
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getCurrentUserQuotaLive(req: AuthRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+
+            if (!userId) {
+                return res.status(401).json({message: "Unauthorized"});
+            }
+
+            const userQuota = await UserQuotaService.broadcastCurrentUserLiveQuota(userId);
+
+            // Balas permintaan HTTP dari klien
+            return sendResponse(res, 200, "Kuota berhasil disiarkan secara live", userQuota);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
