@@ -75,37 +75,31 @@ export class UserQuotaService {
         const redis = getRedisClient();
         const quotaKey = `user:${userId}:remaining_quota`;
 
-        // 1. Cek saldo saat ini di Redis
         let currentQuota = await redis.get(quotaKey);
 
-        // 2. CACHE MISS: Data tidak ada di Redis
         if (currentQuota === null) {
-            // Tarik data asli dari PostgreSQL
             const userQuotaRecord = await UserQuota.findOne({
                 where: {user_id: userId}
             });
 
             if (!userQuotaRecord) {
                 console.error(`[Quota] Record kuota tidak ditemukan untuk user ${userId}`);
-                return false; // Tolak akses jika data kuota belum dibuat
+                return false;
             }
 
-            // Hitung sisa kuota riil (Total - Terpakai)
             const remaining = userQuotaRecord.total_quota - userQuotaRecord.used_quota;
             currentQuota = remaining.toString();
 
-            // Simpan ke Redis dengan waktu kedaluwarsa 24 jam (86400 detik)
-            // agar memori Redis tidak penuh oleh user yang sudah tidak aktif
+
             await redis.set(quotaKey, currentQuota, 'EX', 86400);
         }
 
-        // 3. Validasi: Apakah sisa kuota cukup untuk batch scan ini?
+        // Check If any quota remaining
         if (parseInt(currentQuota) < totalImages) {
-            return false; // Ditolak!
+            return false;
         }
 
-        // 4. EKSEKUSI: Potong saldo di Redis secara Atomic
-        // Operasi ini kebal dari race condition walau ditembak ribuan request bersamaan
+        // Decrement the quota in Redis
         await redis.decrBy(quotaKey, totalImages);
 
         this.broadcastCurrentUserLiveQuota(userId).catch(err => {
@@ -160,6 +154,8 @@ export class UserQuotaService {
             }
         }
     }
+
+
     static async downgradeExpiredUserQuota(redis: any) {
         const today = new Date();
 
@@ -173,15 +169,13 @@ export class UserQuotaService {
 
         if (expiredQuotas.length > 0) {
             const quotasToReset: any[] = [];
-            const redisPipeline = redis.multi(); // Buka jalur khusus ke Redis untuk antrean tugas
+            const redisPipeline = redis.multi();
 
             for (const quota of expiredQuotas) {
                 let newTotalQuota = quota.total_quota;
 
                 if (quota.total_quota > 10) {
                     newTotalQuota = 10;
-                    // TODO: Anda bisa menambahkan logika update role 'user' menjadi 'free' di tabel Users
-                    // sini
                 }
 
                 const nextMonth = new Date(quota.next_reset_date);
@@ -196,7 +190,6 @@ export class UserQuotaService {
                     next_reset_date: nextMonth
                 });
 
-                // Titipkan perintah set ke antrean Redis Pipeline
                 const redisKey = `user:${quota.user_id}:remaining_quota`;
                 redisPipeline.set(redisKey, newTotalQuota.toString(), 'EX', 86400);
             }
@@ -213,7 +206,7 @@ export class UserQuotaService {
 
     static async broadcastCurrentUserLiveQuota(userId: number | undefined) {
         if (!userId) {
-            return null; // Mencegah pencarian key 'user:undefined:remaining_quota'
+            return null;
         }
 
         const redis = getRedisClient();
