@@ -5,7 +5,7 @@ import {col, fn, literal, Op} from "sequelize";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 
 export class ScanService {
-    static async processImage(filePath: string, originalName: string, savedFileName: string) {
+    static async processImage(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
         // 1. Hitung ID
         const ScanCount = await Scan.count();
         const scanId = '#SCN-' + String(ScanCount + 1).padStart(4, '0');
@@ -23,6 +23,7 @@ export class ScanService {
         // 3. Lemparkan ke RabbitMQ!
         await RabbitMQService.publishEvent('scan.process', {
             db_id: newScan.id,
+            user_id: userId,
             scan_id: scanId,
             file_path: filePath,
             original_name: originalName

@@ -5,13 +5,17 @@ import {UserQuotaService} from "../user_quota/user_quota.service";
 import {AuthRequest} from "../../middleware/auth.guard";
 
 export class ScanController {
-    static async scanImage(req: Request, res: Response) {
+    static async scanImage(req: AuthRequest, res: Response) {
         try {
+            const userId = req.user?.id;
+
             if (!req.file) {
                 return sendResponse(res, 404, 'No file found');
             }
 
+
             const results = await ScanService.processImage(
+                userId,
                 req.file.path,
                 req.file.originalname,
                 req.file.filename
@@ -35,7 +39,6 @@ export class ScanController {
             const totalImages = files.length;
 
             const hasQuota = await UserQuotaService.checkAndDecrementQuota(userId, totalImages);
-
             if (!hasQuota) {
                 return sendResponse(
                     res,
@@ -44,10 +47,12 @@ export class ScanController {
                 );
             }
 
+
             const pendingScans = [];
 
             for (const file of files) {
                 const result = await ScanService.processImage(
+                    userId,
                     file.path,
                     file.originalname,
                     file.filename

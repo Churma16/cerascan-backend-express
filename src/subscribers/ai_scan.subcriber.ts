@@ -3,6 +3,7 @@ import axios from 'axios';
 import fs from 'fs';
 import {Scan} from "../models";
 import {getSocket} from "../config/websocket_client";
+import {LeaderboardService} from "../modules/leaderboard/leaderboard.service";
 
 export class AiScanSubscriber {
     static async start(): Promise<void> {
@@ -47,6 +48,10 @@ export class AiScanSubscriber {
                     }, {
                         where: {id: taskData.db_id}
                     });
+
+                    if (taskData.user_id && result.prediction) {
+                        await LeaderboardService.recordCompletedScan(taskData.user_id, result.prediction);
+                    }
 
                     // PERBAIKAN 2: Panggil getSocket() untuk mendapatkan instance io
                     const io = getSocket();
