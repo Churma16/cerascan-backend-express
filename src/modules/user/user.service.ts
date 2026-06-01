@@ -1,7 +1,10 @@
 import User, {UserAttributes} from "../../models/user.model";
 import bcrypt from "bcryptjs";
-import {Transaction} from "sequelize";
+import {Op, Sequelize, Transaction} from "sequelize";
 import {Plan} from "../../models";
+import {getNowIndonesiaTime} from "../../utils/time.helper";
+import sequelize from "../../config/database";
+import {SubscriptionService} from "../subscription/subscription.service";
 
 export class UserService {
     static async getAllUsers() {
@@ -81,5 +84,29 @@ export class UserService {
         return user;
     }
 
+    static async downgradeAllExpiredUsers() {
+        const today = getNowIndonesiaTime();
+
+        return await sequelize.transaction(async (t) => {
+            const [updatedUsersCount] = await User.update(
+                {plan_id: 1},
+                {
+                    where: {
+                        id: {
+                            [Op.in]: Sequelize.literal(`(
+                                SELECT user_id FROM "Subscriptions" 
+                                WHERE status = 'active' AND end_date <= '${today}'
+                            )`)
+                        }
+                    },
+                    transaction: t
+                }
+            );
+
+            const updatedSubsCount = await SubscriptionService.expireActiveSubscriptions(today, t);
+
+            return {updatedUsersCount, updatedSubsCount};
+        });
+    }
 
 }
