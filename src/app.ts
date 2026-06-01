@@ -10,6 +10,7 @@ import dashboardRoute from "./modules/dashboard/dashboard.route";
 import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
+import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
 
 const app: Application = express();
 
@@ -35,6 +36,7 @@ app.use('/api/dashboard', dashboardRoute);
 app.use('/api/payment', paymentRoute);
 app.use('/api/plans', planRoute);
 app.use('/api/subscriptions', subscriptionRoute);
+app.use('/api/leaderboards', leaderboardRoute);
 
 
 app.get('/', (req: Request, res: Response) => {
