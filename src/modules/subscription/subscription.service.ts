@@ -1,6 +1,7 @@
-import {Plan, Subscription} from "../../models";
+import {Plan, Subscription, User} from "../../models";
 import {PlanService} from "../plan/plan.service";
-import {Transaction} from "sequelize";
+import {Op, Sequelize, Transaction} from "sequelize";
+import {getNowIndonesiaTime} from "../../utils/time.helper";
 
 export interface SubscriptionPayload {
     user_id: number;
@@ -104,5 +105,44 @@ export class SubscriptionService {
 
         return subsDetail?.toJSON();
     }
-}
 
+    static async downgradeSubscription(t?: Transaction) {
+        const today = getNowIndonesiaTime();
+        const expiredSubsSubquery = Sequelize.literal(`(
+        SELECT user_id 
+        FROM "Subscriptions" 
+        WHERE status = 'active' AND end_date <= '${today}' )`);
+
+        const [updatedUsersCount] = await User.update(
+            {
+                plan_id: 1
+            },
+            {
+                where: {
+                    id: {
+                        [Op.in]: expiredSubsSubquery
+                    }
+                },
+                transaction: t
+            }
+        );
+
+        const [updatedSubsCount] = await Subscription.update(
+            {status: 'expired'},
+            {
+                where: {
+                    end_date: {
+                        [Op.lte]: today
+                    },
+                    status: 'active'
+                },
+                transaction: t
+            }
+        );
+
+        console.log(`[Cron Log] User di-downgrade: ${updatedUsersCount}, Subs di-expired: ${updatedSubsCount}`);
+        return {updatedUsersCount, updatedSubsCount};
+    }
+
+
+}
