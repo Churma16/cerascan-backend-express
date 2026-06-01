@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import {getRedisClient} from '../config/redis_client';
 import {UserQuotaService} from "../modules/user_quota/user_quota.service";
 import {LeaderboardService} from "../modules/leaderboard/leaderboard.service";
+import {UserService} from "../modules/user/user.service";
 
 export class CronWorker {
     static start() {
@@ -19,6 +20,8 @@ export class CronWorker {
                 // ==========================================
                 // TUGAS 2: RESET KERAS (USE IT OR LOSE IT) - OPTIMIZED
                 // ==========================================
+                await UserService.downgradeAllExpiredUsers()
+
                 await UserQuotaService.downgradeExpiredUserQuota(redis);
 
 
