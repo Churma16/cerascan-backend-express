@@ -52,7 +52,7 @@ export class PlanService {
                 user_id: userId,
                 status: 'active'
             },
-            // Asumsi Anda sudah membuat relasi User.belongsTo(Plan) dengan alias 'plan'
+            // Asumsi Anda sudah membuat relasi Subscription.belongsTo(Plan) dengan alias 'plan'
             include: ['plan']
         });
 
@@ -64,7 +64,11 @@ export class PlanService {
 
         // Jika user belum punya paket aktif (atau paket free), langsung kembalikan harga normal
         if (!activeSub || !activeSub.plan || activeSub.plan.price === 0) {
-            return newPlan.price;
+            return {
+                original_price: newPlan.price,
+                discount_prorata: 0,
+                final_price: newPlan.price
+            };
         }
 
         const oldPlan = activeSub.plan;
@@ -79,7 +83,11 @@ export class PlanService {
 
         // Jika sisa hari minus (sudah kedaluwarsa tapi status belum terupdate), harga normal
         if (remainingDays <= 0) {
-            return newPlan.price;
+            return {
+                original_price: newPlan.price,
+                discount_prorata: 0,
+                final_price: newPlan.price
+            };
         }
 
         // 4. Hitung Nilai Sisa (Residual Value)

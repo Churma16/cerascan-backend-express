@@ -86,8 +86,7 @@ export class PlanController {
                 return sendResponse(res, 400, "ID User plan harus berupa angka yang valid");
             }
 
-            const {planId} = req.params
-            console.log(planId)
+            const {planId} = req.params;
             if (!planId || isNaN(Number(planId))) {
                 return sendResponse(res, 400, "ID Plan harus berupa angka yang valid");
             }
@@ -95,7 +94,7 @@ export class PlanController {
             const adjustedPriceData = await PlanService.calculateUpgradePrice(Number(userId), Number(planId));
             return sendResponse(res, 200, "Harga plan yang disesuaikan berhasil dihitung", adjustedPriceData);
         } catch (error: any) {
-            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
 }
