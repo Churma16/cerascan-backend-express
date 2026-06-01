@@ -1,44 +1,34 @@
 import {getRedisClient} from "../../config/redis_client";
 import {getCurrentMonthIdIndonesia} from "../../utils/time.helper";
 import {LeaderboardArchive, User} from "../../models";
+import {Op} from "sequelize";
 
 export class LeaderboardService {
-    /**
-     * Menambahkan poin ke pengguna setiap kali berhasil melakukan scan
-     */
-    static async incrementUserScore(userId: number | undefined, totalImages: number = 1) {
-        if (!userId) {
-            console.warn('[Leaderboard] Skipped incrementUserScore: userId is undefined');
-            return;
-        }
-
-        const redis = getRedisClient();
-        // Buat kunci yang unik untuk setiap bulan, contoh: "leaderboard:scans:2026-05"
-        const currentMonth = getCurrentMonthIdIndonesia();
-        const key = `leaderboard:scans:${currentMonth}`;
-
-        // ZINCRBY: Tambahkan poin ke user. Jika user belum ada, Redis otomatis membuatnya.
-        await redis.zIncrBy(key, totalImages, String(userId));
-    }
 
     static async recordCompletedScan(userId: number, prediction: string) {
         try {
             const redis = getRedisClient();
-            const currentMonth = getCurrentMonthIdIndonesia();
+            const currentPeriod = getCurrentMonthIdIndonesia();
 
-            const rankKey = `leaderboard:rank:${currentMonth}`;
-            const statsKey = `leaderboard:stats:${currentMonth}:user:${userId}`;
+            const redisRankKey = `leaderboard:rank:${currentPeriod}`;
+            const userStatsKey = `leaderboard:stats:${currentPeriod}:user:${userId}`;
 
-            // 1. Tambah +1 ke Total Scan di ZSET (Untuk urutan ranking)
-            await redis.zIncrBy(rankKey, 1, String(userId));
+            const writePipeline = redis.multi();
 
-            // 2. Simpan detail ke HASH
-            await redis.hIncrBy(statsKey, 'total_scans', 1);
+            // Increment total scan
+            writePipeline.zIncrBy(redisRankKey, 1, String(userId));
 
-            // 3. Jika AI bilang ini cacat (bukan 'normal'), tambah metrik defect
+            // Save to hash
+            writePipeline.hIncrBy(userStatsKey, 'total_scans', 1);
+
+            // If prediction is not normal, add to defect
             if (prediction.toLowerCase() !== 'normal') {
-                await redis.hIncrBy(statsKey, 'defect_scans', 1);
+                writePipeline.hIncrBy(userStatsKey, 'defect_scans', 1);
             }
+
+            // Execute Pipeline
+            await writePipeline.exec();
+
         } catch (error: any) {
             console.error(`[Leaderboard] Error recording completed scan: ${error.message}`);
             throw error;
@@ -47,51 +37,71 @@ export class LeaderboardService {
 
     static async getTopUsers(limit: number = 10) {
         const redis = getRedisClient();
-        const currentMonth = getCurrentMonthIdIndonesia();
-        const rankKey = `leaderboard:rank:${currentMonth}`;
+        const currentPeriod = getCurrentMonthIdIndonesia();
+        const redisRankKey = `leaderboard:rank:${currentPeriod}`;
 
         try {
-            // Check if key exists before querying
-            const keyExists = await redis.exists(rankKey);
+            const keyExists = await redis.exists(redisRankKey);
             if (!keyExists) {
-                console.log(`[Leaderboard] No data found for key: ${rankKey}`);
-                return []; // No leaderboard data yet
+                console.log(`[Leaderboard] No data found for key: ${redisRankKey}`);
+                return [];
             }
 
-            // Get top users from sorted set (highest scores first) using REV option
-            const topUserIds = await redis.sendCommand(['ZREVRANGE', rankKey, '0', String(limit - 1)]);
-            const results = [];
+            // Get top users from Redis
+            const rawRankedUserIds = await redis.sendCommand(['ZREVRANGE', redisRankKey, '0', String(limit - 1)]) as string[];
 
-            for (let i = 0; i < topUserIds.length; i++) {
-                const userId = parseInt(topUserIds[i]);
-                if (isNaN(userId)) continue;
+            if (rawRankedUserIds.length === 0) return [];
 
-                const statsKey = `leaderboard:stats:${currentMonth}:user:${userId}`;
+            // Parse string to Number
+            const parsedUserIds = rawRankedUserIds.map(id => parseInt(id)).filter(id => !isNaN(id));
 
-                // Ambil detail total dan defect dari HASH
-                const stats = await redis.hGetAll(statsKey);
-                const user = await User.findByPk(userId, {
-                    attributes: ['id', 'full_name', 'email']
-                });
+            // Get all metrics
+            const metricsPipeline = redis.multi();
+            parsedUserIds.forEach(userId => {
+                const userStatsKey = `leaderboard:stats:${currentPeriod}:user:${userId}`;
+                metricsPipeline.hGetAll(userStatsKey);
+            });
+            const rawUserMetrics = await metricsPipeline.exec();
 
-                if (user) {
-                    results.push({
-                        rank: i + 1,
-                        user_id: user.id,
-                        name: user.full_name,
-                        email: user.email,
-                        total_scans: parseInt(stats.total_scans || '0'),
-                        defect_scans: parseInt(stats.defect_scans || '0'),
-                        ratio: parseInt(stats.total_scans || '0') > 0 ? (parseInt(stats.defect_scans || '0') / parseInt(
-                            stats.total_scans || '0')) : 0
+            // Get all top user data from DB
+            const userProfiles = await User.findAll({
+                where: {
+                    id: {[Op.in]: parsedUserIds}
+                },
+                attributes: ['id', 'full_name', 'email']
+            });
+
+
+            const userProfileMap = new Map();
+            userProfiles.forEach(user => userProfileMap.set(user.id, user));
+
+            // Process Data
+            const leaderboardEntries: any = [];
+
+            parsedUserIds.forEach((userId, index) => {
+                const userProfile = userProfileMap.get(userId);
+                const metrics = rawUserMetrics[index] as Record<string, string>;
+
+                if (userProfile && metrics) {
+                    const totalScans = parseInt(metrics.total_scans || '0');
+                    const defectScans = parseInt(metrics.defect_scans || '0');
+
+                    leaderboardEntries.push({
+                        rank: index + 1,
+                        user_id: userProfile.id,
+                        name: userProfile.full_name,
+                        email: userProfile.email,
+                        total_scans: totalScans,
+                        defect_scans: defectScans,
+                        ratio: totalScans > 0 ? (defectScans / totalScans) : 0
                     });
                 }
-            }
-            console.log(`[Leaderboard] Retrieved ${results.length} top users`);
-            return results;
+            });
+
+            console.log(`[Leaderboard] Retrieved ${leaderboardEntries.length} top users`);
+            return leaderboardEntries;
         } catch (error: any) {
             console.error(`[Leaderboard] Error fetching top users: ${error.message}`);
-            console.error(error);
             throw error;
         }
     }
@@ -121,7 +131,6 @@ export class LeaderboardService {
 
         activeUserIds.forEach((userIdString, index) => {
             const userId = parseInt(userIdString);
-
             const userMetrics = rawStatsResults[index] as Record<string, string>;
 
             if (userMetrics) {
@@ -142,5 +151,4 @@ export class LeaderboardService {
 
         console.log(`✅ [Cron] Tugas 3 Selesai. ${recordsToUpsert.length} rekor leaderboard diamankan ke MySQL.`);
     }
-
 }
