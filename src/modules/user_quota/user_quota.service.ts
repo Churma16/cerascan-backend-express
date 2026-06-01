@@ -119,11 +119,11 @@ export class UserQuotaService {
         const keys = await redis.keys('user:*:remaining_quota');
 
         if (keys && keys.length > 0) {
-            const redisValues = await redis.mget(keys);
+            const redisValues = await redis.mGet(keys);
             const quotaMap = new Map();
             const userIds: number[] = [];
 
-            keys.forEach((key: string, index: string | number) => {
+            keys.forEach((key: string, index: number) => {
                 const value = redisValues[index];
                 if (value !== null && value !== undefined) {
                     const userId = parseInt(key.split(':')[1]);
@@ -160,7 +160,6 @@ export class UserQuotaService {
             }
         }
     }
-
     static async downgradeExpiredUserQuota(redis: any) {
         const today = new Date();
 
