@@ -11,6 +11,7 @@ import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
+import passport from "passport";
 
 const app: Application = express();
 
@@ -28,6 +29,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+app.use(passport.initialize());
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

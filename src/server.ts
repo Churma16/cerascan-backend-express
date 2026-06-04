@@ -13,6 +13,7 @@ import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
 import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
+import {initPassport} from "./config/passport_client";
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ const startServer = async () => {
         await PaymentDBSubscriber.start();
         await PaymentEmailSubscriber.start();
         await AiScanSubscriber.start();
+        initPassport();
 
         CronWorker.start();
 
