@@ -35,6 +35,7 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
 // Pastikan requireAuth sudah dipanggil dulu sebelum requireRole, karena requireRole butuh data user dari requireAuth
 export const requireRole = (roles: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction) => {
+        // console.log(req.user);
         if (!req.user || !roles.includes(req.user.role)) {
             return sendResponse(res, 403, "Akses ditolak. Anda tidak memiliki izin (bukan admin).");
         }
