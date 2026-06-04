@@ -141,6 +141,10 @@ export class AuthService {
             throw new Error('User tidak ditemukan');
         }
 
+        if (!user.password) {
+            throw new Error('User tidak memiliki password');
+        }
+
         const isPasswordMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isPasswordMatch) {
             throw new Error('Password tidak valid');
