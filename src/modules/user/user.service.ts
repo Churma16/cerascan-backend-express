@@ -9,7 +9,11 @@ import {SubscriptionService} from "../subscription/subscription.service";
 export class UserService {
     static async getAllUsers() {
         return await User.findAll({
-            attributes: {exclude: ['password']}
+            attributes: {exclude: ['password']}, include: [{
+                model: Plan,
+                as: "active_plan"
+            }]
+
         });
     }
 
