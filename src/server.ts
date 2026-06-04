@@ -12,7 +12,7 @@ import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
 import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
 import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
-import {CronWorker} from "./worker/cron_worker";
+import {CronWorker} from "./worker/daily_cron.worker";
 
 dotenv.config();
 
