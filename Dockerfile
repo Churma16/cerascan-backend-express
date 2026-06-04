@@ -6,6 +6,9 @@ COPY package*.json ./
 RUN npm install --production
 
 COPY dist ./dist
+COPY .sequelizerc ./
+COPY config ./config
+COPY migrations ./migrations
 
 EXPOSE 5000
 
