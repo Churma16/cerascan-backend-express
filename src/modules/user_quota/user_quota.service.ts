@@ -22,17 +22,19 @@ export class UserQuotaService {
 
     static async createUserQuotaFromPayment(userId: number, planId: number, t?: Transaction) {
         const selectedPlan = await PlanService.getPlanById(planId);
-
         const nextResetDate = new Date(Date.now() + selectedPlan.duration_days * 24 * 60 * 60 * 1000);
 
-        const newQuota = await UserQuota.create({
+        const [userQuota] = await UserQuota.upsert({
             user_id: userId,
             total_quota: selectedPlan.scan_quota,
             used_quota: 0,
             next_reset_date: nextResetDate,
-        }, {transaction: t});
+        }, {
+            transaction: t,
+            returning: true
+        });
 
-        return newQuota.toJSON();
+        return userQuota.toJSON();
     }
 
     static async getUserQuotaByUserId(user_id: number) {
