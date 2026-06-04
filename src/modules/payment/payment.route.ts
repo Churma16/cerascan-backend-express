@@ -9,7 +9,8 @@ router.post('/checkout', requireAuth, PaymentController.createTransaction);
 router.post('/webhook', PaymentController.handleWebhook);
 
 router.get('/me', requireAuth, PaymentController.getCurrentUserPaymentHistories);
-router.get('/', requireRole(['admin']), PaymentController.getAll);
+router.get('/kpi', requireAuth, PaymentController.getPaymentKpi);
+router.get('/', requireAuth, requireRole(['admin']), PaymentController.getAll);
 router.post('/', requireRole(['admin']), PaymentController.create);
 router.get('/users/:user_id', requireRole(['admin']), PaymentController.getByUserId);
 router.get('/orders/:order_id', PaymentController.getByOrderId);

@@ -86,7 +86,6 @@ export class PaymentController {
                         timestamp: new Date().toISOString()
                     };
 
-                    // Teriakkan event ke RabbitMQ dengan kunci 'payment.success'
                     await RabbitMQService.publishEvent('payment.success', eventData);
                 }
             }
@@ -206,6 +205,15 @@ export class PaymentController {
             const userId = req.user?.id;
             const payments = await PaymentService.getPaymentByUserId(userId);
             return sendResponse(res, 200, "Riwayat pembayaran berhasil diambil", payments);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+        }
+    }
+
+    static async getPaymentKpi(req: Request, res: Response) {
+        try {
+            const paymentKpi = await PaymentService.getPaymentKpi();
+            return sendResponse(res, 200, "KPI pembayaran berhasil diambil", paymentKpi);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
