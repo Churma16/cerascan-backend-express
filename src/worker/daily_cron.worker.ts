@@ -13,7 +13,6 @@ export class CronWorker {
             try {
                 // ==========================================
                 // TUGAS 1: SINKRONISASI REDIS KE POSTGRESQL
-                // (Kode Tugas 1 Anda sudah benar dan dipertahankan di sini)
                 // ==========================================
                 await UserQuotaService.syncUserQuotaToDB(redis);
 
