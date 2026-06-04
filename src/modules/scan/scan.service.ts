@@ -78,22 +78,22 @@ export class ScanService {
         return scan;
     }
 
-    static async get7DaysScanDataCount() {
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    static async get7DaysScanDataCount(limitDays: number = 7) {
+        const now = getNowIndonesiaTime();
 
-        const scans = await Scan.findAll({
+        const startDate = new Date(now);
+        startDate.setDate(now.getDate() - (limitDays - 1));
+        startDate.setHours(0, 0, 0, 0);
+
+        const dbScans: any = await Scan.findAll({
             attributes: [
                 [fn('DATE', col('createdAt')), 'date'],
                 [fn('COUNT', col('id')), 'total_scan'],
-                [
-                    literal(`SUM(CASE WHEN prediction != 'normal' THEN 1 ELSE 0 END)`),
-                    'defect_count'
-                ]
+                [literal(`SUM(CASE WHEN prediction != 'normal' THEN 1 ELSE 0 END)`), 'defect_count']
             ],
             where: {
                 createdAt: {
-                    [Op.gte]: sevenDaysAgo
+                    [Op.gte]: startDate
                 }
             },
             group: [fn('DATE', col('createdAt'))],
@@ -101,7 +101,30 @@ export class ScanService {
             raw: true
         });
 
-        return scans;
+        const formatDate = (dateObj: Date) => {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            return `${month}/${day}`;
+        };
+
+        const result: any[] = [];
+
+        for (let i = limitDays - 1; i >= 0; i--) {
+            const targetDate = new Date(now);
+            targetDate.setDate(now.getDate() - i);
+            const dateString = formatDate(targetDate);
+
+            const foundData = dbScans.find((scan: any) => formatDate(new Date(scan.date)) === dateString);
+
+            result.push({
+                date: dateString,
+                total_scan: foundData ? Number(foundData.total_scan) : 0,
+                defect_count: foundData ? String(foundData.defect_count) : "0"
+            });
+        }
+
+        return result;
     }
 
 }
