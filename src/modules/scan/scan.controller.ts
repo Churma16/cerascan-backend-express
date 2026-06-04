@@ -72,9 +72,23 @@ export class ScanController {
         }
     }
 
-    static async getScanHistory(req: Request, res: Response) {
+    static async getScanHistory(req: AuthRequest, res: Response) {
         try {
-            const history = await ScanService.getHistory(50);
+
+            let userId = req.user?.id;
+            if (req.user?.role == 'admin') {
+                userId = undefined
+            }
+            const history = await ScanService.getHistory(50, userId);
+            return sendResponseMulti(res, 200, 'Scan berhasil', history);
+        } catch (error: any) {
+            return sendResponse(res, 500, error.message);
+        }
+    }
+
+    static async getPublicScanHistory(req: Request, res: Response) {
+        try {
+            const history = await ScanService.getHistory(50, null);
             return sendResponseMulti(res, 200, 'Scan berhasil', history);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);

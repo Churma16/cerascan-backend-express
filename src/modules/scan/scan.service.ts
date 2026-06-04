@@ -33,8 +33,17 @@ export class ScanService {
         return newScan;
     }
 
-    static async getHistory(limit: number) {
+    static async getHistory(limit: number, userId?: number | null) {
+        const whereClause: any = {};
+
+        if (userId === null) {
+            whereClause.user_id = null;
+        } else if (userId !== undefined) {
+            whereClause.user_id = userId;
+        }
+
         const scans = await Scan.findAll({
+            where: whereClause,
             order: [['createdAt', 'DESC']],
             limit: limit,
         });
