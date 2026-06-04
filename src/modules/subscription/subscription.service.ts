@@ -44,7 +44,25 @@ export class SubscriptionService {
     }
 
     static async getAllSubscriptions() {
-        const subscriptions = await Subscription.findAll();
+        const subscriptions = await Subscription.findAll({
+            where: {status: "active"},
+            include: [
+                {
+                    model: Plan,
+                    as: "plan"
+                },
+                {
+                    model: User,
+                    as: "user",
+                    include: [
+                        {
+                            model: UserQuota,
+                            as: "user_quota"
+                        }
+                    ]
+                }
+            ],
+        });
         return subscriptions.map(subscription => subscription.toJSON());
     }
 
