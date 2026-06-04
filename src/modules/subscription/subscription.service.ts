@@ -1,4 +1,4 @@
-import {Plan, Subscription} from "../../models";
+import {Plan, Subscription, User, UserQuota} from "../../models";
 import {PlanService} from "../plan/plan.service";
 import {Op, Transaction} from "sequelize";
 
@@ -8,6 +8,8 @@ export interface SubscriptionPayload {
     status: 'active' | 'expired' | 'canceled';
     start_date: Date;
     end_date: Date
+    acquisition_method: string;
+    note: string | undefined;
 }
 
 export class SubscriptionService {
@@ -15,8 +17,8 @@ export class SubscriptionService {
         userId: number,
         planId: number,
         status: SubscriptionPayload["status"] = 'active',
-        t?: Transaction // Parameter opsional
-    ) {
+        acquisitionMethod: string = 'midtrans_payment'
+        , note?: string, t?: Transaction) {
 
         const plan = await PlanService.getPlanById(planId);
         if (!plan) {
@@ -32,7 +34,9 @@ export class SubscriptionService {
             plan_id: planId,
             status: status,
             start_date: startDate,
-            end_date: endDate
+            end_date: endDate,
+            acquisition_method: acquisitionMethod,
+            note: note
         };
 
         // 3. Sisipkan transaksi ke dalam opsi Sequelize

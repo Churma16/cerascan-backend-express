@@ -8,8 +8,10 @@ export interface SubscriptionAttributes {
     user_id: number;
     plan_id: number;
     status: 'active' | 'expired' | 'canceled';
+    acquisition_method: string;
     start_date: Date;
     end_date: Date;
+    note?: string;
 }
 
 class Subscription extends Model<SubscriptionAttributes> implements SubscriptionAttributes {
@@ -17,8 +19,10 @@ class Subscription extends Model<SubscriptionAttributes> implements Subscription
     declare user_id: number;
     declare plan_id: number;
     declare status: 'active' | 'expired' | 'canceled';
+    declare acquisition_method: string;
     declare start_date: Date;
     declare end_date: Date;
+    declare note: string;
 
     declare plan?: Plan;
     declare user?: User;
@@ -47,6 +51,11 @@ Subscription.init(
             allowNull: false,
             defaultValue: 'active',
         },
+        acquisition_method: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'midtrans_payment'
+        },
         start_date: {
             type: DataTypes.DATE,
             allowNull: false,
@@ -55,6 +64,10 @@ Subscription.init(
             type: DataTypes.DATE,
             allowNull: false,
         },
+        note: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        }
     },
     {
         sequelize,
