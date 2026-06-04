@@ -12,12 +12,17 @@ export interface PaymentAttributes {
     amount: number;
     payment_type?: string;
     status: 'pending' | 'settlement' | 'expire' | 'deny';
+
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 class Payment extends Model<PaymentAttributes> implements PaymentAttributes {
     declare id: number;
     declare user_id: number;
+    declare User: User
     declare plan_id: number;
+    declare plan: Plan;
     declare order_id: string;
     declare transaction_id: string;
     declare amount: number;
@@ -74,10 +79,6 @@ Payment.init(
     }
 );
 
-User.hasMany(Payment, {foreignKey: 'user_id', as: 'payments'});
-Payment.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
-Plan.hasMany(Payment, {foreignKey: 'plan_id', as: 'payments'});
-Payment.belongsTo(Plan, {foreignKey: 'plan_id', as: 'plan'});
 
 export default Payment;
 

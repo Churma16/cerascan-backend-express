@@ -17,6 +17,22 @@ Plan.hasMany(User, {
     as: 'users',
 });
 
+User.hasOne(UserQuota, {
+    foreignKey: 'user_id',
+    as: 'user_quota',
+})
+
+UserQuota.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'owner',
+})
+
+// Payments
+User.hasMany(Payment, {foreignKey: 'user_id', as: 'payments'});
+Payment.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
+Plan.hasMany(Payment, {foreignKey: 'plan_id', as: 'payments'});
+Payment.belongsTo(Plan, {foreignKey: 'plan_id', as: 'plan'});
+
 export {
     User,
     UserOtp,
