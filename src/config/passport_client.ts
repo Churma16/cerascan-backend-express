@@ -8,6 +8,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const initPassport = (): void => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.error('[Passport] ERROR FATAL: GOOGLE_CLIENT_ID atau GOOGLE_CLIENT_SECRET tidak ditemukan!');
+        return;
+    }
+
     passport.use(
         new GoogleStrategy(
             {
@@ -17,24 +22,29 @@ export const initPassport = (): void => {
             },
             async (accessToken, refreshToken, profile, done) => {
                 try {
+                    const email = profile.emails?.[0]?.value;
+                    if (!email) {
+                        console.warn(`[Passport] Peringatan: Profil Google ID ${profile.id} tidak membagikan akses email.`);
+                        return done(new Error('Email wajib disertakan dari akun Google'), false);
+                    }
+
                     let user = await User.findOne({where: {googleId: profile.id}});
                     if (user) return done(null, user);
 
-                    const email = profile.emails?.[0].value;
                     user = await User.findOne({where: {email}});
 
                     if (user) {
                         user.googleId = profile.id;
-                        user.avatar = profile.photos?.[0].value || user.avatar;
+                        user.avatar = profile.photos?.[0]?.value || user.avatar;
                         await user.save();
                         return done(null, user);
                     }
 
                     user = await User.create({
-                        full_name: profile.displayName,
-                        email: email as string,
+                        full_name: profile.displayName || 'Pengguna Baru',
+                        email: email,
                         googleId: profile.id,
-                        avatar: profile.photos?.[0].value,
+                        avatar: profile.photos?.[0]?.value || null,
                         role: 'user',
                         sub_tier: 'free',
                         plan_id: 1,
@@ -42,11 +52,19 @@ export const initPassport = (): void => {
                     });
 
                     return done(null, user);
-                } catch (error) {
+                } catch (error: any) {
+                    console.error('\n[Passport] Gagal melakukan autentikasi Google:');
+                    console.error('Pesan Asli:', error.message);
+
+                    if (error.name === 'SequelizeDatabaseError') {
+                        console.error(
+                            '[Passport] DIAGNOSA: Terjadi masalah pada struktur tabel. Kemungkinan besar kolom seperti googleId, sub_tier, atau plan_id belum ditambahkan lewat migrasi.');
+                    }
+
                     return done(error, false);
                 }
             }
         )
     );
-    console.log('[Passport] Google OAuth2 Strategy berhasil diinisialisasi.');
+    console.log('[Passport] ✅ Google OAuth2 Strategy berhasil diinisialisasi.');
 };
