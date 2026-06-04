@@ -24,7 +24,6 @@ export class AiScanSubscriber {
 
                 try {
                     taskData = JSON.parse(msg.content.toString());
-                    console.log(`👷 [AI Worker] Memproses gambar: ${taskData.file_name}...`);
 
                     const fileBuffer = fs.readFileSync(taskData.file_path);
                     const blob = new Blob([fileBuffer], {type: 'image/jpeg'});
@@ -45,6 +44,7 @@ export class AiScanSubscriber {
                         prediction: result.prediction,
                         confidence: result.confidence_score,
                         inference_time: `${inferenceTimeMs}ms`,
+                        user_id: taskData.user_id,
                     }, {
                         where: {id: taskData.db_id}
                     });
