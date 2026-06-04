@@ -42,6 +42,8 @@ const startServer = async () => {
 
         CronWorker.start();
 
+        console.log(`[FRONTEND_URL] Frontend URL is ${process.env.FRONTEND_URL}`);
+
         server.listen(PORT, () => {
             console.log(`🚀 API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
         });
