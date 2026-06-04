@@ -76,9 +76,23 @@ export class SubscriptionService {
 
     static async getSubscriptionByUserId(user_id: number | undefined) {
         const subscriptions = await Subscription.findAll({
-            where: {user_id}, include: {
-                model: Plan, as: 'plan'
-            },
+            where: {user_id},
+            include: [
+                {
+                    model: Plan,
+                    as: 'plan'
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    include: [
+                        {
+                            model: UserQuota,
+                            as: "user_quota"
+                        }
+                    ]
+                }
+            ],
             order: [
                 ['createdAt', 'DESC']
             ]
@@ -111,10 +125,16 @@ export class SubscriptionService {
                 user_id: userId,
                 status: 'active'
             },
-            include: {
-                model: Plan,
-                as: "plan"
-            },
+            include: [
+                {
+                    model: Plan,
+                    as: "plan"
+                },
+                {
+                    model: User,
+                    as: "user"
+                }
+            ],
             order: [
                 ['createdAt', 'DESC']
             ]
