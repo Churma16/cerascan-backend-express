@@ -4,12 +4,17 @@ import {sendResponse} from '../utils/response';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'fallback_secret_key';
 
+declare global {
+    namespace Express {
+        interface User {
+            id: number;
+            role: string;
+            plan_id: number;
+        }
+    }
+}
+
 export interface AuthRequest extends Request {
-    user?: {
-        id: number;
-        role: string;
-        plan_id: number;
-    };
 }
 
 // Check Login
