@@ -3,6 +3,7 @@ import path from 'node:path';
 import Scan from '../../models/scan.model';
 import {col, fn, literal, Op} from "sequelize";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
+import {getNowIndonesiaTime} from "../../utils/time.helper";
 
 export class ScanService {
     static async processImage(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
@@ -18,6 +19,8 @@ export class ScanService {
             prediction: 'processing', // Sedang diproses!
             confidence: 0,
             inference_time: '0ms',
+            user_id: userId,
+
         });
 
         // 3. Lemparkan ke RabbitMQ!
@@ -29,7 +32,6 @@ export class ScanService {
             original_name: originalName
         });
 
-        // 4. Langsung return ke Controller (super cepat!)
         return newScan;
     }
 

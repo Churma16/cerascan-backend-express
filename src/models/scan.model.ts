@@ -10,6 +10,7 @@ export interface ScanAttributes {
     prediction: string;
     confidence: number;
     inference_time: string;
+    user_id?: number;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -23,6 +24,7 @@ class Scan extends Model<ScanAttributes> implements ScanAttributes {
     declare prediction: string;
     declare confidence: number;
     declare inference_time: string;
+    declare user_id: number;
 
     declare readonly createdAt: Date;
     declare readonly updatedAt: Date;
@@ -60,6 +62,10 @@ Scan.init(
             type: DataTypes.STRING(20),
             allowNull: false,
         },
+        user_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        }
     },
     {
         sequelize,
