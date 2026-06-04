@@ -2,13 +2,21 @@ import {Router} from 'express';
 import {ScanController} from './scan.controller';
 import {uploadMiddleware} from '../../middleware/upload';
 import {requireAuth, requireRole} from '../../middleware/auth.guard';
+import {invalidateTrendCache} from "../../middleware/cache_invalidation";
 
 const router = Router();
 
 
-router.get('/history', ScanController.getScanHistory);
-router.post('/', uploadMiddleware.single('image'), ScanController.scanImage);
-router.post('/batch', requireAuth, uploadMiddleware.array('images', 50), ScanController.batchScanImages);
-router.delete('/:id', requireAuth, requireRole(['admin']), ScanController.deleteScan);
+router.get('/history', requireAuth, ScanController.getScanHistory);
+router.get('/history/public', ScanController.getPublicScanHistory);
+router.post('/', uploadMiddleware.single('image'), invalidateTrendCache, ScanController.scanImage);
+router.post(
+    '/batch',
+    requireAuth,
+    uploadMiddleware.array('images', 50),
+    invalidateTrendCache,
+    ScanController.batchScanImages
+);
+router.delete('/:id', requireAuth, invalidateTrendCache, requireRole(['admin']), ScanController.deleteScan);
 
 export default router;
