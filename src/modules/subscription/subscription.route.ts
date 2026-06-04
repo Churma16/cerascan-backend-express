@@ -8,6 +8,7 @@ router.use(requireAuth);
 router.post("/", requireRole(['admin']), SubscriptionController.create);
 router.get("/", SubscriptionController.getAll);
 router.get("/:id", SubscriptionController.getById);
+router.post("/gift", SubscriptionController.giveSubscription)
 router.get("/me/active", SubscriptionController.getCurrentUserActivePlan)
 router.get("/user/me", SubscriptionController.getCurrentUserSubscriptionHistory);
 router.get("/user/:user_id", SubscriptionController.getByUserId);

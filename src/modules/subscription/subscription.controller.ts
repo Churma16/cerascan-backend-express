@@ -2,6 +2,9 @@ import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {SubscriptionService} from "./subscription.service";
 import {AuthRequest} from "../../middleware/auth.guard";
+import {UserService} from "../user/user.service";
+import sequelize from "../../config/database";
+import {UserQuotaService} from "../user_quota/user_quota.service";
 
 export class SubscriptionController {
 
@@ -108,6 +111,43 @@ export class SubscriptionController {
             const subsHistory = await SubscriptionService.getSubscriptionByUserId(userId);
 
             return sendResponse(res, 200, "Riwayat subscription berhasil diambil", subsHistory);
+        } catch (error: any) {
+            return sendResponse(res, 500, error);
+        }
+    }
+
+    static async giveSubscription(req: Request, res: Response) {
+        try {
+            const {user_id, plan_id, acquisition_method, note} = req.body
+            if (!user_id || !plan_id) {
+                return sendResponse(res, 400, "User ID dan Plan ID harus diisi");
+            }
+
+            const t = await sequelize.transaction();
+
+            await SubscriptionService.changeActiveSubsStatus(user_id, "canceled", t)
+
+            const subscription = await SubscriptionService.createSubscription(
+                user_id,
+                plan_id,
+                'active',
+                acquisition_method,
+                note,
+                t
+            );
+
+            const user = await UserService.upgradeTier(user_id, plan_id, t);
+
+            const userQuota = await UserQuotaService.createUserQuotaFromPayment(user_id, plan_id, t);
+            const newQuotaRedis = await UserQuotaService.upsertUserQuotaToRedis(user_id, userQuota.total_quota);
+
+            await t.commit();
+            return sendResponse(
+                res,
+                200,
+                "Subscription berhasil diberikan",
+                {subscription, user, userQuota, newQuotaRedis}
+            );
         } catch (error: any) {
             return sendResponse(res, 500, error);
         }
