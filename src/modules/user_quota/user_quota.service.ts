@@ -221,5 +221,14 @@ export class UserQuotaService {
         return currentQuota;
     }
 
+    static async upsertUserQuotaToRedis(userId: number, planQuota: number) {
+        const redis = getRedisClient();
+        const userQuotaKey = `user:${userId}:remaining_quota`;
+
+        const newQuotaKey = await redis.set(userQuotaKey, planQuota.toString(), 'EX', 86400);
+
+        return newQuotaKey;
+    }
+
 }
 
