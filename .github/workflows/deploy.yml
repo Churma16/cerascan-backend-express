@@ -31,10 +31,10 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "dist/,package.json,package-lock.json,Dockerfile"
+          source: "dist/,package.json,package-lock.json,Dockerfile,migrations/,.sequelizerc"
           target: "/root/ceramic-scanner/backend"
 
-      - name: Restart Express Container
+      - name: Restart Express Container & Run Migrations
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -42,4 +42,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /root/ceramic-scanner
+            
             docker compose up -d --build express-backend
+            
+            sleep 5
+            
+            docker compose exec -T express-backend npx sequelize-cli db:migrate
