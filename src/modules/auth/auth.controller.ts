@@ -2,6 +2,8 @@ import {AuthService} from "./auth.service";
 import {Request, Response} from "express";
 import {sendResponse} from "../../utils/response";
 import {AuthRequest} from "../../middleware/auth.guard";
+import {UserAttributes} from "../../models/user.model";
+import jwt from "jsonwebtoken";
 
 
 export class AuthController {
@@ -62,6 +64,26 @@ export class AuthController {
         } catch (error: any) {
             return sendResponse(res, 401, error.message)
         }
+    }
+
+    static async googleCallback(req: Request, res: Response) {
+        const user = req.user as UserAttributes;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+        if (!user) {
+            // return res.redirect('http://localhost:3000/login?error=auth_failed');
+            return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+        }
+
+        // Generate JWT
+        const token = jwt.sign(
+            {id: user.id, role: user.role, plan_id: user.plan_id},
+            process.env.JWT_SECRET as string,
+            {expiresIn: '1d'}
+        );
+
+
+        res.redirect(`${frontendUrl}/auth/callback?token=${token}`);
     }
 
 
