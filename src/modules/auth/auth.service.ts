@@ -9,6 +9,7 @@ import jwt, {JwtPayload} from "jsonwebtoken";
 import {Profile} from "passport-google-oauth20";
 import {SubscriptionService} from "../subscription/subscription.service";
 import sequelize from "../../config/database";
+import {getRedisClient} from "../../config/redis_client";
 
 dotenv.config();
 
@@ -162,20 +163,33 @@ export class AuthService {
 
         const t = await sequelize.transaction();
 
-        user = await User.create({
-            full_name: profile.displayName,
-            email: userEmail,
-            googleId: profile.id,
-            avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0].value : undefined,
-            role: 'user',
-            sub_tier: 'free',
-            plan_id: 1,
-            verified_at: new Date()
-        }, {transaction: t});
+        try {
+            user = await User.create({
+                full_name: profile.displayName,
+                email: userEmail,
+                googleId: profile.id,
+                avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0].value : undefined,
+                role: 'user',
+                sub_tier: 'free',
+                plan_id: 1,
+                verified_at: new Date()
+            }, {transaction: t});
 
-        await SubscriptionService.initiateFreePlan(user.id, t)
-
-        return user;
+            await SubscriptionService.initiateFreePlan(user.id, t);
+            await t.commit();
+            return user;
+        } catch (error) {
+            await t.rollback();
+            if (user && user.id) {
+                try {
+                    const redis = getRedisClient();
+                    await redis.del(`user:${user.id}:remaining_quota`);
+                } catch (redisErr) {
+                    console.error("Gagal menghapus cache Redis setelah rollback handleGoogleLogin:", redisErr);
+                }
+            }
+            throw error;
+        }
     }
 
 
@@ -333,11 +347,21 @@ export class AuthService {
         activeOtp.is_used = true;
         const t = await sequelize.transaction();
 
-        await activeOtp.save({transaction: t});
-
-        await SubscriptionService.initiateFreePlan(user.id, t)
-
-        return user.id;
+        try {
+            await activeOtp.save({transaction: t});
+            await SubscriptionService.initiateFreePlan(user.id, t);
+            await t.commit();
+            return user.id;
+        } catch (error) {
+            await t.rollback();
+            try {
+                const redis = getRedisClient();
+                await redis.del(`user:${user.id}:remaining_quota`);
+            } catch (redisErr) {
+                console.error("Gagal menghapus cache Redis setelah rollback verifyOtp:", redisErr);
+            }
+            throw error;
+        }
     }
 
     static async sendOtpEmail(toEmail: string, userName: string, otpCode: string) {

@@ -5,6 +5,7 @@ import {AuthRequest} from "../../middleware/auth.guard";
 import {UserService} from "../user/user.service";
 import sequelize from "../../config/database";
 import {UserQuotaService} from "../user_quota/user_quota.service";
+import {getRedisClient} from "../../config/redis_client";
 
 export class SubscriptionController {
 
@@ -117,14 +118,14 @@ export class SubscriptionController {
     }
 
     static async giveSubscription(req: Request, res: Response) {
+        const {user_id, plan_id, acquisition_method, note} = req.body
+        if (!user_id || !plan_id) {
+            return sendResponse(res, 400, "User ID dan Plan ID harus diisi");
+        }
+
+        const t = await sequelize.transaction();
+
         try {
-            const {user_id, plan_id, acquisition_method, note} = req.body
-            if (!user_id || !plan_id) {
-                return sendResponse(res, 400, "User ID dan Plan ID harus diisi");
-            }
-
-            const t = await sequelize.transaction();
-
             await SubscriptionService.changeActiveSubsStatus(user_id, "canceled", t)
 
             const subscription = await SubscriptionService.createSubscription(
@@ -149,7 +150,14 @@ export class SubscriptionController {
                 {subscription, user, userQuota, newQuotaRedis}
             );
         } catch (error: any) {
-            return sendResponse(res, 500, error);
+            await t.rollback();
+            try {
+                const redis = getRedisClient();
+                await redis.del(`user:${user_id}:remaining_quota`);
+            } catch (redisErr) {
+                console.error("Gagal menghapus cache Redis setelah rollback giveSubscription:", redisErr);
+            }
+            return sendResponse(res, 500, error.message || error);
         }
     }
 }
