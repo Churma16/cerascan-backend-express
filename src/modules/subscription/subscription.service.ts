@@ -1,6 +1,7 @@
 import {Plan, Subscription, User, UserQuota} from "../../models";
 import {PlanService} from "../plan/plan.service";
 import {Op, Transaction} from "sequelize";
+import {UserQuotaService} from "../user_quota/user_quota.service";
 
 export interface SubscriptionPayload {
     user_id: number;
@@ -172,4 +173,37 @@ export class SubscriptionService {
         )
         return subscriptions;
     }
+
+    static async initiateFreePlan(userId: number, t?: Transaction) {
+        const newSubscription = await this.createSubscription(
+            userId,
+            1,
+            'active',
+            'free_plan_login',
+            'default_plan_for_new_user',
+            t
+        );
+
+        const freePlan = await PlanService.getPlanById(1);
+        if (!freePlan) {
+            throw new Error('Free plan tidak ditemukan');
+        }
+
+        const userQuotaPayload: any = {
+            user_id: userId,
+            total_quota: freePlan.scan_quota,
+            next_reset_date: new Date(new Date().setDate(new Date().getDate() + freePlan.duration_days))
+        }
+
+        const newUserQuota = await UserQuotaService.createUserQuota(userQuotaPayload, t);
+        const newQuotaRedis = await UserQuotaService.upsertUserQuotaToRedis(userId, freePlan.scan_quota);
+
+        const response = {
+            newSubscription: newSubscription,
+            newUserQuota: newUserQuota,
+            newQuotaRedis: newQuotaRedis
+        }
+        return response
+    }
+
 }
