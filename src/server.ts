@@ -17,6 +17,13 @@ import {initPassport} from "./config/passport_client";
 
 dotenv.config();
 
+// Nonaktifkan console.log di environment Production untuk keamanan dan performa
+if (process.env.NODE_ENV === 'production') {
+    console.log = () => {};
+    console.info = () => {};
+    console.debug = () => {};
+}
+
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
