@@ -65,8 +65,8 @@ export class AiScanSubscriber {
 
                     console.log(`✅ [AI Worker] Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
 
-                    // 4. HAPUS FILE SETELAH SUKSES
-                    if (fs.existsSync(taskData.file_path)) fs.unlinkSync(taskData.file_path);
+                    // 4. HAPUS FILE SETELAH SUKSES (Dikomentari agar gambar tetap disimpan)
+                    // if (fs.existsSync(taskData.file_path)) fs.unlinkSync(taskData.file_path);
 
                     // 5. BERITAHU RABBITMQ TUGAS SELESAI
                     channel.ack(msg);
@@ -74,10 +74,10 @@ export class AiScanSubscriber {
                 } catch (error: any) {
                     console.error(`❌ [AI Worker] Gagal proses API Python:`, error.message);
 
-                    // Hapus file jika gagal total
-                    if (taskData && fs.existsSync(taskData.file_path)) {
-                        fs.unlinkSync(taskData.file_path);
-                    }
+                    // Hapus file jika gagal total (Dikomentari agar gambar tetap disimpan)
+                    // if (taskData && fs.existsSync(taskData.file_path)) {
+                    //     fs.unlinkSync(taskData.file_path);
+                    // }
 
                     // Beritahu RabbitMQ untuk membuang pesan ini
                     channel.nack(msg, false, false);
