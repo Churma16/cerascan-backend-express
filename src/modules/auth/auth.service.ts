@@ -331,7 +331,11 @@ export class AuthService {
         }
 
         activeOtp.is_used = true;
-        await activeOtp.save();
+        const t = await sequelize.transaction();
+
+        await activeOtp.save({transaction: t});
+
+        await SubscriptionService.initiateFreePlan(user.id, t)
 
         return user.id;
     }
@@ -364,7 +368,6 @@ export class AuthService {
             return {success: false, error};
         }
     }
-
 
     private static async hashPassword(newPassword: string) {
         const salt = await bcrypt.genSalt(10);
