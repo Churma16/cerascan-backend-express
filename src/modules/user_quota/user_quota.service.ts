@@ -12,10 +12,12 @@ export interface UserQuotaPayload {
 }
 
 export class UserQuotaService {
-    static async createUserQuota(payload: UserQuotaPayload) {
+    static async createUserQuota(payload: UserQuotaPayload, t?: Transaction) {
         const newQuota = await UserQuota.create({
             ...payload,
             used_quota: payload.used_quota || 0,
+        }, {
+            transaction: t,
         });
         return newQuota.toJSON();
     }
