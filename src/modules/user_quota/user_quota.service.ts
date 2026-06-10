@@ -44,7 +44,21 @@ export class UserQuotaService {
         if (!quota) {
             throw new Error(`Quota untuk user ${user_id} tidak ditemukan`);
         }
-        return quota.toJSON();
+
+        const redis = getRedisClient();
+        const userQuotaKey = `user:${user_id}:remaining_quota`;
+        const remainingQuota = await redis.get(userQuotaKey);
+
+        const quotaJSON = quota.toJSON();
+        if (remainingQuota !== null && remainingQuota !== undefined) {
+            const remaining = parseInt(remainingQuota);
+            quotaJSON.used_quota = quotaJSON.total_quota - remaining;
+            if (quotaJSON.used_quota < 0) {
+                quotaJSON.used_quota = 0;
+            }
+        }
+
+        return quotaJSON;
     }
 
     static async updateUserQuota(user_id: number, payload: Partial<UserQuotaPayload>) {
