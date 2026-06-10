@@ -6,13 +6,15 @@ import dotenv from "dotenv";
 import UserOtp from "../../models/user_otp.model";
 import crypto from "crypto";
 import jwt, {JwtPayload} from "jsonwebtoken";
+import {Profile} from "passport-google-oauth20";
+import {SubscriptionService} from "../subscription/subscription.service";
+import sequelize from "../../config/database";
 
 dotenv.config();
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class AuthService {
-
 
     static async registerUser(data: Partial<UserAttributes>) {
         const existingUser = await User.findOne({
@@ -133,6 +135,49 @@ export class AuthService {
             token
         };
     }
+
+    static async handleGoogleLogin(profile: Profile) {
+        const userEmail = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : '';
+
+        if (!userEmail) {
+            throw new Error("Email tidak ditemukan dari profil Google");
+        }
+
+        let user = await User.findOne({where: {email: userEmail}});
+
+        if (user) {
+            if (!user.googleId) {
+                user.googleId = profile.id;
+                if (!user.avatar && profile.photos && profile.photos.length > 0) {
+                    user.avatar = profile.photos[0].value;
+                }
+
+                if (!user.verified_at) {
+                    user.verified_at = new Date();
+                }
+                await user.save();
+            }
+            return user;
+        }
+
+        const t = await sequelize.transaction();
+
+        user = await User.create({
+            full_name: profile.displayName,
+            email: userEmail,
+            googleId: profile.id,
+            avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0].value : undefined,
+            role: 'user',
+            sub_tier: 'free',
+            plan_id: 1,
+            verified_at: new Date()
+        }, {transaction: t});
+
+        await SubscriptionService.initiateFreePlan(user.id, t)
+
+        return user;
+    }
+
 
     static async changePassword(userId: number, currentPassword: string, newPassword: string) {
         const user = await User.findOne({where: {id: userId}});
