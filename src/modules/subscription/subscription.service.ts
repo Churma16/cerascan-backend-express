@@ -145,7 +145,21 @@ export class SubscriptionService {
             ]
         })
 
-        return subsDetail?.toJSON();
+        if (!subsDetail) return null;
+
+        const subsJson = subsDetail.toJSON() as any;
+        
+        if (subsJson.plan_id === 1) {
+            subsJson.remaining_duration = 'Selamanya';
+        } else {
+            const endDate = new Date(subsJson.end_date);
+            const now = new Date();
+            const diffTime = endDate.getTime() - now.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            subsJson.remaining_duration = diffDays > 0 ? `${diffDays} Hari` : '0 Hari';
+        }
+
+        return subsJson;
     }
 
     static async expireActiveSubscriptions(today: Date, t?: Transaction) {
