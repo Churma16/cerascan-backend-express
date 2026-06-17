@@ -230,7 +230,7 @@ export class LeaderboardService {
 
         if (recordsToUpsert.length > 0) {
             await LeaderboardArchive.bulkCreate(recordsToUpsert, {
-                updateOnDuplicate: ['total_scans', 'defect_scans']
+                updateOnDuplicate: ['total_scans', 'defect_scans', 'updatedAt'] as any[]
             });
         }
 

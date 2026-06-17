@@ -158,6 +158,7 @@ export class UserQuotaService {
                         quotasToUpdate.push({
                             id: userQuota.id,
                             user_id: userQuota.user_id,
+                            total_quota: userQuota.total_quota,
                             used_quota: used >= 0 ? used : 0
                         });
                     }
@@ -165,7 +166,7 @@ export class UserQuotaService {
 
                 if (quotasToUpdate.length > 0) {
                     await UserQuota.bulkCreate(quotasToUpdate, {
-                        updateOnDuplicate: ['used_quota']
+                        updateOnDuplicate: ['used_quota', 'updatedAt'] as any[]
                     });
                     console.log(`[Cron] Berhasil mensinkronisasi ${quotasToUpdate.length} data user.`);
                 }
@@ -199,7 +200,6 @@ export class UserQuotaService {
                 const nextMonth = new Date(quota.next_reset_date);
                 nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-                // Kumpulkan data untuk update massal DB
                 quotasToReset.push({
                     id: quota.id,
                     user_id: quota.user_id,
@@ -213,12 +213,12 @@ export class UserQuotaService {
             }
 
             await UserQuota.bulkCreate(quotasToReset, {
-                updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date']
+                updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date', 'updatedAt'] as any[]
             });
 
             await redisPipeline.exec();
 
-            console.log(`[Cron] Berhasil mereset ${quotasToReset.length} user secara massal.`);
+            console.log(`[Cron] Berhasil mereset ${expiredQuotas.length} user secara massal.`);
         }
     }
 
@@ -231,6 +231,19 @@ export class UserQuotaService {
         const quotaKey = `user:${userId}:remaining_quota`;
 
         let currentQuota = await redis.get(quotaKey);
+
+        if (currentQuota === null) {
+            const userQuotaRecord = await UserQuota.findOne({
+                where: {user_id: userId}
+            });
+            if (userQuotaRecord) {
+                const remaining = userQuotaRecord.total_quota - userQuotaRecord.used_quota;
+                currentQuota = remaining >= 0 ? remaining.toString() : '0';
+                await redis.set(quotaKey, currentQuota, 'EX', 86400);
+            } else {
+                currentQuota = '0';
+            }
+        }
 
         // Kirimkan pembaruan ke klien via WebSocket
         const io = getSocket();
