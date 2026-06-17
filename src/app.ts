@@ -12,6 +12,7 @@ import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
+import modelInsightRoute from "./modules/model_insight/model_insight.route";
 import passport from "passport";
 
 const app: Application = express();
@@ -41,6 +42,7 @@ app.use('/api/payment', paymentRoute);
 app.use('/api/plans', planRoute);
 app.use('/api/subscriptions', subscriptionRoute);
 app.use('/api/leaderboards', leaderboardRoute);
+app.use('/api/model-insights', modelInsightRoute);
 
 
 app.get('/', (req: Request, res: Response) => {
