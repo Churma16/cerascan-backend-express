@@ -3,19 +3,35 @@ import {sendResponse, sendResponseMulti} from "../../utils/response";
 import {DashboardService} from "./dashboard.service";
 import {ScanService} from "../scan/scan.service";
 import {getRedisClient} from "../../config/redis_client";
+import {AuthRequest} from "../../middleware/auth.guard";
 
 export class DashboardController {
-    static async getDashboardKpi(req: Request, res: Response) {
+    static async getDashboardKpi(req: AuthRequest, res: Response) {
         try {
-            const kpiData = await DashboardService.getDashboardKPI();
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            const kpiData = await DashboardService.getDashboardKPI(userId, userRole);
+
             const response = {
                 total_scans: kpiData.totalScans,
                 total_users: kpiData.totalUsers,
                 average_scan_accuracy: kpiData.averageScanAccuracy,
-                unnormal_scan_count: kpiData.unNormalScanCount
+                unnormal_scan_count: kpiData.unNormalScanCount,
+                total_scans_this_month: kpiData.totalScansThisMonth,
+                scan_change_text: kpiData.scanChangeText,
+                defect_rate: kpiData.defectRate,
+                defect_count_this_month: kpiData.defectCountThisMonth,
+                active_users_this_month: kpiData.activeUsersThisMonth,
+                user_quota: kpiData.userQuota,
+                active_subscription: kpiData.activeSubscription
             };
 
-            await getRedisClient().setEx('dashboard:kpi', 300, JSON.stringify(response));
+            if (userId) {
+                await getRedisClient().setEx('dashboard:kpi:' + userId, 300, JSON.stringify(response));
+                console.log('dashboard:kpi:' + userId);
+            } else {
+                await getRedisClient().setEx('dashboard:kpi', 300, JSON.stringify(response));
+            }
 
             return sendResponse(res, 200, "KPI dashboard berhasil diambil", response);
         } catch (error: any) {
@@ -32,11 +48,17 @@ export class DashboardController {
         }
     }
 
-    static async getLatestScanDataTrend(req: Request, res: Response) {
+    static async getLatestScanDataTrend(req: AuthRequest, res: Response) {
         try {
-            const result = await ScanService.get7DaysScanDataCount();
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            const result = await ScanService.getScanDataCountSince(7, userId, userRole);
 
-            await getRedisClient().setEx('dashboard:trend', 3600, JSON.stringify(result));
+            if (userRole && userRole !== 'admin' && userId) {
+                await getRedisClient().setEx('dashboard:trend:' + userId, 3600, JSON.stringify(result));
+            } else {
+                await getRedisClient().setEx('dashboard:trend', 3600, JSON.stringify(result));
+            }
 
             return sendResponseMulti(res, 200, 'Trend scan berhasil diambil', result);
         } catch (error: any) {
