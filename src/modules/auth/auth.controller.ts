@@ -71,7 +71,6 @@ export class AuthController {
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
         if (!user) {
-            // return res.redirect('http://localhost:3000/login?error=auth_failed');
             return res.redirect(`${frontendUrl}/login?error=auth_failed`);
         }
 
