@@ -1,5 +1,6 @@
 import {getRabbitChannel} from "../../config/rabbitmq_client";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
+import {Scan} from "../../models";
 
 export class DLQService {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';
@@ -90,6 +91,20 @@ export class DLQService {
                     const xDeath = msg.properties.headers?.['x-death'];
                     if (xDeath && xDeath.length > 0) {
                         routingKey = xDeath[0]['routing-keys']?.[0] || routingKey;
+                    }
+
+                    // Jika ini adalah event scan, update status di DB kembali ke 'processing'
+                    if (content.db_id) {
+                        try {
+                            await Scan.update({
+                                prediction: 'processing'
+                            }, {
+                                where: { id: content.db_id }
+                            });
+                            console.log(`[DLQ Service] Status DB diubah kembali ke 'processing' untuk ID: ${content.db_id}`);
+                        } catch (dbErr) {
+                            console.error(`[DLQ Service] Gagal update status DB ke 'processing':`, dbErr);
+                        }
                     }
 
                     await RabbitMQService.publishEvent(routingKey, content);

@@ -111,6 +111,20 @@ export class AiScanSubscriber {
                         channel.nack(msg, false, false); // Buang / Kirim ke DLX
                         console.error(`❌ [AI Worker] Gagal setelah ${AiScanSubscriber.MAX_RETRIES} retry, dikirim ke DLX`);
                         
+                        // Update status database ke failed
+                        try {
+                            if (taskData && taskData.db_id) {
+                                await Scan.update({
+                                    prediction: 'failed',
+                                }, {
+                                    where: { id: taskData.db_id }
+                                });
+                                console.log(`[AI Worker] Status DB diubah ke 'failed' untuk ID: ${taskData.db_id}`);
+                            }
+                        } catch (dbErr) {
+                            console.error(`❌ [AI Worker] Gagal mengupdate status database ke failed:`, dbErr);
+                        }
+
                         try {
                             if (taskData && taskData.scan_id) {
                                 const io = getSocket();
