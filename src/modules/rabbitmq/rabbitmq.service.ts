@@ -16,7 +16,7 @@ export class RabbitMQService {
             });
 
             // Setup Dead Letter Exchange untuk error handling
-            await channel.assertExchange(this.DLX_EXCHANGE_NAME, 'direct', {
+            await channel.assertExchange(this.DLX_EXCHANGE_NAME, 'fanout', {
                 durable: true
             });
 
@@ -25,7 +25,7 @@ export class RabbitMQService {
                 durable: true
             });
 
-            await channel.bindQueue(this.DLX_QUEUE_NAME, this.DLX_EXCHANGE_NAME, '#');
+            await channel.bindQueue(this.DLX_QUEUE_NAME, this.DLX_EXCHANGE_NAME, '');
 
             console.log(`[RabbitMQ] Exchange '${this.EXCHANGE_NAME}' siap.`);
             console.log(`[RabbitMQ] Dead Letter Exchange '${this.DLX_EXCHANGE_NAME}' siap.`);
