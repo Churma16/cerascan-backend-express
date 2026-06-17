@@ -12,6 +12,7 @@ import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
+import userQuotaRoute from "./modules/user_quota/user_quota.route";
 import modelInsightRoute from "./modules/model_insight/model_insight.route";
 import passport from "passport";
 
@@ -42,6 +43,7 @@ app.use('/api/payment', paymentRoute);
 app.use('/api/plans', planRoute);
 app.use('/api/subscriptions', subscriptionRoute);
 app.use('/api/leaderboards', leaderboardRoute);
+app.use('/api/user-quotas', userQuotaRoute);
 app.use('/api/model-insights', modelInsightRoute);
 
 
