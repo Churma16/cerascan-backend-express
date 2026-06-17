@@ -10,7 +10,13 @@ export class CacheMiddleware {
      */
     static checkCache(keyPrefix: string, isMulti: boolean = false) {
         return async (req: Request, res: Response, next: NextFunction) => {
-            const cacheKey = keyPrefix;
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            let cacheKey = keyPrefix;
+
+            if (userId && (keyPrefix === 'dashboard:kpi' || keyPrefix === 'dashboard:trend')) {
+                cacheKey = `${keyPrefix}:${userId}`;
+            }
 
             try {
                 const cachedData = await getRedisClient().get(cacheKey);
