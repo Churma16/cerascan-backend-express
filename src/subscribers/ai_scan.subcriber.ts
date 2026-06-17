@@ -110,6 +110,20 @@ export class AiScanSubscriber {
                     } else {
                         channel.nack(msg, false, false); // Buang / Kirim ke DLX
                         console.error(`❌ [AI Worker] Gagal setelah ${AiScanSubscriber.MAX_RETRIES} retry, dikirim ke DLX`);
+                        
+                        try {
+                            if (taskData && taskData.scan_id) {
+                                const io = getSocket();
+                                io.emit('scan_failed', {
+                                    scan_id: taskData.scan_id,
+                                    db_id: taskData.db_id,
+                                    error: error.message
+                                });
+                            }
+                        } catch (socketErr) {
+                            console.error(`❌ [AI Worker] Gagal memancarkan event socket scan_failed:`, socketErr);
+                        }
+
                         AiScanSubscriber.retryMap.delete(messageId);
                     }
                 }
