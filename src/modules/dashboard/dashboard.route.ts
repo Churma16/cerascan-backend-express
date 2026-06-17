@@ -13,5 +13,6 @@ router.get(
     CacheMiddleware.checkCache('dashboard:trend', false),
     DashboardController.getLatestScanDataTrend
 );
-router.get("/scan-history", DashboardController.getLatestScanData)
+router.get("/scan-history", DashboardController.getLatestScanData);
+
 export default router;
