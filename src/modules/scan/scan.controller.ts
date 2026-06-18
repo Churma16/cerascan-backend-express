@@ -74,12 +74,31 @@ export class ScanController {
 
     static async getScanHistory(req: AuthRequest, res: Response) {
         try {
-
             let userId = req.user?.id;
             if (req.user?.role == 'admin') {
-                userId = undefined
+                userId = undefined;
             }
-            const history = await ScanService.getHistory(50, userId);
+
+            const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+            if (page !== undefined && !isNaN(page)) {
+                const result = await ScanService.getPaginatedHistory(page, limit, userId);
+                return res.status(200).json({
+                    meta: {
+                        code: 200,
+                        status: 'success',
+                        message: 'Scan berhasil',
+                        totalItems: result.count,
+                        totalPages: Math.ceil(result.count / limit),
+                        currentPage: page,
+                        limit: limit
+                    },
+                    data: result.rows
+                });
+            }
+
+            const history = await ScanService.getHistory(limit, userId);
             return sendResponseMulti(res, 200, 'Scan berhasil', history);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
