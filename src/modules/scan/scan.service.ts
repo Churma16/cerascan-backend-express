@@ -5,12 +5,12 @@ import Scan from '../../models/scan.model';
 import {col, fn, literal, Op} from "sequelize";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 import {getNowIndonesiaTime} from "../../utils/time.helper";
+import {nanoid} from 'nanoid';
 
 export class ScanService {
     static async processImage(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
         const ScanCount = await Scan.count();
-        const scanId = '#SCN-' + String(ScanCount + 1).padStart(4, '0');
-
+        const scanId = `#SCN-${nanoid(8).toUpperCase()}`;
         const newScan = await Scan.create({
             scan_id: scanId,
             file_name: originalName,
@@ -60,14 +60,14 @@ export class ScanService {
             whereClause.user_id = userId;
         }
 
-        const { count, rows } = await Scan.findAndCountAll({
+        const {count, rows} = await Scan.findAndCountAll({
             where: whereClause,
             order: [['createdAt', 'DESC']],
             limit: limit,
             offset: (page - 1) * limit,
         });
 
-        return { count, rows };
+        return {count, rows};
     }
 
     static async deleteScan(scanId: number) {
@@ -188,16 +188,16 @@ export class ScanService {
 
     static async predictImage(filePath: string, originalName: string) {
         const fileBuffer = fs.readFileSync(filePath);
-        const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+        const blob = new Blob([fileBuffer], {type: 'image/jpeg'});
         const formData = new FormData();
         formData.append('file', blob, originalName);
 
         const microserviceUrl = process.env.MICROSERVICES_URL || 'http://127.0.0.1:8000';
-        
+
         const response = await axios.post(`${microserviceUrl}/predict`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+            headers: {'Content-Type': 'multipart/form-data'},
         });
-        
+
         return response.data;
     }
 
@@ -208,7 +208,7 @@ export class ScanService {
             inference_time: inferenceTime,
             user_id: userId,
         }, {
-            where: { id: dbId }
+            where: {id: dbId}
         });
     }
 
