@@ -1,7 +1,7 @@
 import User, {UserAttributes} from "../../models/user.model";
 import bcrypt from "bcryptjs";
 import {Op, Sequelize, Transaction} from "sequelize";
-import {Plan} from "../../models";
+import {Plan, Subscription} from "../../models";
 import {getNowIndonesiaTime} from "../../utils/time.helper";
 import sequelize from "../../config/database";
 import {SubscriptionService} from "../subscription/subscription.service";
@@ -92,20 +92,33 @@ export class UserService {
         const today = getNowIndonesiaTime();
 
         return await sequelize.transaction(async (t) => {
-            const [updatedUsersCount] = await User.update(
-                {plan_id: 1},
-                {
-                    where: {
-                        id: {
-                            [Op.in]: Sequelize.literal(`(
-                                SELECT user_id FROM "Subscriptions" 
-                                WHERE status = 'active' AND end_date <= '${today}'
-                            )`)
-                        }
-                    },
-                    transaction: t
-                }
-            );
+            const expiredSubs = await Subscription.findAll({
+                attributes: ['user_id'],
+                where: {
+                    status: 'active',
+                    end_date: {
+                        [Op.lte]: today
+                    }
+                },
+                transaction: t
+            });
+
+            const userIds = expiredSubs.map(sub => sub.user_id);
+
+            let updatedUsersCount = 0;
+            if (userIds.length > 0) {
+                [updatedUsersCount] = await User.update(
+                    {plan_id: 1},
+                    {
+                        where: {
+                            id: {
+                                [Op.in]: userIds
+                            }
+                        },
+                        transaction: t
+                    }
+                );
+            }
 
             const updatedSubsCount = await SubscriptionService.expireActiveSubscriptions(today, t);
 
