@@ -15,10 +15,10 @@ export class AiScanSubscriber {
 
         // 1. Setup Queue menggunakan helper
         await RabbitMQHelper.setupQueueWithDLX(
-            channel, 
-            QUEUE_NAME, 
-            'cerascan_events', 
-            'scan.process', 
+            channel,
+            QUEUE_NAME,
+            'cerascan_events',
+            'scan.process',
             RabbitMQService.getDLXExchangeName()
         );
 

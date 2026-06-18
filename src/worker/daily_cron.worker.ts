@@ -23,7 +23,6 @@ export class CronWorker {
 
                 await UserQuotaService.downgradeExpiredUserQuota(redis);
 
-
                 await LeaderboardService.syncLeaderboardDataToDb(redis);
 
                 console.log('[Cron] Tugas malam selesai. PostgreSQL/MySQL dan Redis berhasil disinkronkan!');
