@@ -3,6 +3,7 @@ import Scan from "../../models/scan.model";
 import { UserQuotaService } from "../user_quota/user_quota.service";
 import { SubscriptionService } from "../subscription/subscription.service";
 import { getNowIndonesiaTime } from "../../utils/time.helper";
+import { getRedisClient } from "../../config/redis_client";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
 
@@ -140,9 +141,22 @@ export class DashboardService {
                 ]);
 
                 if (userQuota) {
+                    const redis = getRedisClient();
+                    const userQuotaKey = `user:${userId}:remaining_quota`;
+                    const remainingQuota = await redis.get(userQuotaKey);
+
                     const total = userQuota.total_quota ?? 0;
-                    const used = userQuota.used_quota ?? 0;
-                    const remaining = total - used;
+                    let used = userQuota.used_quota ?? 0;
+                    let remaining = total - used;
+
+                    if (remainingQuota !== null && remainingQuota !== undefined) {
+                        remaining = parseInt(remainingQuota);
+                        used = total - remaining;
+                        if (used < 0) used = 0;
+                    } else {
+                        await redis.set(userQuotaKey, remaining.toString(), 'EX', 86400);
+                    }
+
                     const isLow = total > 0 && (remaining / total <= 0.2 || remaining <= 200);
 
                     quotaResponse = {
