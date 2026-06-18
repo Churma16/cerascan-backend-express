@@ -5,12 +5,11 @@ import Scan from '../../models/scan.model';
 import {col, fn, literal, Op} from "sequelize";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
 import {getNowIndonesiaTime} from "../../utils/time.helper";
-import {nanoid} from 'nanoid';
+import {generateId} from "../../utils/generator";
 
 export class ScanService {
     static async processImage(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
-        const ScanCount = await Scan.count();
-        const scanId = `#SCN-${nanoid(8).toUpperCase()}`;
+        const scanId = `#SCN-${generateId()}`;
         const newScan = await Scan.create({
             scan_id: scanId,
             file_name: originalName,
