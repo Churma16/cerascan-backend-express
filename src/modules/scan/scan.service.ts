@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import axios from 'axios';
 import Scan from '../../models/scan.model';
 import {col, fn, literal, Op} from "sequelize";
 import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
@@ -7,23 +8,20 @@ import {getNowIndonesiaTime} from "../../utils/time.helper";
 
 export class ScanService {
     static async processImage(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
-        // 1. Hitung ID
         const ScanCount = await Scan.count();
         const scanId = '#SCN-' + String(ScanCount + 1).padStart(4, '0');
 
-        // 2. Insert ke Database (Status masih pending)
         const newScan = await Scan.create({
             scan_id: scanId,
             file_name: originalName,
             saved_file_name: savedFileName,
-            prediction: 'processing', // Sedang diproses!
+            prediction: 'processing',
             confidence: 0,
             inference_time: '0ms',
             user_id: userId,
 
         });
 
-        // 3. Lemparkan ke RabbitMQ!
         await RabbitMQService.publishEvent('scan.process', {
             db_id: newScan.id,
             user_id: userId,
@@ -159,6 +157,40 @@ export class ScanService {
         }
 
         return result;
+    }
+
+    static async UpdateScanById(taskData: any) {
+        await Scan.update({
+            prediction: 'failed',
+        }, {
+            where: {id: taskData.db_id}
+        });
+    }
+
+    static async predictImage(filePath: string, originalName: string) {
+        const fileBuffer = fs.readFileSync(filePath);
+        const blob = new Blob([fileBuffer], { type: 'image/jpeg' });
+        const formData = new FormData();
+        formData.append('file', blob, originalName);
+
+        const microserviceUrl = process.env.MICROSERVICES_URL || 'http://127.0.0.1:8000';
+        
+        const response = await axios.post(`${microserviceUrl}/predict`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        
+        return response.data;
+    }
+
+    static async updateScanSuccess(dbId: number, prediction: string, confidence: number, inferenceTime: string, userId?: number) {
+        await Scan.update({
+            prediction,
+            confidence,
+            inference_time: inferenceTime,
+            user_id: userId,
+        }, {
+            where: { id: dbId }
+        });
     }
 
 }
