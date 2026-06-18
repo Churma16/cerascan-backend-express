@@ -8,129 +8,124 @@ export class DLQService {
 
     static async getMessages(limit: number = 100): Promise<any[]> {
         const channel = getRabbitChannel();
-        const messages: any[] = [];
-        const fetchedMsgs: any[] = [];
+        const formattedMessages: any[] = [];
+        const rawRabbitMessages: any[] = [];
 
         try {
-            let msg;
-            while (messages.length < limit) {
-                msg = await channel.get(this.DLQ_QUEUE_NAME, { noAck: false });
-                if (!msg) {
+            while (formattedMessages.length < limit) {
+                const rabbitMessage = await channel.get(this.DLQ_QUEUE_NAME, {noAck: false});
+                if (!rabbitMessage) {
                     break;
                 }
-                fetchedMsgs.push(msg);
+                rawRabbitMessages.push(rabbitMessage);
 
-                let content;
+                let parsedPayload: any;
                 try {
-                    content = JSON.parse(msg.content.toString());
-                } catch (e) {
-                    content = msg.content.toString();
+                    parsedPayload = JSON.parse(rabbitMessage.content.toString());
+                } catch (error) {
+                    parsedPayload = rabbitMessage.content.toString();
                 }
 
-                let originalRoutingKey = msg.fields.routingKey;
-                const xDeath = msg.properties.headers?.['x-death'];
-                if (xDeath && xDeath.length > 0) {
-                    originalRoutingKey = xDeath[0]['routing-keys']?.[0] || originalRoutingKey;
+                let targetRoutingKey = rabbitMessage.fields.routingKey;
+                const deadLetterHeaders = rabbitMessage.properties.headers?.['x-death'];
+                if (deadLetterHeaders && deadLetterHeaders.length > 0) {
+                    targetRoutingKey = deadLetterHeaders[0]['routing-keys']?.[0] || targetRoutingKey;
                 }
 
-                const payloadId = content.orderId || content.db_id || content.scan_id || 'unknown';
+                const trackingId = parsedPayload.orderId || parsedPayload.db_id || parsedPayload.scan_id || 'unknown';
 
-                messages.push({
-                    id: payloadId,
-                    messageId: msg.properties.messageId || `${payloadId}-${msg.fields.deliveryTag}`,
-                    routingKey: originalRoutingKey,
-                    content: content,
-                    timestamp: msg.properties.timestamp ? new Date(msg.properties.timestamp * 1000) : new Date(),
-                    deliveryTag: msg.fields.deliveryTag
+                formattedMessages.push({
+                    id: trackingId,
+                    messageId: rabbitMessage.properties.messageId || `${trackingId}-${rabbitMessage.fields.deliveryTag}`,
+                    routingKey: targetRoutingKey,
+                    content: parsedPayload,
+                    timestamp: rabbitMessage.properties.timestamp ? new Date(rabbitMessage.properties.timestamp * 1000) : new Date(),
+                    deliveryTag: rabbitMessage.fields.deliveryTag
                 });
             }
 
-            for (const fMsg of fetchedMsgs) {
-                channel.nack(fMsg, false, true);
+            for (const rawMsg of rawRabbitMessages) {
+                channel.nack(rawMsg, false, true);
             }
 
-            return messages;
+            return formattedMessages;
         } catch (error) {
-            for (const fMsg of fetchedMsgs) {
+            for (const rawMsg of rawRabbitMessages) {
                 try {
-                    channel.nack(fMsg, false, true);
-                } catch (e) {}
+                    channel.nack(rawMsg, false, true);
+                } catch (nackError) {
+                }
             }
             throw error;
         }
     }
 
-    static async retryMessage(id: string): Promise<boolean> {
+    static async retryMessage(targetId: string): Promise<boolean> {
         const channel = getRabbitChannel();
-        const fetchedMsgs: any[] = [];
-        let success = false;
+        const skippedRabbitMessages: any[] = [];
+        let isRetrySuccessful = false;
 
         try {
-            let msg;
             while (true) {
-                msg = await channel.get(this.DLQ_QUEUE_NAME, { noAck: false });
-                if (!msg) {
+                const rabbitMessage = await channel.get(this.DLQ_QUEUE_NAME, { noAck: false });
+                if (!rabbitMessage) {
                     break;
                 }
 
-                let content;
+                let parsedPayload: any;
                 try {
-                    content = JSON.parse(msg.content.toString());
-                } catch (e) {
-                    content = {};
+                    parsedPayload = JSON.parse(rabbitMessage.content.toString());
+                } catch (error) {
+                    parsedPayload = {};
                 }
 
-                const payloadId = `${content.orderId || content.db_id || content.scan_id || ''}`;
-                
-                if (payloadId === id) {
-                    let routingKey = 'payment.success';
-                    if (content.db_id || content.scan_id) {
-                        routingKey = 'scan.process';
-                    }
-                    
-                    const xDeath = msg.properties.headers?.['x-death'];
-                    if (xDeath && xDeath.length > 0) {
-                        routingKey = xDeath[0]['routing-keys']?.[0] || routingKey;
+                const messagePayloadId = `${parsedPayload.orderId || parsedPayload.db_id || parsedPayload.scan_id || ''}`;
+
+                if (messagePayloadId === targetId) {
+                    let targetRoutingKey = parsedPayload.db_id || parsedPayload.scan_id ? 'scan.process' : 'payment.success';
+
+                    const deadLetterHeaders = rabbitMessage.properties.headers?.['x-death'];
+                    if (deadLetterHeaders && deadLetterHeaders.length > 0) {
+                        targetRoutingKey = deadLetterHeaders[0]['routing-keys']?.[0] || targetRoutingKey;
                     }
 
-                    // Jika ini adalah event scan, update status di DB kembali ke 'processing'
-                    if (content.db_id) {
+                    if (parsedPayload.db_id) {
                         try {
-                            await Scan.update({
-                                prediction: 'processing'
-                            }, {
-                                where: { id: content.db_id }
-                            });
-                            console.log(`[DLQ Service] Status DB diubah kembali ke 'processing' untuk ID: ${content.db_id}`);
-                        } catch (dbErr) {
-                            console.error(`[DLQ Service] Gagal update status DB ke 'processing':`, dbErr);
+                            await Scan.update(
+                                { prediction: 'processing' },
+                                { where: { id: parsedPayload.db_id } }
+                            );
+                            console.log(`[DLQ Service] Status DB diubah kembali ke 'processing' untuk ID: ${parsedPayload.db_id}`);
+                        } catch (dbError) {
+                            console.error(`[DLQ Service] Gagal update status DB ke 'processing':`, dbError);
                         }
                     }
 
-                    await RabbitMQService.publishEvent(routingKey, content);
-                    channel.ack(msg);
-                    success = true;
+                    await RabbitMQService.publishEvent(targetRoutingKey, parsedPayload);
+                    channel.ack(rabbitMessage);
+
+                    isRetrySuccessful = true;
                     break;
                 } else {
-                    fetchedMsgs.push(msg);
+                    skippedRabbitMessages.push(rabbitMessage);
                 }
             }
 
-            for (const fMsg of fetchedMsgs) {
-                channel.nack(fMsg, false, true);
+            for (const skippedMsg of skippedRabbitMessages) {
+                channel.nack(skippedMsg, false, true);
             }
 
-            return success;
+            return isRetrySuccessful;
         } catch (error) {
-            for (const fMsg of fetchedMsgs) {
+            for (const skippedMsg of skippedRabbitMessages) {
                 try {
-                    channel.nack(fMsg, false, true);
-                } catch (e) {}
+                    channel.nack(skippedMsg, false, true);
+                } catch (nackError) {
+                }
             }
             throw error;
         }
     }
-
     static async purgeQueue(): Promise<void> {
         const channel = getRabbitChannel();
         await channel.purgeQueue(this.DLQ_QUEUE_NAME);
