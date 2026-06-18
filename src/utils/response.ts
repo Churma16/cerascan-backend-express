@@ -25,4 +25,28 @@ export const sendResponseMulti = (res: Response, code: number, message: string, 
     });
 };
 
+export const sendResponsePaginated = (
+    res: Response,
+    message: string,
+    rows: any[],
+    count: number,
+    page: number,
+    limit: number,
+    source: string = 'db'
+) => {
+    return res.status(200).json({
+        meta: {
+            code: 200,
+            status: 'success',
+            source: source,
+            message: message,
+            totalItems: count,
+            totalPages: Math.ceil(count / limit),
+            currentPage: page,
+            limit: limit,
+        },
+        data: rows,
+    });
+};
+
 

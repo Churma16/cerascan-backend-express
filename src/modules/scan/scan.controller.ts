@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import {sendResponse, sendResponseMulti} from '../../utils/response';
+import {sendResponse, sendResponseMulti, sendResponsePaginated} from '../../utils/response';
 import {ScanService} from './scan.service';
 import {UserQuotaService} from "../user_quota/user_quota.service";
 import {AuthRequest} from "../../middleware/auth.guard";
@@ -84,18 +84,7 @@ export class ScanController {
 
             if (page !== undefined && !isNaN(page)) {
                 const result = await ScanService.getPaginatedHistory(page, limit, userId);
-                return res.status(200).json({
-                    meta: {
-                        code: 200,
-                        status: 'success',
-                        message: 'Scan berhasil',
-                        totalItems: result.count,
-                        totalPages: Math.ceil(result.count / limit),
-                        currentPage: page,
-                        limit: limit
-                    },
-                    data: result.rows
-                });
+                return sendResponsePaginated(res, 'Scan berhasil', result.rows, result.count, page, limit);
             }
 
             const history = await ScanService.getHistory(limit, userId);
@@ -107,7 +96,15 @@ export class ScanController {
 
     static async getPublicScanHistory(req: Request, res: Response) {
         try {
-            const history = await ScanService.getHistory(50, null);
+            const page = req.query.page ? parseInt(req.query.page as string) : undefined;
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+            if (page !== undefined && !isNaN(page)) {
+                const result = await ScanService.getPaginatedHistory(page, limit, null);
+                return sendResponsePaginated(res, 'Scan berhasil', result.rows, result.count, page, limit);
+            }
+
+            const history = await ScanService.getHistory(limit, null);
             return sendResponseMulti(res, 200, 'Scan berhasil', history);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
