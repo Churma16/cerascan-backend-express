@@ -1,12 +1,12 @@
 import User from "../../models/user.model";
 import Scan from "../../models/scan.model";
-import {UserQuotaService} from "../user_quota/user_quota.service";
-import {SubscriptionService} from "../subscription/subscription.service";
-import {getNowIndonesiaTime} from "../../utils/time.helper";
+import { UserQuotaService } from "../user_quota/user_quota.service";
+import { SubscriptionService } from "../subscription/subscription.service";
+import { getNowIndonesiaTime } from "../../utils/time.helper";
 import dayjs from "dayjs";
-import {Op} from "sequelize";
+import { Op } from "sequelize";
 
-interface DashboardKPIResult {
+export interface DashboardKPIResult {
     totalScans: number;
     totalUsers: number;
     averageScanAccuracy: number;
@@ -32,57 +32,79 @@ interface DashboardKPIResult {
 
 export class DashboardService {
     static async getDashboardKPI(userId: number | undefined, userRole: string | undefined): Promise<DashboardKPIResult> {
-        const whereClause: Record<string, any> = {};
+
+        const whereClauseScan: Record<string, any> = {};
+        const whereClauseUser: Record<string, any> = {};
 
         if (userRole !== 'admin') {
-            whereClause.user_id = userId;
+            whereClauseScan.user_id = userId;
+            whereClauseUser.id = userId;
         }
 
-        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
-
-        const totalScans = await Scan.count({
-            where: {
-                ...whereClause,
-                createdAt: {[Op.gte]: thirtyDaysAgo}
-            },
-        });
-
-        const totalUsers = await User.count({
-            where: whereClause,
-        });
-
-        const avgAccuracy = await Scan.aggregate('confidence', 'avg', {
-            where: whereClause,
-        }) || 0;
-
-        const unNormalScanCount = await Scan.count({
-            where: {
-                ...whereClause,
-                prediction: ['crack', 'scratch', 'stain']
-            }
-        });
-
-        // Current and Last Month Scans & Defect calculations
+        // Setup Tanggal
         const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf('month').toDate();
         const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').startOf('month').toDate();
         const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').endOf('month').toDate();
 
-        const totalScansThisMonth = await Scan.count({
-            where: {
-                ...whereClause,
-                createdAt: { [Op.gte]: startOfCurrentMonth }
-            }
-        });
+        const defectTypes = ['crack', 'scratch', 'stain'];
 
-        const totalScansLastMonth = await Scan.count({
-            where: {
-                ...whereClause,
-                createdAt: {
-                    [Op.gte]: startOfLastMonth,
-                    [Op.lte]: endOfLastMonth
+        const [
+            totalScans,
+            totalUsers,
+            avgAccuracy,
+            unNormalScanCount,
+            totalScansThisMonth,
+            totalScansLastMonth,
+            defectCountThisMonth,
+            activeUsersThisMonth
+        ] = await Promise.all([
+            Scan.count({ where: whereClauseScan }),
+
+            User.count({ where: whereClauseUser }),
+
+            Scan.aggregate('confidence', 'avg', { where: whereClauseScan }),
+
+            Scan.count({
+                where: {
+                    ...whereClauseScan,
+                    prediction: { [Op.in]: defectTypes }
                 }
-            }
-        });
+            }),
+
+            Scan.count({
+                where: {
+                    ...whereClauseScan,
+                    createdAt: { [Op.gte]: startOfCurrentMonth }
+                }
+            }),
+
+            Scan.count({
+                where: {
+                    ...whereClauseScan,
+                    createdAt: {
+                        [Op.gte]: startOfLastMonth,
+                        [Op.lte]: endOfLastMonth
+                    }
+                }
+            }),
+
+            Scan.count({
+                where: {
+                    ...whereClauseScan,
+                    prediction: { [Op.in]: defectTypes },
+                    createdAt: { [Op.gte]: startOfCurrentMonth }
+                }
+            }),
+
+            Scan.count({
+                distinct: true,
+                col: 'user_id',
+                where: {
+                    user_id: { [Op.ne]: null as any },
+                    createdAt: { [Op.gte]: startOfCurrentMonth }
+                }
+            })
+        ]);
 
         let scanChangeText = "Stabil dari bulan lalu";
         if (totalScansLastMonth > 0) {
@@ -97,36 +119,32 @@ export class DashboardService {
             scanChangeText = `Naik 100% dari bulan lalu`;
         }
 
-        const defectCountThisMonth = await Scan.count({
-            where: {
-                ...whereClause,
-                prediction: ['crack', 'scratch', 'stain'],
-                createdAt: { [Op.gte]: startOfCurrentMonth }
-            }
-        });
-
         const defectRate = totalScansThisMonth > 0
             ? Number(((defectCountThisMonth / totalScansThisMonth) * 100).toFixed(1))
             : 0;
 
-        const activeUsersThisMonth = await Scan.count({
-            distinct: true,
-            col: 'user_id',
-            where: {
-                user_id: { [Op.ne]: null as any },
-                createdAt: { [Op.gte]: startOfCurrentMonth }
-            }
-        });
-
         let quotaResponse = null;
+        let subResponse = null;
+
         if (userId) {
             try {
-                const userQuota = await UserQuotaService.getUserQuotaByUserId(userId);
+                const [userQuota, activeSubscription] = await Promise.all([
+                    UserQuotaService.getUserQuotaByUserId(userId).catch(err => {
+                        console.error('Gagal mengambil user quota:', err);
+                        return null;
+                    }),
+                    SubscriptionService.getActiveSubscriptionsByUserId(userId).catch(err => {
+                        console.error('Gagal mengambil active subscription:', err);
+                        return null;
+                    })
+                ]);
+
                 if (userQuota) {
                     const total = userQuota.total_quota ?? 0;
                     const used = userQuota.used_quota ?? 0;
                     const remaining = total - used;
                     const isLow = total > 0 && (remaining / total <= 0.2 || remaining <= 200);
+
                     quotaResponse = {
                         total_quota: total,
                         used_quota: used,
@@ -135,15 +153,7 @@ export class DashboardService {
                         next_reset_date: userQuota.next_reset_date || null
                     };
                 }
-            } catch (err) {
-                console.error('Gagal mengambil user quota untuk dashboard:', err);
-            }
-        }
 
-        let subResponse = null;
-        if (userId) {
-            try {
-                const activeSubscription = await SubscriptionService.getActiveSubscriptionsByUserId(userId);
                 if (activeSubscription) {
                     subResponse = {
                         plan_name: activeSubscription.plan?.name ?? 'Free Plan',
@@ -152,14 +162,14 @@ export class DashboardService {
                     };
                 }
             } catch (err) {
-                console.error('Gagal mengambil active subscription untuk dashboard:', err);
+                console.error('Gagal mengambil data tambahan untuk dashboard:', err);
             }
         }
 
         return {
             totalScans,
             totalUsers,
-            averageScanAccuracy: Number(avgAccuracy),
+            averageScanAccuracy: Number(avgAccuracy) || 0,
             unNormalScanCount,
             totalScansThisMonth,
             scanChangeText,
