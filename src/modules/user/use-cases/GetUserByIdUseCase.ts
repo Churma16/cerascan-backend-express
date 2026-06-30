@@ -1,16 +1,15 @@
-import User from "../../../models/user.model";
-import { Plan } from "../../../models";
+import { IUserRepository } from "../domain/IUserRepository";
+import { SequelizeUserRepository } from "../infrastructure/SequelizeUserRepository";
 
 export class GetUserByIdUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(id: number) {
-        const user = await User.findOne({
-            where: { id },
-            attributes: { exclude: ['password'] },
-            include: [{
-                model: Plan,
-                as: "active_plan"
-            }]
-        });
+        const user = await this.userRepository.findById(id);
 
         if (!user) {
             throw new Error('User tidak ditemukan');
