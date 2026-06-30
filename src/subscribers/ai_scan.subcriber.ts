@@ -7,6 +7,7 @@ import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFai
 import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
 import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
 import {RabbitMQHelper} from "../modules/rabbitmq/rabbitmq.helper";
+import {PythonMlGrpcClient} from "../modules/scan/infrastructure/python_ml_grpc_client";
 
 export class AiScanSubscriber {
     private static readonly MAX_RETRIES = 3;
@@ -37,7 +38,7 @@ export class AiScanSubscriber {
                     taskData = JSON.parse(msg.content.toString());
                     const messageId = `${taskData.db_id}`;
 
-                    const result = await PythonMlClient.predictImage(taskData.file_path, taskData.original_name);
+                    const result = await PythonMlGrpcClient.predictImage(taskData.file_path, taskData.original_name);
                     const inferenceTimeMs = Date.now() - startTime;
 
                     const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
@@ -64,7 +65,7 @@ export class AiScanSubscriber {
                         inference_time: `${inferenceTimeMs}ms`
                     });
 
-                    console.log(`✅ [AI Worker] Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
+                    console.log(`[AI Worker] Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
 
                     channel.ack(msg);
                     AiScanSubscriber.retryMap.delete(messageId);
