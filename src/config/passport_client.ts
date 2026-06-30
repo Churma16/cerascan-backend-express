@@ -1,7 +1,7 @@
 import passport from 'passport';
 import {Strategy as GoogleStrategy} from 'passport-google-oauth20';
 import dotenv from 'dotenv';
-import {AuthService} from "../modules/auth/auth.service";
+import {HandleGoogleLoginUseCase} from "../modules/auth/use-cases/HandleGoogleLoginUseCase";
 
 dotenv.config();
 
@@ -20,7 +20,8 @@ export const initPassport = (): void => {
             },
             async (accessToken, refreshToken, profile, done) => {
                 try {
-                    const user = await AuthService.handleGoogleLogin(profile);
+                    const useCase = new HandleGoogleLoginUseCase();
+                    const user = await useCase.execute(profile);
                     return done(null, user);
                 } catch (error: any) {
                     console.error('\n[Passport] Gagal melakukan autentikasi Google:');
