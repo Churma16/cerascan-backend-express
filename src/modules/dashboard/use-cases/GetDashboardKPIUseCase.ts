@@ -1,9 +1,9 @@
-import User from "../../models/user.model";
-import Scan from "../../models/scan.model";
-import { UserQuotaService } from "../user_quota/user_quota.service";
-import { SubscriptionService } from "../subscription/subscription.service";
-import { getNowIndonesiaTime } from "../../utils/time.helper";
-import { getRedisClient } from "../../config/redis_client";
+import User from "../../../models/user.model";
+import Scan from "../../../models/scan.model";
+import { GetUserQuotaByUserIdUseCase } from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
+import { GetActiveSubscriptionUseCase } from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
+import { getNowIndonesiaTime } from "../../../utils/time.helper";
+import { getRedisClient } from "../../../config/redis_client";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
 
@@ -31,9 +31,8 @@ export interface DashboardKPIResult {
     } | null;
 }
 
-export class DashboardService {
-    static async getDashboardKPI(userId: number | undefined, userRole: string | undefined): Promise<DashboardKPIResult> {
-
+export class GetDashboardKPIUseCase {
+    async execute(userId: number | undefined, userRole: string | undefined): Promise<DashboardKPIResult> {
         const whereClauseScan: Record<string, any> = {};
         const whereClauseUser: Record<string, any> = {};
 
@@ -42,7 +41,6 @@ export class DashboardService {
             whereClauseUser.id = userId;
         }
 
-        // Setup Tanggal
         const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf('month').toDate();
         const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').startOf('month').toDate();
         const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').endOf('month').toDate();
@@ -60,25 +58,20 @@ export class DashboardService {
             activeUsersThisMonth
         ] = await Promise.all([
             Scan.count({ where: whereClauseScan }),
-
             User.count({ where: whereClauseUser }),
-
             Scan.aggregate('confidence', 'avg', { where: whereClauseScan }),
-
             Scan.count({
                 where: {
                     ...whereClauseScan,
                     prediction: { [Op.in]: defectTypes }
                 }
             }),
-
             Scan.count({
                 where: {
                     ...whereClauseScan,
                     createdAt: { [Op.gte]: startOfCurrentMonth }
                 }
             }),
-
             Scan.count({
                 where: {
                     ...whereClauseScan,
@@ -88,7 +81,6 @@ export class DashboardService {
                     }
                 }
             }),
-
             Scan.count({
                 where: {
                     ...whereClauseScan,
@@ -96,7 +88,6 @@ export class DashboardService {
                     createdAt: { [Op.gte]: startOfCurrentMonth }
                 }
             }),
-
             Scan.count({
                 distinct: true,
                 col: 'user_id',
@@ -130,11 +121,11 @@ export class DashboardService {
         if (userId) {
             try {
                 const [userQuota, activeSubscription] = await Promise.all([
-                    UserQuotaService.getUserQuotaByUserId(userId).catch(err => {
+                    (new GetUserQuotaByUserIdUseCase()).execute(userId).catch(err => {
                         console.error('Gagal mengambil user quota:', err);
                         return null;
                     }),
-                    SubscriptionService.getActiveSubscriptionsByUserId(userId).catch(err => {
+                    (new GetActiveSubscriptionUseCase()).execute(userId).catch(err => {
                         console.error('Gagal mengambil active subscription:', err);
                         return null;
                     })

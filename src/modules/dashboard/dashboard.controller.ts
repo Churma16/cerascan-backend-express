@@ -1,7 +1,8 @@
 import {Request, Response} from "express";
 import {sendResponse, sendResponseMulti} from "../../utils/response";
-import {DashboardService} from "./dashboard.service";
-import {ScanService} from "../scan/scan.service";
+import { GetDashboardKPIUseCase } from "./use-cases/GetDashboardKPIUseCase";
+import { GetScanHistoryUseCase } from "../scan/use-cases/GetScanHistoryUseCase";
+import { GetScanDataCountSinceUseCase } from "../scan/use-cases/GetScanDataCountSinceUseCase";
 import {getRedisClient} from "../../config/redis_client";
 import {AuthRequest} from "../../middleware/auth.guard";
 
@@ -10,7 +11,8 @@ export class DashboardController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            const kpiData = await DashboardService.getDashboardKPI(userId, userRole);
+            const useCase = new GetDashboardKPIUseCase();
+            const kpiData = await useCase.execute(userId, userRole);
 
             const response = {
                 total_scans: kpiData.totalScans,
@@ -41,7 +43,8 @@ export class DashboardController {
 
     static async getLatestScanData(req: Request, res: Response) {
         try {
-            const scanData = await ScanService.getHistory(5);
+            const useCase = new GetScanHistoryUseCase();
+            const scanData = await useCase.execute(5);
             return sendResponseMulti(res, 200, "Data scan terbaru berhasil diambil", scanData);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -52,7 +55,8 @@ export class DashboardController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            const result = await ScanService.getScanDataCountSince(7, userId, userRole);
+            const useCase = new GetScanDataCountSinceUseCase();
+            const result = await useCase.execute(7, userId, userRole);
 
             if (userRole && userRole !== 'admin' && userId) {
                 await getRedisClient().setEx('dashboard:trend:' + userId, 3600, JSON.stringify(result));
