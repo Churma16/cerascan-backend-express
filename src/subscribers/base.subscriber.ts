@@ -1,5 +1,5 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
-import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
+import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 
 export abstract class BaseRabbitSubscriber {
     protected abstract readonly exchangeName: string;
@@ -34,7 +34,7 @@ export abstract class BaseRabbitSubscriber {
             await channel.assertQueue(this.queueName, {
                 durable: true,
                 arguments: {
-                    'x-dead-letter-exchange': RabbitMQService.getDLXExchangeName()
+                    'x-dead-letter-exchange': RabbitMQClient.getDLXExchangeName()
                 }
             });
 

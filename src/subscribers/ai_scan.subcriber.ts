@@ -1,8 +1,11 @@
 import {getRabbitChannel} from '../config/rabbitmq_client';
-import {LeaderboardService} from "../modules/leaderboard/leaderboard.service";
-import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
-import {ScanService} from "../modules/scan/scan.service";
-import {NotificationService} from "../modules/notification/notification.service";
+import { RecordCompletedScanUseCase } from "../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
+import { PythonMlClient } from "../modules/scan/infrastructure/python_ml_client";
+import { UpdateScanSuccessUseCase } from "../modules/scan/use-cases/UpdateScanSuccessUseCase";
+import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFailedUseCase";
+import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
+import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
 import {RabbitMQHelper} from "../modules/rabbitmq/rabbitmq.helper";
 
 export class AiScanSubscriber {
@@ -19,7 +22,7 @@ export class AiScanSubscriber {
             QUEUE_NAME,
             'cerascan_events',
             'scan.process',
-            RabbitMQService.getDLXExchangeName()
+            RabbitMQClient.getDLXExchangeName()
         );
 
         // sent one file each
@@ -34,10 +37,11 @@ export class AiScanSubscriber {
                     taskData = JSON.parse(msg.content.toString());
                     const messageId = `${taskData.db_id}`;
 
-                    const result = await ScanService.predictImage(taskData.file_path, taskData.original_name);
+                    const result = await PythonMlClient.predictImage(taskData.file_path, taskData.original_name);
                     const inferenceTimeMs = Date.now() - startTime;
 
-                    await ScanService.updateScanSuccess(
+                    const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
+                    await updateScanSuccessUseCase.execute(
                         taskData.db_id,
                         result.prediction,
                         result.confidence_score,
@@ -46,11 +50,13 @@ export class AiScanSubscriber {
                     );
 
                     if (taskData.user_id && result.prediction) {
-                        await LeaderboardService.recordCompletedScan(taskData.user_id, result.prediction);
+                        const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
+                        await recordCompletedScanUseCase.execute(taskData.user_id, result.prediction);
                     }
 
                     // 4. Kirim Notifikasi menggunakan service terpisah
-                    NotificationService.emitScanCompleted({
+                    const emitScanCompletedUseCase = new EmitScanCompletedUseCase();
+                    await emitScanCompletedUseCase.execute({
                         db_id: taskData.db_id,
                         scan_id: taskData.scan_id,
                         prediction: result.prediction,
@@ -91,7 +97,8 @@ export class AiScanSubscriber {
 
                         try {
                             if (taskData && taskData.db_id) {
-                                await ScanService.UpdateScanById(taskData);
+                                const updateScanFailedUseCase = new UpdateScanFailedUseCase();
+                                await updateScanFailedUseCase.execute(taskData.db_id);
                                 console.log(`[AI Worker] Status DB diubah ke 'failed' untuk ID: ${taskData.db_id}`);
                             }
                         } catch (dbErr) {
@@ -100,7 +107,8 @@ export class AiScanSubscriber {
 
                         try {
                             if (taskData && taskData.scan_id) {
-                                NotificationService.emitScanFailed({
+                                const emitScanFailedUseCase = new EmitScanFailedUseCase();
+                                await emitScanFailedUseCase.execute({
                                     scan_id: taskData.scan_id,
                                     db_id: taskData.db_id,
                                     error: error.message

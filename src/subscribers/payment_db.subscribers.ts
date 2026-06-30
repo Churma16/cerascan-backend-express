@@ -1,6 +1,6 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import { ProcessPaymentWebhookUseCase } from "../modules/payment/use-cases/ProcessPaymentWebhookUseCase";
-import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
+import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 
 
 export class PaymentDBSubscriber {
@@ -25,7 +25,7 @@ export class PaymentDBSubscriber {
             await channel.assertQueue(this.QUEUE_NAME, {
                 durable: true, // Antrean tidak hilang walau server restart
                 arguments: {
-                    'x-dead-letter-exchange': RabbitMQService.getDLXExchangeName()
+                    'x-dead-letter-exchange': RabbitMQClient.getDLXExchangeName()
                 }
             });
 

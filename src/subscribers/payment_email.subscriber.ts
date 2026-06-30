@@ -1,6 +1,6 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import { SendPaymentEmailUseCase } from "../modules/email/use-cases/SendPaymentEmailUseCase";
-import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
+import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 
 export class PaymentEmailSubscriber {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
@@ -24,7 +24,7 @@ export class PaymentEmailSubscriber {
             await channel.assertQueue(this.QUEUE_NAME, {
                 durable: true,
                 arguments: {
-                    'x-dead-letter-exchange': RabbitMQService.getDLXExchangeName()
+                    'x-dead-letter-exchange': RabbitMQClient.getDLXExchangeName()
                 }
             })
 
