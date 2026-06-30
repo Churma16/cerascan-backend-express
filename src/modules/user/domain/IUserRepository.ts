@@ -11,4 +11,6 @@ export interface IUserRepository {
     update(id: number, payload: Partial<UserAttributes>, transaction?: Transaction): Promise<number>;
     destroy(id: number, transaction?: Transaction): Promise<void>;
     bulkUpdatePlan(userIds: number[], planId: number, transaction?: Transaction): Promise<number>;
+    findByIds(ids: number[], transaction?: Transaction): Promise<User[]>;
+    count(options?: { where?: any; transaction?: Transaction }): Promise<number>;
 }

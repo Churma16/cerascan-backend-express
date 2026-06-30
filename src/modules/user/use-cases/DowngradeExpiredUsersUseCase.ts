@@ -1,10 +1,10 @@
-import { Subscription } from "../../../models";
 import { Op } from "sequelize";
 import sequelize from "../../../config/database";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
 import { ExpireActiveSubscriptionsUseCase } from "../../subscription/use-cases/ExpireActiveSubscriptionsUseCase";
 import { IUserRepository } from "../domain/IUserRepository";
 import { SequelizeUserRepository } from "../infrastructure/SequelizeUserRepository";
+import { SequelizeSubscriptionRepository } from "../../subscription/infrastructure/SequelizeSubscriptionRepository";
 
 export class DowngradeExpiredUsersUseCase {
     private userRepository: IUserRepository;
@@ -17,7 +17,8 @@ export class DowngradeExpiredUsersUseCase {
         const today = getNowIndonesiaTime();
 
         return await sequelize.transaction(async (t) => {
-            const expiredSubs = await Subscription.findAll({
+            const subscriptionRepository = new SequelizeSubscriptionRepository();
+            const expiredSubs = await subscriptionRepository.findAll({
                 attributes: ['user_id'],
                 where: {
                     status: 'active',

@@ -71,4 +71,16 @@ export class SequelizeUserRepository implements IUserRepository {
         );
         return affectedCount;
     }
+
+    async findByIds(ids: number[], transaction?: Transaction): Promise<User[]> {
+        return await User.findAll({
+            where: { id: { [Op.in]: ids } },
+            attributes: ['id', 'full_name', 'email'],
+            transaction
+        });
+    }
+
+    async count(options?: { where?: any; transaction?: Transaction }): Promise<number> {
+        return await User.count(options);
+    }
 }
