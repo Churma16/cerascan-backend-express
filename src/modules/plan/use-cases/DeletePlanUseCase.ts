@@ -1,12 +1,19 @@
-import { Plan } from "../../../models";
+import { IPlanRepository } from "../domain/IPlanRepository";
+import { SequelizePlanRepository } from "../infrastructure/SequelizePlanRepository";
 
 export class DeletePlanUseCase {
+    private planRepository: IPlanRepository;
+
+    constructor(planRepository: IPlanRepository = new SequelizePlanRepository()) {
+        this.planRepository = planRepository;
+    }
+
     async execute(id: number) {
-        const plan = await Plan.findByPk(id);
+        const plan = await this.planRepository.findByPk(id);
         if (!plan) {
             throw new Error(`Plan dengan ID ${id} tidak ditemukan`);
         }
-        await plan.destroy();
+        await this.planRepository.destroy(id);
         return { message: `Plan dengan ID ${id} berhasil dihapus` };
     }
 }

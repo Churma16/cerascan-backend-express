@@ -1,7 +1,15 @@
-import { Plan, Subscription } from "../../../models";
+import { Subscription } from "../../../models";
 import { calculateRemainingDays, calculateResidualValue, calculateAdjustedPrice } from "../domain/plan.domain";
+import { IPlanRepository } from "../domain/IPlanRepository";
+import { SequelizePlanRepository } from "../infrastructure/SequelizePlanRepository";
 
 export class CalculateUpgradePriceUseCase {
+    private planRepository: IPlanRepository;
+
+    constructor(planRepository: IPlanRepository = new SequelizePlanRepository()) {
+        this.planRepository = planRepository;
+    }
+
     async execute(userId: number, newPlanId: number) {
         const activeSub = await Subscription.findOne({
             where: {
@@ -11,7 +19,7 @@ export class CalculateUpgradePriceUseCase {
             include: ['plan']
         });
 
-        const newPlan = await Plan.findByPk(newPlanId);
+        const newPlan = await this.planRepository.findByPk(newPlanId);
         if (!newPlan) {
             throw new Error(`Plan tujuan dengan ID ${newPlanId} tidak ditemukan`);
         }

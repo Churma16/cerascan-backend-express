@@ -1,4 +1,5 @@
-import { Plan } from "../../../models";
+import { IPlanRepository } from "../domain/IPlanRepository";
+import { SequelizePlanRepository } from "../infrastructure/SequelizePlanRepository";
 
 export interface CreatePlanInput {
     name: string;
@@ -8,8 +9,14 @@ export interface CreatePlanInput {
 }
 
 export class CreatePlanUseCase {
+    private planRepository: IPlanRepository;
+
+    constructor(planRepository: IPlanRepository = new SequelizePlanRepository()) {
+        this.planRepository = planRepository;
+    }
+
     async execute(payload: CreatePlanInput) {
-        const newPlan = await Plan.create(payload);
+        const newPlan = await this.planRepository.create(payload);
         return newPlan.toJSON();
     }
 }
