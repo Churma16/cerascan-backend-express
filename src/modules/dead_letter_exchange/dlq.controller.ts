@@ -1,11 +1,14 @@
-import {Request, Response} from "express";
-import {sendResponse, sendResponseMulti} from "../../utils/response";
-import {DLQService} from "./dlq.service";
+import { Request, Response } from "express";
+import { sendResponse, sendResponseMulti } from "../../utils/response";
+import { GetDlqMessagesUseCase } from "./use-cases/GetDlqMessagesUseCase";
+import { RetryDlqMessageUseCase } from "./use-cases/RetryDlqMessageUseCase";
+import { PurgeDlqQueueUseCase } from "./use-cases/PurgeDlqQueueUseCase";
 
 export class DLQController {
     static async getDLQMessages(req: Request, res: Response) {
         try {
-            const messages = await DLQService.getMessages();
+            const useCase = new GetDlqMessagesUseCase();
+            const messages = await useCase.execute();
             return sendResponseMulti(res, 200, "Daftar antrean gagal berhasil diambil", messages);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -18,7 +21,9 @@ export class DLQController {
             if (!id) {
                 return sendResponse(res, 400, "Payload ID wajib disertakan");
             }
-            const success = await DLQService.retryMessage(String(id));
+
+            const useCase = new RetryDlqMessageUseCase();
+            const success = await useCase.execute(String(id));
             if (success) {
                 return sendResponse(res, 200, `Pesan dengan ID ${id} berhasil dikirim ulang ke RabbitMQ`);
             } else {
@@ -31,7 +36,8 @@ export class DLQController {
 
     static async purgeDLQ(req: Request, res: Response) {
         try {
-            await DLQService.purgeQueue();
+            const useCase = new PurgeDlqQueueUseCase();
+            await useCase.execute();
             return sendResponse(res, 200, "Seluruh antrean gagal berhasil dibersihkan");
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
