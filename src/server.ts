@@ -8,7 +8,7 @@ import './models/user.model';
 import {connectRabbitMQ} from "./config/rabbitmq_client";
 import {connectRedis} from "./config/redis_client";
 import {initSocket} from "./config/websocket_client"; // BARU: Import inisialisasi Socket.io
-import {RabbitMQService} from "./modules/rabbitmq/rabbitmq.service";
+import {RabbitMQClient} from "./modules/rabbitmq/infrastructure/rabbitmq.client";
 import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
 import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
@@ -39,7 +39,7 @@ const startServer = async () => {
 
         await connectRedis();
         await connectRabbitMQ();
-        await RabbitMQService.setupExchange();
+        await RabbitMQClient.setupExchange();
 
         // Nyalakan semua Subscriber
         await PaymentDBSubscriber.start();
