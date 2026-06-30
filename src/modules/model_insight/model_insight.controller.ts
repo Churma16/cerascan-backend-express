@@ -1,13 +1,15 @@
-import {ModelInsightService} from "./model_insight.service";
-import {sendResponse} from "../../utils/response";
-import {Request, Response} from "express";
+import { Request, Response } from "express";
+import { sendResponse } from "../../utils/response";
 
+import { GetModelInsightKPIUseCase } from "./use-cases/GetModelInsightKPIUseCase";
+import { GetPredictionDistributionUseCase } from "./use-cases/GetPredictionDistributionUseCase";
+import { GetConfidenceDistributionUseCase } from "./use-cases/GetConfidenceDistributionUseCase";
 
 export class ModelInsightController {
-
     static async getModelInsightKPI(req: Request, res: Response) {
         try {
-            const kpiData = await ModelInsightService.processModelInsightKPI();
+            const useCase = new GetModelInsightKPIUseCase();
+            const kpiData = await useCase.execute();
             return sendResponse(res, 200, "KPI model insight berhasil diambil", kpiData);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -16,7 +18,8 @@ export class ModelInsightController {
 
     static async getPredictionDistribution(req: Request, res: Response) {
         try {
-            const distributionData = await ModelInsightService.processPredictionDistribution();
+            const useCase = new GetPredictionDistributionUseCase();
+            const distributionData = await useCase.execute();
             return sendResponse(res, 200, "Distribusi prediksi berhasil diambil", distributionData);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -25,12 +28,11 @@ export class ModelInsightController {
 
     static async getConfidenceDistribution(req: Request, res: Response) {
         try {
-            const confidenceData = await ModelInsightService.processConfidenceLevelDistribution();
+            const useCase = new GetConfidenceDistributionUseCase();
+            const confidenceData = await useCase.execute();
             return sendResponse(res, 200, "Distribusi tingkat kepercayaan berhasil diambil", confidenceData);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
     }
-
-
 }
