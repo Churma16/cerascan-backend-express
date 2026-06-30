@@ -1,11 +1,17 @@
 import { getRedisClient } from "../../../config/redis_client";
 import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
-import { User } from "../../../models";
-import { Op } from "sequelize";
 import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
 import { calculateDefectRatio } from "../domain/leaderboard.domain";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 export class GetTopUsersUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(limit: number = 10) {
         const redis = getRedisClient();
         const currentPeriod = getCurrentMonthIdIndonesia();
@@ -38,12 +44,7 @@ export class GetTopUsersUseCase {
             const rawUserMetrics = await metricsPipeline.exec();
 
             // Ambil semua data profil user dari DB
-            const userProfiles = await User.findAll({
-                where: {
-                    id: { [Op.in]: parsedUserIds }
-                },
-                attributes: ['id', 'full_name', 'email']
-            });
+            const userProfiles = await this.userRepository.findByIds(parsedUserIds);
 
             const userProfileMap = new Map();
             userProfiles.forEach(user => userProfileMap.set(user.id, user));

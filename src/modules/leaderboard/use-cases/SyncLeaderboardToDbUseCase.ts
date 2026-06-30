@@ -1,8 +1,15 @@
 import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
-import { LeaderboardArchive } from "../../../models";
 import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
+import { ILeaderboardArchiveRepository } from "../domain/ILeaderboardArchiveRepository";
+import { SequelizeLeaderboardArchiveRepository } from "../infrastructure/SequelizeLeaderboardArchiveRepository";
 
 export class SyncLeaderboardToDbUseCase {
+    private leaderboardArchiveRepository: ILeaderboardArchiveRepository;
+
+    constructor(leaderboardArchiveRepository: ILeaderboardArchiveRepository = new SequelizeLeaderboardArchiveRepository()) {
+        this.leaderboardArchiveRepository = leaderboardArchiveRepository;
+    }
+
     async execute(redis: any) {
         const currentPeriod = getCurrentMonthIdIndonesia();
         const redisRankKey = `leaderboard:rank:${currentPeriod}`;
@@ -47,9 +54,7 @@ export class SyncLeaderboardToDbUseCase {
         });
 
         if (recordsToUpsert.length > 0) {
-            await LeaderboardArchive.bulkCreate(recordsToUpsert, {
-                updateOnDuplicate: ['total_scans', 'defect_scans', 'updatedAt'] as any[]
-            });
+            await this.leaderboardArchiveRepository.bulkUpsert(recordsToUpsert);
         }
 
         console.log(`✅ [Cron] Tugas 3 Selesai. ${recordsToUpsert.length} rekor leaderboard diamankan ke MySQL.`);

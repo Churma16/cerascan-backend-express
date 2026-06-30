@@ -1,5 +1,5 @@
-import { Scan } from "../../../models";
 import { Op } from "sequelize";
+import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
 
 export class LeaderboardHelper {
     static async rebuildLeaderboardCache(redis: any, period: string) {
@@ -19,7 +19,8 @@ export class LeaderboardHelper {
         }
         const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1) - 7 * 60 * 60 * 1000);
 
-        const scans = await Scan.findAll({
+        const scanRepository = new SequelizeScanRepository();
+        const scans = await scanRepository.findAll({
             where: {
                 createdAt: {
                     [Op.gte]: startDate,
