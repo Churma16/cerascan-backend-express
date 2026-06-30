@@ -1,12 +1,17 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
-import Scan from "../../../models/scan.model";
+import { IScanRepository } from "../domain/IScanRepository";
+import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
 export class DeleteScanUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute(scanId: number) {
-        const scan = await Scan.findOne({
-            where: { id: scanId },
-        });
+        const scan = await this.scanRepository.findById(scanId);
 
         if (!scan) {
             throw new Error('Data scan tidak ditemukan');
@@ -24,7 +29,7 @@ export class DeleteScanUseCase {
             }
         }
 
-        await scan.destroy();
+        await this.scanRepository.destroy(scanId);
         return scan;
     }
 }

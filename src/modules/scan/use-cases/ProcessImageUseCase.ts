@@ -1,11 +1,18 @@
-import Scan from "../../../models/scan.model";
 import { RabbitMQClient } from "../../rabbitmq/infrastructure/rabbitmq.client";
 import { generateScanId } from "../domain/scan.domain";
+import { IScanRepository } from "../domain/IScanRepository";
+import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
 export class ProcessImageUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute(userId: number | undefined, filePath: string, originalName: string, savedFileName: string) {
         const scanId = generateScanId();
-        const newScan = await Scan.create({
+        const newScan = await this.scanRepository.create({
             scan_id: scanId,
             file_name: originalName,
             saved_file_name: savedFileName,

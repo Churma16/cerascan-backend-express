@@ -1,9 +1,16 @@
-import Scan from "../../../models/scan.model";
 import { col, fn, literal, Op } from "sequelize";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
 import { formatScanDate } from "../domain/scan.domain";
+import { IScanRepository } from "../domain/IScanRepository";
+import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
 export class GetScanDataCountSinceUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute(limitDays: number = 7, userId?: number, userRole?: string) {
         const now = getNowIndonesiaTime();
 
@@ -23,7 +30,7 @@ export class GetScanDataCountSinceUseCase {
                 whereClause.user_id = userId;
             }
 
-            dbScans = await Scan.findAll({
+            dbScans = await this.scanRepository.findAll({
                 attributes: [
                     [fn('DATE', col('createdAt')), 'date'],
                     [fn('COUNT', col('id')), 'total_scan'],

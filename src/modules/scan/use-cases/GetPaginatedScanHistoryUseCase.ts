@@ -1,6 +1,13 @@
-import Scan from "../../../models/scan.model";
+import { IScanRepository } from "../domain/IScanRepository";
+import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
 export class GetPaginatedScanHistoryUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute(page: number, limit: number, userId?: number | null) {
         const whereClause: any = {};
 
@@ -10,7 +17,7 @@ export class GetPaginatedScanHistoryUseCase {
             whereClause.user_id = userId;
         }
 
-        const { count, rows } = await Scan.findAndCountAll({
+        const { count, rows } = await this.scanRepository.findAndCountAll({
             where: whereClause,
             order: [['createdAt', 'DESC']],
             limit: limit,
