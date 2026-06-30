@@ -1,8 +1,15 @@
 import { getRedisClient } from "../../../config/redis_client";
-import { UserQuota } from "../../../models";
 import { getSocket } from "../../../config/websocket_client";
+import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
+import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
 export class BroadcastUserLiveQuotaUseCase {
+    private userQuotaRepository: IUserQuotaRepository;
+
+    constructor(userQuotaRepository: IUserQuotaRepository = new SequelizeUserQuotaRepository()) {
+        this.userQuotaRepository = userQuotaRepository;
+    }
+
     async execute(userId: number | undefined) {
         if (!userId) {
             return null;
@@ -14,7 +21,7 @@ export class BroadcastUserLiveQuotaUseCase {
         let currentQuota = await redis.get(quotaKey);
 
         if (currentQuota === null) {
-            const userQuotaRecord = await UserQuota.findOne({
+            const userQuotaRecord = await this.userQuotaRepository.findOne({
                 where: { user_id: userId }
             });
             if (userQuotaRecord) {
@@ -26,7 +33,6 @@ export class BroadcastUserLiveQuotaUseCase {
             }
         }
 
-        // Kirimkan pembaruan ke klien via WebSocket
         const io = getSocket();
         io.to(`user_${userId}_quota_left`).emit("quota_update", currentQuota);
 

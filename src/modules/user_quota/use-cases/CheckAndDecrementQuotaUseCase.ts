@@ -1,8 +1,15 @@
 import { getRedisClient } from "../../../config/redis_client";
-import { UserQuota } from "../../../models";
 import { BroadcastUserLiveQuotaUseCase } from "./BroadcastUserLiveQuotaUseCase";
+import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
+import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
 export class CheckAndDecrementQuotaUseCase {
+    private userQuotaRepository: IUserQuotaRepository;
+
+    constructor(userQuotaRepository: IUserQuotaRepository = new SequelizeUserQuotaRepository()) {
+        this.userQuotaRepository = userQuotaRepository;
+    }
+
     async execute(userId: number | undefined, totalImages: number = 1): Promise<boolean> {
         const redis = getRedisClient();
         const quotaKey = `user:${userId}:remaining_quota`;
@@ -10,7 +17,7 @@ export class CheckAndDecrementQuotaUseCase {
         let currentQuota = await redis.get(quotaKey);
 
         if (currentQuota === null) {
-            const userQuotaRecord = await UserQuota.findOne({
+            const userQuotaRecord = await this.userQuotaRepository.findOne({
                 where: { user_id: userId }
             });
 
@@ -31,7 +38,7 @@ export class CheckAndDecrementQuotaUseCase {
 
         await redis.decrBy(quotaKey, totalImages);
 
-        const broadcastUserLiveQuotaUseCase = new BroadcastUserLiveQuotaUseCase();
+        const broadcastUserLiveQuotaUseCase = new BroadcastUserLiveQuotaUseCase(this.userQuotaRepository);
         broadcastUserLiveQuotaUseCase.execute(userId).catch(err => {
             console.error('[Quota] Gagal memancarkan update kuota live:', err);
         });

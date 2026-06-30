@@ -1,5 +1,6 @@
-import { UserQuota } from "../../../models";
 import { Transaction } from "sequelize";
+import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
+import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
 export interface CreateUserQuotaInput {
     user_id: number;
@@ -9,13 +10,17 @@ export interface CreateUserQuotaInput {
 }
 
 export class CreateUserQuotaUseCase {
+    private userQuotaRepository: IUserQuotaRepository;
+
+    constructor(userQuotaRepository: IUserQuotaRepository = new SequelizeUserQuotaRepository()) {
+        this.userQuotaRepository = userQuotaRepository;
+    }
+
     async execute(payload: CreateUserQuotaInput, t?: Transaction) {
-        const newQuota = await UserQuota.create({
+        const newQuota = await this.userQuotaRepository.create({
             ...payload,
             used_quota: payload.used_quota || 0,
-        }, {
-            transaction: t,
-        });
+        }, t);
         return newQuota.toJSON();
     }
 }

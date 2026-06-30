@@ -1,11 +1,18 @@
-import { UserQuota } from "../../../models";
 import { Op } from "sequelize";
+import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
+import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
 export class DowngradeExpiredUserQuotaUseCase {
+    private userQuotaRepository: IUserQuotaRepository;
+
+    constructor(userQuotaRepository: IUserQuotaRepository = new SequelizeUserQuotaRepository()) {
+        this.userQuotaRepository = userQuotaRepository;
+    }
+
     async execute(redis: any) {
         const today = new Date();
 
-        const expiredQuotas = await UserQuota.findAll({
+        const expiredQuotas = await this.userQuotaRepository.findAll({
             where: {
                 next_reset_date: {
                     [Op.lte]: today
@@ -39,8 +46,8 @@ export class DowngradeExpiredUserQuotaUseCase {
                 redisPipeline.set(redisKey, newTotalQuota.toString(), 'EX', 86400);
             }
 
-            await UserQuota.bulkCreate(quotasToReset, {
-                updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date', 'updatedAt'] as any[]
+            await this.userQuotaRepository.bulkCreate(quotasToReset, {
+                updateOnDuplicate: ['used_quota', 'total_quota', 'next_reset_date', 'updatedAt']
             });
 
             await redisPipeline.exec();

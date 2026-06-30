@@ -1,7 +1,14 @@
-import { UserQuota } from "../../../models";
 import { Op } from "sequelize";
+import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
+import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
 export class SyncUserQuotaToDbUseCase {
+    private userQuotaRepository: IUserQuotaRepository;
+
+    constructor(userQuotaRepository: IUserQuotaRepository = new SequelizeUserQuotaRepository()) {
+        this.userQuotaRepository = userQuotaRepository;
+    }
+
     async execute(redis: any) {
         const keys = await redis.keys('user:*:remaining_quota');
 
@@ -20,7 +27,7 @@ export class SyncUserQuotaToDbUseCase {
             });
 
             if (userIds.length > 0) {
-                const userQuotas = await UserQuota.findAll({
+                const userQuotas = await this.userQuotaRepository.findAll({
                     where: { user_id: { [Op.in]: userIds } }
                 });
 
@@ -40,8 +47,8 @@ export class SyncUserQuotaToDbUseCase {
                 }
 
                 if (quotasToUpdate.length > 0) {
-                    await UserQuota.bulkCreate(quotasToUpdate, {
-                        updateOnDuplicate: ['used_quota', 'updatedAt'] as any[]
+                    await this.userQuotaRepository.bulkCreate(quotasToUpdate, {
+                        updateOnDuplicate: ['used_quota', 'updatedAt']
                     });
                     console.log(`[Cron] Berhasil mensinkronisasi ${quotasToUpdate.length} data user.`);
                 }
