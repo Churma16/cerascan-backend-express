@@ -1,14 +1,21 @@
-import { Payment } from "../../../models";
 import { literal, Op } from "sequelize";
+import { IPaymentRepository } from "../domain/IPaymentRepository";
+import { SequelizePaymentRepository } from "../infrastructure/SequelizePaymentRepository";
 
 export class GetPaymentKpiUseCase {
+    private paymentRepository: IPaymentRepository;
+
+    constructor(paymentRepository: IPaymentRepository = new SequelizePaymentRepository()) {
+        this.paymentRepository = paymentRepository;
+    }
+
     async execute() {
         const now = new Date();
 
         const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        const thisMonthKpi: any = await Payment.findAll({
+        const thisMonthKpi: any = await this.paymentRepository.findAll({
             attributes: [
                 [
                     literal(`SUM(CASE WHEN status IN ('settlement', 'capture', 'success') THEN amount ELSE 0 END)`),
@@ -31,7 +38,7 @@ export class GetPaymentKpiUseCase {
             raw: true
         });
 
-        const lastMonthKpi: any = await Payment.findAll({
+        const lastMonthKpi: any = await this.paymentRepository.findAll({
             attributes: [
                 [
                     literal(`SUM(CASE WHEN status IN ('settlement', 'capture', 'success') THEN amount ELSE 0 END)`),
