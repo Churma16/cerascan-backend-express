@@ -1,24 +1,30 @@
-import User from "../../../models/user.model";
-import UserOtp from "../../../models/user_otp.model";
 import { InitiateFreePlanUseCase } from "../../subscription/use-cases/InitiateFreePlanUseCase";
 import sequelize from "../../../config/database";
 import { getRedisClient } from "../../../config/redis_client";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { IUserOtpRepository } from "../domain/IUserOtpRepository";
+import { SequelizeUserOtpRepository } from "../infrastructure/SequelizeUserOtpRepository";
 
 export class VerifyOtpUseCase {
+    private userRepository: IUserRepository;
+    private userOtpRepository: IUserOtpRepository;
+
+    constructor(
+        userRepository: IUserRepository = new SequelizeUserRepository(),
+        userOtpRepository: IUserOtpRepository = new SequelizeUserOtpRepository()
+    ) {
+        this.userRepository = userRepository;
+        this.userOtpRepository = userOtpRepository;
+    }
+
     async execute(email: string, otp: string) {
-        const user = await User.findOne({ where: { email } });
+        const user = await this.userRepository.findByEmail(email);
         if (!user) {
             throw new Error('Email tidak terdaftar');
         }
 
-        const activeOtp = await UserOtp.findOne({
-            where: {
-                user_id: user.id,
-                otp: otp,
-                is_used: false
-            },
-            order: [['createdAt', 'DESC']]
-        });
+        const activeOtp = await this.userOtpRepository.findActiveOtp(user.id, otp);
 
         if (!activeOtp) {
             throw new Error('Kode OTP tidak valid atau sudah digunakan');
@@ -33,7 +39,7 @@ export class VerifyOtpUseCase {
         const t = await sequelize.transaction();
 
         try {
-            await activeOtp.save({ transaction: t });
+            await this.userOtpRepository.save(activeOtp, t);
             const initiateFreePlanUseCase = new InitiateFreePlanUseCase();
             await initiateFreePlanUseCase.execute(user.id, t);
             await t.commit();

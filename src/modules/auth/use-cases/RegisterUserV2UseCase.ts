@@ -1,16 +1,22 @@
-import User, { UserAttributes } from "../../../models/user.model";
+import { UserAttributes } from "../../../models/user.model";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { hashPassword } from "../domain/auth.domain";
 import { EmailHelper } from "../infrastructure/email.helper";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 dotenv.config();
 
 export class RegisterUserV2UseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(data: Partial<UserAttributes>) {
-        const existingUser = await User.findOne({
-            where: { email: data.email }
-        });
+        const existingUser = await this.userRepository.findByEmail(data.email!);
 
         if (existingUser) {
             throw new Error('Email sudah terdaftar');
@@ -26,7 +32,7 @@ export class RegisterUserV2UseCase {
             sub_tier: 'free',
         };
 
-        const newUser = await User.create({
+        const newUser = await this.userRepository.create({
             full_name: payload.full_name!,
             email: payload.email!,
             password: payload.password!,

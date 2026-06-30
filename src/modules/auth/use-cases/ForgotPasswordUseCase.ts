@@ -1,18 +1,31 @@
-import User from "../../../models/user.model";
-import UserOtp from "../../../models/user_otp.model";
 import { generateOtp } from "../domain/auth.domain";
 import { EmailHelper } from "../infrastructure/email.helper";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { IUserOtpRepository } from "../domain/IUserOtpRepository";
+import { SequelizeUserOtpRepository } from "../infrastructure/SequelizeUserOtpRepository";
 
 export class ForgotPasswordUseCase {
+    private userRepository: IUserRepository;
+    private userOtpRepository: IUserOtpRepository;
+
+    constructor(
+        userRepository: IUserRepository = new SequelizeUserRepository(),
+        userOtpRepository: IUserOtpRepository = new SequelizeUserOtpRepository()
+    ) {
+        this.userRepository = userRepository;
+        this.userOtpRepository = userOtpRepository;
+    }
+
     async execute(email: string) {
-        const user = await User.findOne({ where: { email } });
+        const user = await this.userRepository.findByEmail(email);
         if (!user) {
             throw new Error('Email tidak terdaftar');
         }
 
         const { otp, expiredAt } = generateOtp();
 
-        await UserOtp.create({
+        await this.userOtpRepository.create({
             user_id: user.id,
             otp: otp,
             expired_at: expiredAt,

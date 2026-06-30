@@ -1,10 +1,17 @@
-import User from "../../../models/user.model";
 import { comparePassword } from "../domain/auth.domain";
 import { generateToken } from "../../../utils/jwt";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 export class LoginUserUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(email: string, passwordInput: string) {
-        const user = await User.findOne({ where: { email } });
+        const user = await this.userRepository.findByEmail(email);
 
         if (!user || !user.password) {
             throw new Error('Email atau password salah');

@@ -1,10 +1,17 @@
-import User from "../../../models/user.model";
 import { Profile } from "passport-google-oauth20";
 import { InitiateFreePlanUseCase } from "../../subscription/use-cases/InitiateFreePlanUseCase";
 import sequelize from "../../../config/database";
 import { getRedisClient } from "../../../config/redis_client";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 export class HandleGoogleLoginUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(profile: Profile) {
         const userEmail = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : '';
 
@@ -12,7 +19,7 @@ export class HandleGoogleLoginUseCase {
             throw new Error("Email tidak ditemukan dari profil Google");
         }
 
-        let user = await User.findOne({ where: { email: userEmail } });
+        let user = await this.userRepository.findByEmail(userEmail);
 
         if (user) {
             if (!user.googleId) {
@@ -24,7 +31,7 @@ export class HandleGoogleLoginUseCase {
                 if (!user.verified_at) {
                     user.verified_at = new Date();
                 }
-                await user.save();
+                await this.userRepository.save(user);
             }
             return user;
         }
@@ -32,7 +39,7 @@ export class HandleGoogleLoginUseCase {
         const t = await sequelize.transaction();
 
         try {
-            user = await User.create({
+            user = await this.userRepository.create({
                 full_name: profile.displayName,
                 email: userEmail,
                 googleId: profile.id,
@@ -41,7 +48,7 @@ export class HandleGoogleLoginUseCase {
                 sub_tier: 'free',
                 plan_id: 1,
                 verified_at: new Date()
-            }, { transaction: t });
+            }, t);
 
             const initiateFreePlanUseCase = new InitiateFreePlanUseCase();
             await initiateFreePlanUseCase.execute(user.id, t);

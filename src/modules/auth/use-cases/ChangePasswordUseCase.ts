@@ -1,9 +1,16 @@
-import User from "../../../models/user.model";
 import { comparePassword, hashPassword } from "../domain/auth.domain";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 export class ChangePasswordUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(userId: number, currentPassword: string, newPassword: string) {
-        const user = await User.findOne({ where: { id: userId } });
+        const user = await this.userRepository.findByPk(userId);
 
         if (!user) {
             throw new Error('User tidak ditemukan');
@@ -21,7 +28,7 @@ export class ChangePasswordUseCase {
         const hashedPassword = await hashPassword(newPassword);
         user.password = hashedPassword;
 
-        await user.save();
+        await this.userRepository.save(user);
 
         return true;
     }

@@ -1,11 +1,17 @@
-import User, { UserAttributes } from "../../../models/user.model";
+import { UserAttributes } from "../../../models/user.model";
 import { hashPassword } from "../domain/auth.domain";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 export class RegisterUserUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(data: Partial<UserAttributes>) {
-        const existingUser = await User.findOne({
-            where: { email: data.email }
-        });
+        const existingUser = await this.userRepository.findByEmail(data.email!);
         if (existingUser) {
             throw new Error('Email sudah terdaftar');
         }
@@ -20,7 +26,7 @@ export class RegisterUserUseCase {
             sub_tier: 'free',
         };
 
-        const newUser = await User.create({
+        const newUser = await this.userRepository.create({
             full_name: payload.full_name!,
             email: payload.email!,
             password: payload.password!,

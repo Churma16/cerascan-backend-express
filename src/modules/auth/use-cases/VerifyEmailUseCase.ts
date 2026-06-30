@@ -1,16 +1,27 @@
-import User from "../../../models/user.model";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import dotenv from "dotenv";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 
 dotenv.config();
 
 export class VerifyEmailUseCase {
+    private userRepository: IUserRepository;
+
+    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
+        this.userRepository = userRepository;
+    }
+
     async execute(token: string) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload & { userId?: number };
             const userId = decoded.userId;
 
-            const user = await User.findByPk(userId);
+            if (!userId) {
+                throw new Error('Token tidak valid');
+            }
+
+            const user = await this.userRepository.findByPk(userId);
 
             if (!user) {
                 throw new Error('Pengguna tidak ditemukan');
@@ -21,7 +32,7 @@ export class VerifyEmailUseCase {
             }
 
             user.verified_at = new Date();
-            await user.save();
+            await this.userRepository.save(user);
 
             return true;
         } catch (error: any) {
