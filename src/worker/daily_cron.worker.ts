@@ -1,8 +1,9 @@
 import cron from 'node-cron';
 import {getRedisClient} from '../config/redis_client';
-import {UserQuotaService} from "../modules/user_quota/user_quota.service";
-import {LeaderboardService} from "../modules/leaderboard/leaderboard.service";
-import {UserService} from "../modules/user/user.service";
+import { SyncUserQuotaToDbUseCase } from "../modules/user_quota/use-cases/SyncUserQuotaToDbUseCase";
+import { DowngradeExpiredUserQuotaUseCase } from "../modules/user_quota/use-cases/DowngradeExpiredUserQuotaUseCase";
+import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
+import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/DowngradeExpiredUsersUseCase";
 
 export class CronWorker {
     static start() {
@@ -12,14 +13,18 @@ export class CronWorker {
 
             try {
                 // TUGAS 1: SINKRONISASI REDIS KE POSTGRESQL
-                await UserQuotaService.syncUserQuotaToDB(redis);
+                const syncUserQuotaToDbUseCase = new SyncUserQuotaToDbUseCase();
+                await syncUserQuotaToDbUseCase.execute(redis);
 
                 // TUGAS 2: RESET KERAS (USE IT OR LOSE IT) - OPTIMIZED
-                await UserService.downgradeAllExpiredUsers()
+                const downgradeExpiredUsersUseCase = new DowngradeExpiredUsersUseCase();
+                await downgradeExpiredUsersUseCase.execute();
 
-                await UserQuotaService.downgradeExpiredUserQuota(redis);
+                const downgradeExpiredUserQuotaUseCase = new DowngradeExpiredUserQuotaUseCase();
+                await downgradeExpiredUserQuotaUseCase.execute(redis);
 
-                await LeaderboardService.syncLeaderboardDataToDb(redis);
+                const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
+                await syncLeaderboardToDbUseCase.execute(redis);
 
                 console.log('[Cron] Tugas malam selesai. PostgreSQL/MySQL dan Redis berhasil disinkronkan!');
             } catch (error) {
