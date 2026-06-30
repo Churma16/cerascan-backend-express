@@ -1,11 +1,13 @@
-import User from "../../../models/user.model";
-import Scan from "../../../models/scan.model";
 import { GetUserQuotaByUserIdUseCase } from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
 import { GetActiveSubscriptionUseCase } from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
 import { getRedisClient } from "../../../config/redis_client";
 import dayjs from "dayjs";
 import { Op } from "sequelize";
+import { IUserRepository } from "../../user/domain/IUserRepository";
+import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { IScanRepository } from "../../scan/domain/IScanRepository";
+import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
 
 export interface DashboardKPIResult {
     totalScans: number;
@@ -32,6 +34,17 @@ export interface DashboardKPIResult {
 }
 
 export class GetDashboardKPIUseCase {
+    private userRepository: IUserRepository;
+    private scanRepository: IScanRepository;
+
+    constructor(
+        userRepository: IUserRepository = new SequelizeUserRepository(),
+        scanRepository: IScanRepository = new SequelizeScanRepository()
+    ) {
+        this.userRepository = userRepository;
+        this.scanRepository = scanRepository;
+    }
+
     async execute(userId: number | undefined, userRole: string | undefined): Promise<DashboardKPIResult> {
         const whereClauseScan: Record<string, any> = {};
         const whereClauseUser: Record<string, any> = {};
@@ -57,22 +70,22 @@ export class GetDashboardKPIUseCase {
             defectCountThisMonth,
             activeUsersThisMonth
         ] = await Promise.all([
-            Scan.count({ where: whereClauseScan }),
-            User.count({ where: whereClauseUser }),
-            Scan.aggregate('confidence', 'avg', { where: whereClauseScan }),
-            Scan.count({
+            this.scanRepository.count({ where: whereClauseScan }),
+            this.userRepository.count({ where: whereClauseUser }),
+            this.scanRepository.aggregate('confidence', 'avg', { where: whereClauseScan }),
+            this.scanRepository.count({
                 where: {
                     ...whereClauseScan,
                     prediction: { [Op.in]: defectTypes }
                 }
             }),
-            Scan.count({
+            this.scanRepository.count({
                 where: {
                     ...whereClauseScan,
                     createdAt: { [Op.gte]: startOfCurrentMonth }
                 }
             }),
-            Scan.count({
+            this.scanRepository.count({
                 where: {
                     ...whereClauseScan,
                     createdAt: {
@@ -81,14 +94,14 @@ export class GetDashboardKPIUseCase {
                     }
                 }
             }),
-            Scan.count({
+            this.scanRepository.count({
                 where: {
                     ...whereClauseScan,
                     prediction: { [Op.in]: defectTypes },
                     createdAt: { [Op.gte]: startOfCurrentMonth }
                 }
             }),
-            Scan.count({
+            this.scanRepository.count({
                 distinct: true,
                 col: 'user_id',
                 where: {
