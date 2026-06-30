@@ -1,35 +1,42 @@
-import {Request, Response} from "express";
-import {sendResponse} from "../../utils/response";
-import {snap} from "../../config/midtrans_client";
-import {AuthRequest} from "../../middleware/auth.guard";
-import {RabbitMQService} from "../rabbitmq/rabbitmq.service";
-import {PaymentService} from "./payment.service";
-import {PlanService} from "../plan/plan.service";
-import {UserService} from "../user/user.service";
+import { Request, Response } from "express";
+import { sendResponse } from "../../utils/response";
+import { snap } from "../../config/midtrans_client";
+import { AuthRequest } from "../../middleware/auth.guard";
+import { RabbitMQService } from "../rabbitmq/rabbitmq.service";
+import { GetPlanByIdUseCase } from "../plan/use-cases/GetPlanByIdUseCase";
+import { GetUserByIdUseCase } from "../user/use-cases/GetUserByIdUseCase";
+
+import { CreatePaymentUseCase } from "./use-cases/CreatePaymentUseCase";
+import { GetAllPaymentsUseCase } from "./use-cases/GetAllPaymentsUseCase";
+import { GetPaymentByIdUseCase } from "./use-cases/GetPaymentByIdUseCase";
+import { GetPaymentByOrderIdUseCase } from "./use-cases/GetPaymentByOrderIdUseCase";
+import { GetPaymentByUserIdUseCase } from "./use-cases/GetPaymentByUserIdUseCase";
+import { UpdatePaymentStatusUseCase } from "./use-cases/UpdatePaymentStatusUseCase";
+import { DeletePaymentUseCase } from "./use-cases/DeletePaymentUseCase";
+import { GetPaymentKpiUseCase } from "./use-cases/GetPaymentKpiUseCase";
 
 export class PaymentController {
     static async createTransaction(req: AuthRequest, res: Response) {
         try {
-            // Frontend cukup kirim userId yang sedang login
             const userId = req.user?.id;
             if (!userId) {
                 return sendResponse(res, 400, "User ID tidak boleh kosong");
             }
 
-            const user = await UserService.getUserById(userId);
+            const getUserByIdUseCase = new GetUserByIdUseCase();
+            const user = await getUserByIdUseCase.execute(userId);
             if (!user) {
                 return sendResponse(res, 404, "User tidak ditemukan");
             }
 
-            const planId: number = req.body.plan_id
-            const selectedPlan = await PlanService.getPlanById(planId);
+            const planId: number = req.body.plan_id;
+            const getPlanByIdUseCase = new GetPlanByIdUseCase();
+            const selectedPlan = await getPlanByIdUseCase.execute(planId);
             if (!selectedPlan) {
                 return sendResponse(res, 404, `Plan dengan ID ${planId} tidak ditemukan`);
             }
 
-
-            // Harga dan detail diambil langsung dari config backend yang aman
-            const secureAmount = selectedPlan.price
+            const secureAmount = selectedPlan.price;
             const orderId = `ORDER-${userId}-${planId}-${Date.now()}`;
 
             const parameter = {
@@ -49,7 +56,6 @@ export class PaymentController {
                 }
             };
 
-            // Generate token dari Midtrans
             const transaction = await snap.createTransaction(parameter);
 
             return sendResponse(res, 200, "Token transaksi berhasil dibuat", {
@@ -75,8 +81,6 @@ export class PaymentController {
 
             if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
                 if (fraudStatus === 'accept' || !fraudStatus) {
-
-                    // Siapkan bungkusan data yang akan disiarkan dengan lengkap dari Midtrans
                     const eventData = {
                         orderId: orderId,
                         transactionId: transactionId,
@@ -90,7 +94,6 @@ export class PaymentController {
                 }
             }
 
-            // Express bisa langsung merespons Midtrans dengan sangat cepat!
             return sendResponse(res, 200, "Webhook diterima, tugas dikirim ke antrean latar belakang");
         } catch (error: unknown) {
             if (error instanceof Error) {
@@ -104,13 +107,14 @@ export class PaymentController {
 
     static async create(req: Request, res: Response) {
         try {
-            const {user_id, plan_id, order_id, amount, payment_type} = req.body;
+            const { user_id, plan_id, order_id, amount, payment_type } = req.body;
             if (!user_id || !plan_id || !order_id || !amount) {
                 return sendResponse(res, 400, "Field user_id, plan_id, order_id, amount harus diisi");
             }
-            const payload = {user_id, plan_id, order_id, amount, payment_type, status: 'pending' as const};
+            const payload = { user_id, plan_id, order_id, amount, payment_type, status: 'pending' as const };
 
-            const newPayment = await PaymentService.createPayment(payload);
+            const useCase = new CreatePaymentUseCase();
+            const newPayment = await useCase.execute(payload);
             return sendResponse(res, 201, "Payment berhasil dibuat", newPayment);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
@@ -119,7 +123,8 @@ export class PaymentController {
 
     static async getAll(req: Request, res: Response) {
         try {
-            const payments = await PaymentService.getAllPayments();
+            const useCase = new GetAllPaymentsUseCase();
+            const payments = await useCase.execute();
             return sendResponse(res, 200, "Daftar payment berhasil diambil", payments);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
@@ -128,11 +133,12 @@ export class PaymentController {
 
     static async getById(req: Request, res: Response) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
             }
-            const payment = await PaymentService.getPaymentById(Number(id));
+            const useCase = new GetPaymentByIdUseCase();
+            const payment = await useCase.execute(Number(id));
             return sendResponse(res, 200, "Payment berhasil diambil", payment);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -146,7 +152,8 @@ export class PaymentController {
             if (!order_id) {
                 return sendResponse(res, 400, "Order ID harus diisi");
             }
-            const payment = await PaymentService.getPaymentByOrderId(order_id);
+            const useCase = new GetPaymentByOrderIdUseCase();
+            const payment = await useCase.execute(order_id);
             return sendResponse(res, 200, "Payment berhasil diambil", payment);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -155,11 +162,12 @@ export class PaymentController {
 
     static async getByUserId(req: Request, res: Response) {
         try {
-            const {user_id} = req.params;
+            const { user_id } = req.params;
             if (!user_id || isNaN(Number(user_id))) {
                 return sendResponse(res, 400, "User ID harus berupa angka yang valid");
             }
-            const payments = await PaymentService.getPaymentByUserId(Number(user_id));
+            const useCase = new GetPaymentByUserIdUseCase();
+            const payments = await useCase.execute(Number(user_id));
             return sendResponse(res, 200, "Payment user berhasil diambil", payments);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -168,19 +176,20 @@ export class PaymentController {
 
     static async updateStatus(req: Request, res: Response) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
             }
-            const {status, transaction_id} = req.body;
+            const { status, transaction_id } = req.body;
             if (!status) {
                 return sendResponse(res, 400, "Status harus diisi");
             }
 
-            const payload: any = {status};
+            const payload: any = { status };
             if (transaction_id !== undefined) payload.transaction_id = transaction_id;
 
-            const updatedPayment = await PaymentService.updatePaymentStatus(Number(id), payload);
+            const useCase = new UpdatePaymentStatusUseCase();
+            const updatedPayment = await useCase.execute(Number(id), payload);
             return sendResponse(res, 200, "Payment status berhasil diupdate", updatedPayment);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -189,11 +198,12 @@ export class PaymentController {
 
     static async delete(req: Request, res: Response) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID payment harus berupa angka yang valid");
             }
-            const result = await PaymentService.deletePayment(Number(id));
+            const useCase = new DeletePaymentUseCase();
+            const result = await useCase.execute(Number(id));
             return sendResponse(res, 200, result.message, null);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -203,7 +213,8 @@ export class PaymentController {
     static async getCurrentUserPaymentHistories(req: AuthRequest, res: Response) {
         try {
             const userId = req.user?.id;
-            const payments = await PaymentService.getPaymentByUserId(userId);
+            const useCase = new GetPaymentByUserIdUseCase();
+            const payments = await useCase.execute(userId);
             return sendResponse(res, 200, "Riwayat pembayaran berhasil diambil", payments);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
@@ -212,7 +223,8 @@ export class PaymentController {
 
     static async getPaymentKpi(req: Request, res: Response) {
         try {
-            const paymentKpi = await PaymentService.getPaymentKpi();
+            const useCase = new GetPaymentKpiUseCase();
+            const paymentKpi = await useCase.execute();
             return sendResponse(res, 200, "KPI pembayaran berhasil diambil", paymentKpi);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");

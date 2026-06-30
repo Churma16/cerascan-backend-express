@@ -1,5 +1,5 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
-import {PaymentService} from "../modules/payment/payment.service";
+import { ProcessPaymentWebhookUseCase } from "../modules/payment/use-cases/ProcessPaymentWebhookUseCase";
 import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
 
 
@@ -44,8 +44,9 @@ export class PaymentDBSubscriber {
 
                         console.log(`[Worker] Menerima tugas pembaruan pembayaran:`, eventData);
 
-                        // 4. Update Database menggunakan Service yang sudah Anda buat sebelumnya
-                        await PaymentService.processDBPaymentsWebhook(eventData);
+                        // 4. Update Database menggunakan Use Case
+                        const processPaymentWebhookUseCase = new ProcessPaymentWebhookUseCase();
+                        await processPaymentWebhookUseCase.execute(eventData);
 
                         // 5. Beri tahu RabbitMQ bahwa tugas selesai dengan aman (Acknowledge)
                         channel.ack(msg);

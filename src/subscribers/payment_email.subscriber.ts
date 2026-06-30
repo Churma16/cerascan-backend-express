@@ -1,5 +1,5 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
-import {EmailService} from "../modules/email/email.service";
+import { SendPaymentEmailUseCase } from "../modules/email/use-cases/SendPaymentEmailUseCase";
 import {RabbitMQService} from "../modules/rabbitmq/rabbitmq.service";
 
 export class PaymentEmailSubscriber {
@@ -36,7 +36,8 @@ export class PaymentEmailSubscriber {
                         const eventData = JSON.parse(msg.content.toString());
                         const messageId = `${eventData.orderId}`;
 
-                        await EmailService.sendPaymentEmail(eventData.orderId);
+                        const sendPaymentEmailUseCase = new SendPaymentEmailUseCase();
+                        await sendPaymentEmailUseCase.execute(eventData.orderId);
 
                         channel.ack(msg);
                         console.log(`[Email Worker] Email dikirim untuk Order ID: ${eventData.orderId}`);
