@@ -1,8 +1,12 @@
-import {Request, Response} from 'express';
-import {sendResponse, sendResponseMulti, sendResponsePaginated} from '../../utils/response';
-import {ScanService} from './scan.service';
-import {UserQuotaService} from "../user_quota/user_quota.service";
-import {AuthRequest} from "../../middleware/auth.guard";
+import { Request, Response } from 'express';
+import { sendResponse, sendResponseMulti, sendResponsePaginated } from '../../utils/response';
+import { CheckAndDecrementQuotaUseCase } from "../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
+import { AuthRequest } from "../../middleware/auth.guard";
+
+import { ProcessImageUseCase } from './use-cases/ProcessImageUseCase';
+import { GetScanHistoryUseCase } from './use-cases/GetScanHistoryUseCase';
+import { GetPaginatedScanHistoryUseCase } from './use-cases/GetPaginatedScanHistoryUseCase';
+import { DeleteScanUseCase } from './use-cases/DeleteScanUseCase';
 
 export class ScanController {
     static async scanImage(req: AuthRequest, res: Response) {
@@ -13,8 +17,8 @@ export class ScanController {
                 return sendResponse(res, 404, 'No file found');
             }
 
-
-            const results = await ScanService.processImage(
+            const useCase = new ProcessImageUseCase();
+            const results = await useCase.execute(
                 userId,
                 req.file.path,
                 req.file.originalname,
@@ -22,7 +26,6 @@ export class ScanController {
             );
 
             return sendResponse(res, 202, 'Gambar diterima dan sedang diproses oleh AI', results);
-
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
@@ -38,7 +41,8 @@ export class ScanController {
             const userId = req.user?.id;
             const totalImages = files.length;
 
-            const hasQuota = await UserQuotaService.checkAndDecrementQuota(userId, totalImages);
+            const checkAndDecrementQuotaUseCase = new CheckAndDecrementQuotaUseCase();
+            const hasQuota = await checkAndDecrementQuotaUseCase.execute(userId, totalImages);
             if (!hasQuota) {
                 return sendResponse(
                     res,
@@ -47,11 +51,11 @@ export class ScanController {
                 );
             }
 
-
             const pendingScans = [];
+            const useCase = new ProcessImageUseCase();
 
             for (const file of files) {
-                const result = await ScanService.processImage(
+                const result = await useCase.execute(
                     userId,
                     file.path,
                     file.originalname,
@@ -66,7 +70,6 @@ export class ScanController {
                 `${files.length} gambar diterima dan sedang antre diproses AI`,
                 pendingScans
             );
-
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
@@ -83,11 +86,13 @@ export class ScanController {
             const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
 
             if (page !== undefined && !isNaN(page)) {
-                const result = await ScanService.getPaginatedHistory(page, limit, userId);
+                const useCase = new GetPaginatedScanHistoryUseCase();
+                const result = await useCase.execute(page, limit, userId);
                 return sendResponsePaginated(res, 'Scan berhasil', result.rows, result.count, page, limit);
             }
 
-            const history = await ScanService.getHistory(limit, userId);
+            const useCase = new GetScanHistoryUseCase();
+            const history = await useCase.execute(limit, userId);
             return sendResponseMulti(res, 200, 'Scan berhasil', history);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -100,11 +105,13 @@ export class ScanController {
             const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
 
             if (page !== undefined && !isNaN(page)) {
-                const result = await ScanService.getPaginatedHistory(page, limit, null);
+                const useCase = new GetPaginatedScanHistoryUseCase();
+                const result = await useCase.execute(page, limit, null);
                 return sendResponsePaginated(res, 'Scan berhasil', result.rows, result.count, page, limit);
             }
 
-            const history = await ScanService.getHistory(limit, null);
+            const useCase = new GetScanHistoryUseCase();
+            const history = await useCase.execute(limit, null);
             return sendResponseMulti(res, 200, 'Scan berhasil', history);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -113,20 +120,19 @@ export class ScanController {
 
     static async deleteScan(req: Request, res: Response) {
         try {
-            const {id} = req.params;
+            const { id } = req.params;
             const scanId = parseInt(id as string);
 
             if (isNaN(scanId)) {
                 return sendResponse(res, 400, 'ID tidak valid');
             }
 
-            const scanData = await ScanService.deleteScan(scanId);
+            const useCase = new DeleteScanUseCase();
+            const scanData = await useCase.execute(scanId);
 
             return sendResponse(res, 200, 'Data scan berhasil dihapus', scanData);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
     }
-
-
 }
