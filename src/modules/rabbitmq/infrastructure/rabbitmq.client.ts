@@ -1,6 +1,6 @@
-import {getRabbitChannel} from "../../config/rabbitmq_client";
+import { getRabbitChannel } from "../../../config/rabbitmq_client";
 
-export class RabbitMQService {
+export class RabbitMQClient {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
     private static readonly DLX_EXCHANGE_NAME = 'cerascan_events_dlx'; // Dead Letter Exchange
     private static readonly DLX_QUEUE_NAME = 'payment_dead_letter_queue';
@@ -47,7 +47,7 @@ export class RabbitMQService {
                 this.EXCHANGE_NAME,
                 routingKey,
                 message,
-                {persistent: true} // Pesan disimpan di disk
+                { persistent: true } // Pesan disimpan di disk
             );
 
             console.log(`[Pub] Event '${routingKey}' berhasil disiarkan.`);
