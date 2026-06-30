@@ -1,7 +1,7 @@
 // config/socket.handler.ts (atau letakkan di tempat yang sesuai arsitektur Anda)
 
 import {Server, Socket} from 'socket.io';
-import {UserQuotaService} from "../user_quota/user_quota.service";
+import { BroadcastUserLiveQuotaUseCase } from "../user_quota/use-cases/BroadcastUserLiveQuotaUseCase";
 
 export const setupSocketHandlers = (io: Server) => {
     io.on('connection', (socket: Socket) => {
@@ -33,7 +33,8 @@ const handleUserAuthentication = (socket: Socket) => {
         console.log(`[Socket] User ${userId} berhasil masuk ke room: ${roomName}`);
 
         // Tembakkan data awal khusus untuk module Quota
-        UserQuotaService.broadcastCurrentUserLiveQuota(Number(userId)).catch(err => {
+        const broadcastUserLiveQuotaUseCase = new BroadcastUserLiveQuotaUseCase();
+        broadcastUserLiveQuotaUseCase.execute(Number(userId)).catch(err => {
             console.error('[Socket] Gagal mengirim kuota awal:', err);
         });
 
