@@ -1,13 +1,20 @@
 import dayjs from "dayjs";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
-import { Scan } from "../../../models";
 import { col, fn, Op } from "sequelize";
+import { IScanRepository } from "../../scan/domain/IScanRepository";
+import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
 
 export class GetPredictionDistributionUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute() {
         const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
 
-        const scanDistributionRaw = await Scan.findAll({
+        const scanDistributionRaw = await this.scanRepository.findAll({
             attributes: [
                 'prediction',
                 [fn('COUNT', col('id')), 'total']

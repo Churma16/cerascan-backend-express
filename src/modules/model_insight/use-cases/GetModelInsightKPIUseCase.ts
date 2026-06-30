@@ -1,31 +1,38 @@
 import dayjs from "dayjs";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
-import { Scan } from "../../../models";
 import { Op } from "sequelize";
+import { IScanRepository } from "../../scan/domain/IScanRepository";
+import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
 
 export class GetModelInsightKPIUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute() {
         const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
 
-        const averageAccuracy = await Scan.aggregate('confidence', 'avg', {
+        const averageAccuracy = await this.scanRepository.aggregate('confidence', 'avg', {
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             }
         });
 
-        const averageInference = await Scan.aggregate('inference_time', 'avg', {
+        const averageInference = await this.scanRepository.aggregate('inference_time', 'avg', {
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             }
         });
 
-        const totalScan = await Scan.count({
+        const totalScan = await this.scanRepository.count({
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             }
         });
 
-        const unConfidentScanCount = await Scan.count({
+        const unConfidentScanCount = await this.scanRepository.count({
             where: {
                 confidence: {
                     [Op.lt]: 80

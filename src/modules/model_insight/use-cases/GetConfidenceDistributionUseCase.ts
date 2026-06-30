@@ -1,13 +1,20 @@
 import dayjs from "dayjs";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
-import { Scan } from "../../../models";
 import { col, fn, literal, Op } from "sequelize";
+import { IScanRepository } from "../../scan/domain/IScanRepository";
+import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
 
 export class GetConfidenceDistributionUseCase {
+    private scanRepository: IScanRepository;
+
+    constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
+        this.scanRepository = scanRepository;
+    }
+
     async execute() {
         const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
 
-        const confidenceRaw = await Scan.findAll({
+        const confidenceRaw = await this.scanRepository.findAll({
             attributes: [
                 [
                     literal(`
