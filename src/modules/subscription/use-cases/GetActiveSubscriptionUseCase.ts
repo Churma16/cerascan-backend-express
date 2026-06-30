@@ -1,10 +1,18 @@
-import { Subscription, Plan, User } from "../../../models";
+import { Plan, User } from "../../../models";
 import { getRemainingDurationString } from "../domain/subscription.domain";
+import { ISubscriptionRepository } from "../domain/ISubscriptionRepository";
+import { SequelizeSubscriptionRepository } from "../infrastructure/SequelizeSubscriptionRepository";
 
 export class GetActiveSubscriptionUseCase {
+    private subscriptionRepository: ISubscriptionRepository;
+
+    constructor(subscriptionRepository: ISubscriptionRepository = new SequelizeSubscriptionRepository()) {
+        this.subscriptionRepository = subscriptionRepository;
+    }
+
     async execute(userId: number | undefined) {
         console.log(userId);
-        const subsDetail = await Subscription.findOne({
+        const subsDetail = await this.subscriptionRepository.findOne({
             where: {
                 user_id: userId,
                 status: 'active'

@@ -1,8 +1,16 @@
-import { Subscription, Plan, User, UserQuota } from "../../../models";
+import { Plan, User, UserQuota } from "../../../models";
+import { ISubscriptionRepository } from "../domain/ISubscriptionRepository";
+import { SequelizeSubscriptionRepository } from "../infrastructure/SequelizeSubscriptionRepository";
 
 export class GetAllSubscriptionsUseCase {
+    private subscriptionRepository: ISubscriptionRepository;
+
+    constructor(subscriptionRepository: ISubscriptionRepository = new SequelizeSubscriptionRepository()) {
+        this.subscriptionRepository = subscriptionRepository;
+    }
+
     async execute() {
-        const subscriptions = await Subscription.findAll({
+        const subscriptions = await this.subscriptionRepository.findAll({
             where: { status: "active" },
             include: [
                 {

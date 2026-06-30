@@ -1,6 +1,7 @@
-import { Subscription } from "../../../models";
-import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
 import { Transaction } from "sequelize";
+import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
+import { ISubscriptionRepository } from "../domain/ISubscriptionRepository";
+import { SequelizeSubscriptionRepository } from "../infrastructure/SequelizeSubscriptionRepository";
 
 export interface SubscriptionPayload {
     user_id: number;
@@ -13,6 +14,12 @@ export interface SubscriptionPayload {
 }
 
 export class CreateSubscriptionUseCase {
+    private subscriptionRepository: ISubscriptionRepository;
+
+    constructor(subscriptionRepository: ISubscriptionRepository = new SequelizeSubscriptionRepository()) {
+        this.subscriptionRepository = subscriptionRepository;
+    }
+
     async execute(
         userId: number,
         planId: number,
@@ -41,9 +48,7 @@ export class CreateSubscriptionUseCase {
             note: note
         };
 
-        const newSubscription = await Subscription.create(payload as any, {
-            transaction: t
-        });
+        const newSubscription = await this.subscriptionRepository.create(payload, t);
 
         return newSubscription.toJSON();
     }
