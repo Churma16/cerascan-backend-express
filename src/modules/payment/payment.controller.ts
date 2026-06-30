@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { snap } from "../../config/midtrans_client";
 import { AuthRequest } from "../../middleware/auth.guard";
-import { RabbitMQService } from "../rabbitmq/rabbitmq.service";
+import { RabbitMQClient } from "../rabbitmq/infrastructure/rabbitmq.client";
 import { GetPlanByIdUseCase } from "../plan/use-cases/GetPlanByIdUseCase";
 import { GetUserByIdUseCase } from "../user/use-cases/GetUserByIdUseCase";
 
@@ -90,7 +90,7 @@ export class PaymentController {
                         timestamp: new Date().toISOString()
                     };
 
-                    await RabbitMQService.publishEvent('payment.success', eventData);
+                    await RabbitMQClient.publishEvent('payment.success', eventData);
                 }
             }
 
