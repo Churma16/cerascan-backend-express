@@ -11,14 +11,10 @@ export class CronWorker {
             const redis = getRedisClient();
 
             try {
-                // ==========================================
                 // TUGAS 1: SINKRONISASI REDIS KE POSTGRESQL
-                // ==========================================
                 await UserQuotaService.syncUserQuotaToDB(redis);
 
-                // ==========================================
                 // TUGAS 2: RESET KERAS (USE IT OR LOSE IT) - OPTIMIZED
-                // ==========================================
                 await UserService.downgradeAllExpiredUsers()
 
                 await UserQuotaService.downgradeExpiredUserQuota(redis);

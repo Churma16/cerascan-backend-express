@@ -34,11 +34,9 @@ export class AiScanSubscriber {
                     taskData = JSON.parse(msg.content.toString());
                     const messageId = `${taskData.db_id}`;
 
-                    // 2. Panggil API AI menggunakan service terpisah
                     const result = await ScanService.predictImage(taskData.file_path, taskData.original_name);
                     const inferenceTimeMs = Date.now() - startTime;
 
-                    // 3. Update Database via ScanService
                     await ScanService.updateScanSuccess(
                         taskData.db_id,
                         result.prediction,
