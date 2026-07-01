@@ -1,4 +1,5 @@
 import {createClient} from 'redis';
+import { log } from '../utils/logger';
 
 let redisClient: any = null;
 
