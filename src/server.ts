@@ -14,7 +14,10 @@ import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
 import {initPassport} from "./config/passport_client";
+import {connectKafkaProducer} from "./config/kafka.client";
+import {connectMongoDB} from "./config/mongodb_client";
 import {log} from "./utils/logger";
+import {startAnalyticsConsumer} from "./worker/analytics.worker";
 
 dotenv.config();
 
@@ -39,6 +42,8 @@ const startServer = async () => {
 
         await connectRedis();
         await connectRabbitMQ();
+        await connectMongoDB();
+        await connectKafkaProducer();
         await RabbitMQClient.setupExchange();
 
 
@@ -46,6 +51,12 @@ const startServer = async () => {
         await PaymentDBSubscriber.start();
         await PaymentEmailSubscriber.start();
         await AiScanSubscriber.start();
+
+
+        startAnalyticsConsumer().catch(err => {
+            console.error('❌ Gagal menjalankan Kafka Consumer:', err);
+        });
+
         initPassport();
 
         CronWorker.start();
