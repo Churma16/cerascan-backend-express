@@ -2,6 +2,7 @@ import passport from 'passport';
 import {Strategy as GoogleStrategy} from 'passport-google-oauth20';
 import dotenv from 'dotenv';
 import {HandleGoogleLoginUseCase} from "../modules/auth/use-cases/HandleGoogleLoginUseCase";
+import { log } from '../utils/logger';
 
 dotenv.config();
 
@@ -39,5 +40,5 @@ export const initPassport = (): void => {
         )
     );
 
-    console.log('[Passport] Google OAuth2 Strategy berhasil diinisialisasi.');
+    log.info('Passport', 'Google OAuth2 Strategy berhasil diinisialisasi.');
 };

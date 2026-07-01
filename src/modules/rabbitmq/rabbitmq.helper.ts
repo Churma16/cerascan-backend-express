@@ -1,4 +1,5 @@
 import {Channel} from 'amqplib';
+import { log } from '../../utils/logger';
 
 export class RabbitMQHelper {
     static async setupQueueWithDLX(
@@ -10,7 +11,7 @@ export class RabbitMQHelper {
     ) {
         try {
             await channel.deleteQueue(queueName);
-            console.log(`[RabbitMQ] Dev Mode: Queue lama '${queueName}' dihapus`);
+            log.info('RabbitMQ', `Dev Mode: Queue lama '${queueName}' dihapus`);
         } catch (err) {
         }
 

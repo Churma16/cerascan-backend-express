@@ -11,11 +11,11 @@ export const connectRedis = async (): Promise<void> => {
         });
 
         redisClient.on('error', (err: any) => console.error('[Redis] Redis Client Error:', err));
-        redisClient.on('connect', () => console.log('[Redis] Koneksi ke Redis berhasil.'));
+        redisClient.on('connect', () => log.success('Redis', 'Koneksi ke Redis berhasil.'));
 
         await redisClient.connect();
 
-        console.log('[Redis] Client berhasil terhubung');
+        log.success('Redis', 'Client berhasil terhubung');
     } catch (error: unknown) {
         console.error('[Redis] Client gagal terhubung:', error);
         process.exit(1);

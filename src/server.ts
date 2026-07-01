@@ -14,6 +14,7 @@ import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
 import {initPassport} from "./config/passport_client";
+import {log} from "./utils/logger";
 
 dotenv.config();
 
@@ -33,13 +34,13 @@ initSocket(server);
 const startServer = async () => {
     try {
         await sequelize.authenticate();
-        console.log('[MySql] Koneksi ke MySQL berhasil.');
-
-        console.log('[MySql] Semua model telah disinkronisasi dengan database.');
+        log.success('MySql', 'Koneksi ke MySQL berhasil.');
+        log.success('MySql', 'Semua model telah disinkronisasi dengan database.');
 
         await connectRedis();
         await connectRabbitMQ();
         await RabbitMQClient.setupExchange();
+
 
         // Nyalakan semua Subscriber
         await PaymentDBSubscriber.start();
@@ -49,10 +50,10 @@ const startServer = async () => {
 
         CronWorker.start();
 
-        console.log(`[FRONTEND_URL] Frontend URL is ${process.env.FRONTEND_URL}`);
+        log.info('FRONTEND_URL', `Frontend URL is ${process.env.FRONTEND_URL}`);
 
         server.listen(PORT, () => {
-            console.log(`🚀 API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
+            log.system(`🚀 API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('Tidak dapat terhubung ke database:', error);

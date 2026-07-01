@@ -1,5 +1,6 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
+import {log} from "../utils/logger";
 
 export abstract class BaseRabbitSubscriber {
     protected abstract readonly exchangeName: string;
@@ -25,7 +26,7 @@ export abstract class BaseRabbitSubscriber {
             if (process.env.NODE_ENV !== 'production') {
                 try {
                     await channel.deleteQueue(this.queueName);
-                    console.log(`[Worker] Queue lama '${this.queueName}' dihapus`);
+                    log.info('Worker', `Queue lama '${this.queueName}' dihapus`);
                 } catch (err) {
                     // Abaikan jika queue tidak ada
                 }
@@ -40,7 +41,7 @@ export abstract class BaseRabbitSubscriber {
 
             await channel.bindQueue(this.queueName, this.exchangeName, this.routingKey);
 
-            console.log(`[Worker] Mendengarkan event '${this.routingKey}' di antrean '${this.queueName}'...`);
+            log.info('Worker', `Mendengarkan event '${this.routingKey}' di antrean '${this.queueName}'...`);
 
             await channel.consume(this.queueName, async (msg:any) => {
                 if (!msg) return;
@@ -49,12 +50,12 @@ export abstract class BaseRabbitSubscriber {
                 const messageId = this.getMessageId(eventData);
 
                 try {
-                    console.log(`[Worker ${this.queueName}] Menerima tugas:`, eventData);
+                    log.info(`Worker ${this.queueName}`, 'Menerima tugas:', eventData);
 
                     await this.processMessage(eventData);
 
                     channel.ack(msg);
-                    console.log(`[Worker ${this.queueName}] Tugas berhasil diproses untuk ID: ${messageId}`);
+                    log.success(`Worker ${this.queueName}`, `Tugas berhasil diproses untuk ID: ${messageId}`);
                     this.retryMap.delete(messageId);
 
                 } catch (error: unknown) {

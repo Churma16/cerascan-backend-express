@@ -1,5 +1,6 @@
 import {Sequelize} from 'sequelize';
 import dotenv from 'dotenv';
+import {log} from '../utils/logger';
 
 dotenv.config();
 
@@ -10,7 +11,7 @@ const sequelize = new Sequelize(
     {
         host: process.env.DB_HOST || 'localhost',
         dialect: 'mysql',
-        logging: true,
+        logging: (msg) => log.info('Sequelize', msg),
     }
 );
 

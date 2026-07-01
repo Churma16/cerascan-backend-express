@@ -8,7 +8,7 @@ import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/Downgrad
 export class CronWorker {
     static start() {
         cron.schedule('59 23 * * *', async () => {
-            console.log('🌙 [Cron] Memulai sinkronisasi pembukuan kuota...');
+            log.info('Cron', '🌙 Memulai sinkronisasi pembukuan kuota...');
             const redis = getRedisClient();
 
             try {
@@ -26,13 +26,13 @@ export class CronWorker {
                 const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
                 await syncLeaderboardToDbUseCase.execute(redis);
 
-                console.log('[Cron] Tugas malam selesai. PostgreSQL/MySQL dan Redis berhasil disinkronkan!');
+                log.success('Cron', 'Tugas malam selesai. PostgreSQL/MySQL dan Redis berhasil disinkronkan!');
             } catch (error) {
                 console.error('[Cron] Terjadi kesalahan saat menjalankan tugas malam:', error);
             }
         });
 
-        console.log('[Cron Worker] Penjadwalan aktif. Menunggu eksekusi pada jam 23:59...');
+        log.info('Cron Worker', 'Penjadwalan aktif. Menunggu eksekusi pada jam 23:59...');
     }
 
 

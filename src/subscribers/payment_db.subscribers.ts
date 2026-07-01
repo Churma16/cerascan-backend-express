@@ -1,6 +1,7 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import { ProcessPaymentWebhookUseCase } from "../modules/payment/use-cases/ProcessPaymentWebhookUseCase";
 import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
+import {log} from "../utils/logger";
 
 
 export class PaymentDBSubscriber {
@@ -16,7 +17,7 @@ export class PaymentDBSubscriber {
 
             try {
                 await channel.deleteQueue(this.QUEUE_NAME);
-                console.log(`[Worker] Queue lama '${this.QUEUE_NAME}' dihapus`);
+                log.info('Worker', `Queue lama '${this.QUEUE_NAME}' dihapus`);
             } catch (err) {
                 // Queue mungkin tidak ada, itu ok
             }
@@ -32,7 +33,7 @@ export class PaymentDBSubscriber {
             // 2. Ikat (Bind) kotak surat ke Pusat Siaran dengan kunci 'payment.success'
             await channel.bindQueue(this.QUEUE_NAME, this.EXCHANGE_NAME, this.ROUTING_KEY);
 
-            console.log(`[Worker] Mendengarkan event '${this.ROUTING_KEY}' di antrean '${this.QUEUE_NAME}'...`);
+            log.info('Worker', `Mendengarkan event '${this.ROUTING_KEY}' di antrean '${this.QUEUE_NAME}'...`);
 
             // 3. Mulai mengambil pesan yang masuk
             await channel.consume(this.QUEUE_NAME, async (msg: { content: { toString: () => string; }; } | null) => {
@@ -42,7 +43,7 @@ export class PaymentDBSubscriber {
                         const eventData = JSON.parse(msg.content.toString());
                         const messageId = `${eventData.orderId}`;
 
-                        console.log(`[Worker] Menerima tugas pembaruan pembayaran:`, eventData);
+                        log.info('Worker', 'Menerima tugas pembaruan pembayaran:', eventData);
 
                         // 4. Update Database menggunakan Use Case
                         const processPaymentWebhookUseCase = new ProcessPaymentWebhookUseCase();
@@ -50,7 +51,7 @@ export class PaymentDBSubscriber {
 
                         // 5. Beri tahu RabbitMQ bahwa tugas selesai dengan aman (Acknowledge)
                         channel.ack(msg);
-                        console.log(`[Worker] Tugas pembaruan pembayaran berhasil diproses untuk Order: ${eventData.orderId}`);
+                        log.success('Worker', `Tugas pembaruan pembayaran berhasil diproses untuk Order: ${eventData.orderId}`);
 
                         // Clear retry count untuk message ini
                         this.retryMap.delete(messageId);
@@ -69,7 +70,7 @@ export class PaymentDBSubscriber {
                             // Increment retry count dan requeue message
                             this.retryMap.set(messageId, retryCount + 1);
                             channel.nack(msg, false, true); // Requeue ke antrian
-                            console.log(`[Worker] Pesan di-requeue untuk retry (${retryCount + 1}/${this.MAX_RETRIES})`);
+                            log.info('Worker', `Pesan di-requeue untuk retry (${retryCount + 1}/${this.MAX_RETRIES})`);
                         } else {
                             // Sudah max retry, kirim ke Dead Letter Exchange
                             channel.nack(msg, false, false); // Tidak di-requeue, akan ke DLX

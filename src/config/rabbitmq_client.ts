@@ -1,4 +1,5 @@
 import amqp from 'amqplib';
+import { log } from '../utils/logger';
 
 let rabbitConnection: any = null;
 let rabbitChannel: any = null;
@@ -12,7 +13,7 @@ export const connectRabbitMQ = async (): Promise<void> => {
             rabbitChannel = await rabbitConnection.createChannel();
         }
 
-        console.log('[RabbitMQ] Client berhasil terhubung');
+        log.success('RabbitMQ', 'Client berhasil terhubung');
     } catch (error: unknown) {
         console.error('[RabbitMQ] Client gagal terhubung:', error);
         process.exit(1);

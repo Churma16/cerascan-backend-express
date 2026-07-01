@@ -1,4 +1,5 @@
 import { getRabbitChannel } from "../../../config/rabbitmq_client";
+import { log } from "../../../utils/logger";
 
 export class RabbitMQClient {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
@@ -27,8 +28,8 @@ export class RabbitMQClient {
 
             await channel.bindQueue(this.DLX_QUEUE_NAME, this.DLX_EXCHANGE_NAME, '');
 
-            console.log(`[RabbitMQ] Exchange '${this.EXCHANGE_NAME}' siap.`);
-            console.log(`[RabbitMQ] Dead Letter Exchange '${this.DLX_EXCHANGE_NAME}' siap.`);
+            log.info('RabbitMQ', `Exchange '${this.EXCHANGE_NAME}' siap.`);
+            log.info('RabbitMQ', `Dead Letter Exchange '${this.DLX_EXCHANGE_NAME}' siap.`);
         } catch (error: unknown) {
             console.error('[RabbitMQ] Gagal setup Exchange:', error);
         }
@@ -50,7 +51,7 @@ export class RabbitMQClient {
                 { persistent: true } // Pesan disimpan di disk
             );
 
-            console.log(`[Pub] Event '${routingKey}' berhasil disiarkan.`);
+            log.success('Pub', `Event '${routingKey}' berhasil disiarkan.`);
             return isPublished;
         } catch (error: unknown) {
             console.error('[Pub] Gagal menyiarkan pesan:', error);

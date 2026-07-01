@@ -3,6 +3,7 @@
 import {Server as SocketIOServer} from 'socket.io';
 import http from 'http';
 import {setupSocketHandlers} from "../modules/socket/socket.handler";
+import { log } from '../utils/logger';
 
 let io: SocketIOServer | null = null;
 
@@ -20,7 +21,7 @@ export const initSocket = (server: http.Server): void => {
 
     setupSocketHandlers(io);
 
-    console.log('[Socket] WebSocket Server berhasil diinisialisasi.');
+    log.info('Socket', 'WebSocket Server berhasil diinisialisasi.');
 };
 
 export const getSocket = (): SocketIOServer => {

@@ -1,6 +1,7 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import { SendPaymentEmailUseCase } from "../modules/email/use-cases/SendPaymentEmailUseCase";
 import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
+import { log } from "../utils/logger";
 
 export class PaymentEmailSubscriber {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
@@ -16,7 +17,7 @@ export class PaymentEmailSubscriber {
             // Delete old queue to avoid config mismatch
             try {
                 await channel.deleteQueue(this.QUEUE_NAME);
-                console.log(`[Email Worker] Queue lama '${this.QUEUE_NAME}' dihapus`);
+                log.info('Email Worker', `Queue lama '${this.QUEUE_NAME}' dihapus`);
             } catch (err) {
                 // Queue mungkin tidak ada, itu ok
             }
@@ -40,7 +41,7 @@ export class PaymentEmailSubscriber {
                         await sendPaymentEmailUseCase.execute(eventData.orderId);
 
                         channel.ack(msg);
-                        console.log(`[Email Worker] Email dikirim untuk Order ID: ${eventData.orderId}`);
+                        log.success('Email Worker', `Email dikirim untuk Order ID: ${eventData.orderId}`);
 
                         this.retryMap.delete(messageId);
 
@@ -57,7 +58,7 @@ export class PaymentEmailSubscriber {
                         if (retryCount < this.MAX_RETRIES) {
                             this.retryMap.set(messageId, retryCount + 1);
                             channel.nack(msg, false, true);
-                            console.log(`[Email Worker] Pesan di-requeue untuk retry (${retryCount + 1}/${this.MAX_RETRIES})`);
+                            log.info('Email Worker', `Pesan di-requeue untuk retry (${retryCount + 1}/${this.MAX_RETRIES})`);
                         } else {
                             channel.nack(msg, false, false);
                             console.error(`[Email Worker] Pesan gagal setelah ${this.MAX_RETRIES} retry, dikirim ke Dead Letter Queue`);
