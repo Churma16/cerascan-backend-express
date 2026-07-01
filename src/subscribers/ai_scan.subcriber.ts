@@ -6,14 +6,21 @@ import { UpdateScanSuccessUseCase } from "../modules/scan/use-cases/UpdateScanSu
 import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFailedUseCase";
 import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
 import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
+import { log } from "../utils/logger";
 import {RabbitMQHelper} from "../modules/rabbitmq/rabbitmq.helper";
 import {PythonMlGrpcClient} from "../modules/scan/infrastructure/python_ml_grpc_client";
+import {AnalyticsPublisherFactory} from "../modules/scan/infrastructure/AnalyticsPublisherFactory";
 
 export class AiScanSubscriber {
     private static readonly MAX_RETRIES = 3;
     private static retryMap = new Map<string, number>();
 
     static async start(): Promise<void> {
+        const analyticsPublisher = AnalyticsPublisherFactory.getPublisher();
+        analyticsPublisher.connect().catch(err => {
+            console.error('⚠ Gagal inisialisasi koneksi awal Kafka:', err.message);
+        });
+
         const channel = getRabbitChannel();
         const QUEUE_NAME = 'ai_scan_worker_queue';
 
@@ -50,6 +57,17 @@ export class AiScanSubscriber {
                         taskData.user_id
                     );
 
+                    const analyticsPublisher = AnalyticsPublisherFactory.getPublisher();
+                    analyticsPublisher.publish({
+                        scan_id: taskData.scan_id,
+                        user_id: taskData.user_id,
+                        prediction: result.prediction,
+                        confidence_score: result.confidence_score,
+                        inference_time: `${inferenceTimeMs}ms`
+                    }).catch(err => {
+                        console.error('[WARNING][KAFKA] Gagal mengirim analitik ke Kafka:', err.message);
+                    });
+
                     if (taskData.user_id && result.prediction) {
                         const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
                         await recordCompletedScanUseCase.execute(taskData.user_id, result.prediction);
@@ -65,7 +83,7 @@ export class AiScanSubscriber {
                         inference_time: `${inferenceTimeMs}ms`
                     });
 
-                    console.log(`[AI Worker] Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
+                    log.success('AI Worker', `Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
 
                     channel.ack(msg);
                     AiScanSubscriber.retryMap.delete(messageId);
@@ -91,16 +109,16 @@ export class AiScanSubscriber {
                     if (retryCount < AiScanSubscriber.MAX_RETRIES) {
                         AiScanSubscriber.retryMap.set(messageId, retryCount + 1);
                         channel.nack(msg, false, true);
-                        console.log(`[AI Worker] Pesan di-requeue untuk retry (${retryCount + 1}/${AiScanSubscriber.MAX_RETRIES})`);
+                        log.info('AI Worker', `Pesan di-requeue untuk retry (${retryCount + 1}/${AiScanSubscriber.MAX_RETRIES})`);
                     } else {
                         channel.nack(msg, false, false);
-                        console.error(`❌ [AI Worker] Gagal setelah ${AiScanSubscriber.MAX_RETRIES} retry, dikirim ke DLX`);
+                        console.error(`[AI Worker] Gagal setelah ${AiScanSubscriber.MAX_RETRIES} retry, dikirim ke DLX`);
 
                         try {
                             if (taskData && taskData.db_id) {
                                 const updateScanFailedUseCase = new UpdateScanFailedUseCase();
                                 await updateScanFailedUseCase.execute(taskData.db_id);
-                                console.log(`[AI Worker] Status DB diubah ke 'failed' untuk ID: ${taskData.db_id}`);
+                                log.info('AI Worker', `Status DB diubah ke 'failed' untuk ID: ${taskData.db_id}`);
                             }
                         } catch (dbErr) {
                             console.error(`[AI Worker] Gagal mengupdate status database ke failed:`, dbErr);
