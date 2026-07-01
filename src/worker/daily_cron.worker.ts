@@ -4,6 +4,7 @@ import { SyncUserQuotaToDbUseCase } from "../modules/user_quota/use-cases/SyncUs
 import { DowngradeExpiredUserQuotaUseCase } from "../modules/user_quota/use-cases/DowngradeExpiredUserQuotaUseCase";
 import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
 import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/DowngradeExpiredUsersUseCase";
+import { log } from "../utils/logger";
 
 export class CronWorker {
     static start() {
