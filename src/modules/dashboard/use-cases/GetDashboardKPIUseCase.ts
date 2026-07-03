@@ -1,13 +1,13 @@
-import { GetUserQuotaByUserIdUseCase } from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
-import { GetActiveSubscriptionUseCase } from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
-import { getNowIndonesiaTime } from "../../../utils/time.helper";
-import { getRedisClient } from "../../../config/redis_client";
+import {GetUserQuotaByUserIdUseCase} from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
+import {GetActiveSubscriptionUseCase} from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
+import {getNowIndonesiaTime} from "../../../utils/time.helper";
+import {getRedisClient} from "../../../config/redis_client";
 import dayjs from "dayjs";
-import { Op } from "sequelize";
-import { IUserRepository } from "../../user/domain/IUserRepository";
-import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
-import { IScanRepository } from "../../scan/domain/IScanRepository";
-import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
+import {IUserRepository} from "../../user/domain/IUserRepository";
+import {SequelizeUserRepository} from "../../user/infrastructure/SequelizeUserRepository";
+import {IScanRepository} from "../../scan/domain/IScanRepository";
+import {SequelizeScanRepository} from "../../scan/infrastructure/SequelizeScanRepository";
+import {MongoScanAnalyticsRepository} from "../../scan/infrastructure/MongoScanAnalyticsRepository";
 
 export interface DashboardKPIResult {
     totalScans: number;
@@ -60,56 +60,25 @@ export class GetDashboardKPIUseCase {
 
         const defectTypes = ['crack', 'scratch', 'stain'];
 
-        const [
-            totalScans,
-            totalUsers,
-            avgAccuracy,
-            unNormalScanCount,
-            totalScansThisMonth,
-            totalScansLastMonth,
-            defectCountThisMonth,
-            activeUsersThisMonth
-        ] = await Promise.all([
-            this.scanRepository.count({ where: whereClauseScan }),
-            this.userRepository.count({ where: whereClauseUser }),
-            this.scanRepository.aggregate('confidence', 'avg', { where: whereClauseScan }),
-            this.scanRepository.count({
-                where: {
-                    ...whereClauseScan,
-                    prediction: { [Op.in]: defectTypes }
-                }
-            }),
-            this.scanRepository.count({
-                where: {
-                    ...whereClauseScan,
-                    createdAt: { [Op.gte]: startOfCurrentMonth }
-                }
-            }),
-            this.scanRepository.count({
-                where: {
-                    ...whereClauseScan,
-                    createdAt: {
-                        [Op.gte]: startOfLastMonth,
-                        [Op.lte]: endOfLastMonth
-                    }
-                }
-            }),
-            this.scanRepository.count({
-                where: {
-                    ...whereClauseScan,
-                    prediction: { [Op.in]: defectTypes },
-                    createdAt: { [Op.gte]: startOfCurrentMonth }
-                }
-            }),
-            this.scanRepository.count({
-                distinct: true,
-                col: 'user_id',
-                where: {
-                    user_id: { [Op.ne]: null as any },
-                    createdAt: { [Op.gte]: startOfCurrentMonth }
-                }
-            })
-        ]);
+        const totalUsers = await this.userRepository.count({where: whereClauseUser});
+        // b. Ambil data Scan dari MongoDB (Menggunakan Repository Agregasi Baru)
+        // Kita cukup mengirimkan `userId` jika role-nya bukan admin
+        const mongoUserId = userRole !== 'admin' ? userId : undefined;
+
+        const mongoStats = await MongoScanAnalyticsRepository.getScanKPIs(
+            mongoUserId,
+            startOfCurrentMonth,
+            startOfLastMonth,
+            endOfLastMonth
+        );
+        // Petakan hasil dari MongoDB ke variabel lokal
+        const totalScans = mongoStats.totalScans;
+        const avgAccuracy = mongoStats.averageScanAccuracy;
+        const unNormalScanCount = mongoStats.unNormalScanCount;
+        const totalScansThisMonth = mongoStats.totalScansThisMonth;
+        const totalScansLastMonth = mongoStats.totalScansLastMonth;
+        const defectCountThisMonth = mongoStats.defectCountThisMonth;
+        const activeUsersThisMonth = mongoStats.activeUsersThisMonth;
 
         let scanChangeText = "Stabil dari bulan lalu";
         if (totalScansLastMonth > 0) {
