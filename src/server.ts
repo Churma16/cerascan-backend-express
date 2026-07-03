@@ -20,6 +20,9 @@ import {startAnalyticsWorker} from "./worker/analytics_worker_manager";
 
 dotenv.config();
 
+// SET GLOBAL TIMEZONE
+process.env.TZ = 'Asia/Jakarta';
+
 // Nonaktifkan console.log di environment Production untuk keamanan dan performa
 if (process.env.NODE_ENV === 'production') {
     console.log = () => {
