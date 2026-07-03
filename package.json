@@ -30,6 +30,7 @@
     "kafkajs": "^2.2.4",
     "midtrans-client": "^1.4.3",
     "mongoose": "^9.7.3",
+    "mqtt": "^5.15.1",
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
     "nanoid": "^5.1.11",
