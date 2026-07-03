@@ -1,4 +1,3 @@
-// File: src/modules/scan/infrastructure/HiveMqAnalyticsPublisher.ts
 import { MqttClient } from 'mqtt';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
 import { getMQTTClient } from '../../../config/mqtt_client';

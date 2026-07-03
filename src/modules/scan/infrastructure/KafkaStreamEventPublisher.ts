@@ -1,4 +1,3 @@
-// File: src/modules/scan/infrastructure/KafkaAnalyticsPublisher.ts
 import { Producer } from 'kafkajs';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
 import {getKafkaProducer} from "../../../config/kafka.client";
