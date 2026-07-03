@@ -1,15 +1,13 @@
 import {getRabbitChannel} from '../config/rabbitmq_client';
-import { RecordCompletedScanUseCase } from "../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
-import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 import { PythonMlClient } from "../modules/scan/infrastructure/python_ml_client";
-import { UpdateScanSuccessUseCase } from "../modules/scan/use-cases/UpdateScanSuccessUseCase";
 import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFailedUseCase";
-import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
+import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
 import { log } from "../utils/logger";
 import {RabbitMQHelper} from "../modules/rabbitmq/rabbitmq.helper";
 import {PythonMlGrpcClient} from "../modules/scan/infrastructure/python_ml_grpc_client";
 import {AnalyticsPublisherFactory} from "../modules/scan/infrastructure/AnalyticsPublisherFactory";
+import { RefundUserQuotaUseCase } from "../modules/user_quota/use-cases/RefundUserQuotaUseCase";
 
 export class AiScanSubscriber {
     private static readonly MAX_RETRIES = 3;
@@ -48,39 +46,17 @@ export class AiScanSubscriber {
                     const result = await PythonMlGrpcClient.predictImage(taskData.file_path, taskData.original_name);
                     const inferenceTimeMs = Date.now() - startTime;
 
-                    const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
-                    await updateScanSuccessUseCase.execute(
-                        taskData.db_id,
-                        result.prediction,
-                        result.confidence_score,
-                        `${inferenceTimeMs}ms`,
-                        taskData.user_id
-                    );
-
-                    const analyticsPublisher = AnalyticsPublisherFactory.getPublisher();
-                    analyticsPublisher.publish({
+                    // Publish event ke Kafka Utama (akan di-consume oleh SQL, Socket, dan Analytics worker secara paralel)
+                    const eventPublisher = AnalyticsPublisherFactory.getPublisher();
+                    eventPublisher.publish({
+                        db_id: taskData.db_id,
                         scan_id: taskData.scan_id,
                         user_id: taskData.user_id,
                         prediction: result.prediction,
                         confidence_score: result.confidence_score,
                         inference_time: `${inferenceTimeMs}ms`
                     }).catch(err => {
-                        console.error('[WARNING][KAFKA] Gagal mengirim analitik ke Kafka:', err.message);
-                    });
-
-                    if (taskData.user_id && result.prediction) {
-                        const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
-                        await recordCompletedScanUseCase.execute(taskData.user_id, result.prediction);
-                    }
-
-                    // 4. Kirim Notifikasi menggunakan service terpisah
-                    const emitScanCompletedUseCase = new EmitScanCompletedUseCase();
-                    await emitScanCompletedUseCase.execute({
-                        db_id: taskData.db_id,
-                        scan_id: taskData.scan_id,
-                        prediction: result.prediction,
-                        confidence: result.confidence_score,
-                        inference_time: `${inferenceTimeMs}ms`
+                        console.error('[WARNING][KAFKA] Gagal mengirim event scan_completed ke Kafka:', err.message);
                     });
 
                     log.success('AI Worker', `Selesai Scan ${taskData.scan_id}. Hasil: ${result.prediction}`);
@@ -135,6 +111,16 @@ export class AiScanSubscriber {
                             }
                         } catch (socketErr) {
                             console.error(`[AI Worker] Gagal memancarkan event socket scan_failed:`, socketErr);
+                        }
+
+                        try {
+                            if (taskData && taskData.user_id) {
+                                const refundUserQuotaUseCase = new RefundUserQuotaUseCase();
+                                await refundUserQuotaUseCase.execute(taskData.user_id);
+                                log.info('AI Worker', `Kuota user ${taskData.user_id} berhasil dikembalikan (+1) karena gagal scan.`);
+                            }
+                        } catch (refundErr) {
+                            console.error(`[AI Worker] Gagal mengembalikan kuota user:`, refundErr);
                         }
 
                         AiScanSubscriber.retryMap.delete(messageId);
