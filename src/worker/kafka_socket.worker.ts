@@ -1,8 +1,7 @@
-// File: src/worker/kafka_socket.worker.ts
-import { kafka } from "../config/kafka.client";
-import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
+import {kafka} from "../config/kafka.client";
+import {EmitScanCompletedUseCase} from "../modules/notification/use-cases/EmitScanCompletedUseCase";
 
-const consumer = kafka.consumer({ groupId: 'ceramic-socket-group' });
+const consumer = kafka.consumer({groupId: 'ceramic-socket-group'});
 const TOPIC_NAME = 'ceramic-scan-completed';
 
 export const startSocketConsumer = async (): Promise<void> => {
@@ -10,11 +9,11 @@ export const startSocketConsumer = async (): Promise<void> => {
         await consumer.connect();
         console.log('[Kafka Socket Worker] Berhasil terhubung');
 
-        await consumer.subscribe({ topic: TOPIC_NAME, fromBeginning: false });
+        await consumer.subscribe({topic: TOPIC_NAME, fromBeginning: false});
         console.log(`[Kafka Socket Worker] Mendengarkan topik: ${TOPIC_NAME}`);
 
         await consumer.run({
-            eachMessage: async ({ message }) => {
+            eachMessage: async ({message}) => {
                 try {
                     const messageVal = message.value?.toString();
                     if (!messageVal) return;
@@ -24,13 +23,14 @@ export const startSocketConsumer = async (): Promise<void> => {
 
                     if (payload.db_id) {
                         const emitScanCompletedUseCase = new EmitScanCompletedUseCase();
-                        await emitScanCompletedUseCase.execute({
+                        const scanData = {
                             db_id: payload.db_id,
                             scan_id: payload.scan_id,
                             prediction: payload.prediction,
                             confidence: payload.confidence_score,
                             inference_time: payload.inference_time
-                        });
+                        };
+                        await emitScanCompletedUseCase.execute(scanData);
                         console.log(`[Kafka Socket Worker] Notifikasi terkirim untuk scan_id: ${payload.scan_id}`);
                     }
 
