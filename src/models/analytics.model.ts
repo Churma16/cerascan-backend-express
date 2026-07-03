@@ -18,4 +18,7 @@ const AnalyticsSchema: Schema = new Schema({
     created_at: {type: Date, default: Date.now}
 });
 
+AnalyticsSchema.index({ user_id: 1, created_at: -1 });
+
+
 export const AnalyticsModel = mongoose.model<IAnalyticsDocument>('Analytics', AnalyticsSchema, 'scan_analytics');
