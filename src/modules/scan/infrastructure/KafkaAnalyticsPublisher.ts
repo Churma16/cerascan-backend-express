@@ -5,7 +5,7 @@ import {getKafkaProducer} from "../../../config/kafka.client";
 
 export class KafkaAnalyticsPublisher implements IAnalyticsPublisher {
     private producer!: Producer;
-    private topic = 'ceramic-defect-analytics';
+    private topic = 'ceramic-scan-completed';
 
     async connect(): Promise<void> {
         this.producer = getKafkaProducer();
@@ -25,9 +25,9 @@ export class KafkaAnalyticsPublisher implements IAnalyticsPublisher {
                     }
                 ]
             });
-            console.log(`📤 [Kafka Producer] Berhasil mengirim pesan analitik untuk scan_id: ${data.scan_id}`);
+            console.log(`[Kafka Producer] Berhasil mengirim pesan analitik untuk scan_id: ${data.scan_id}`);
         } catch (error: any) {
-            console.error('❌ [Kafka Producer] Gagal mengirim pesan:', error.message);
+            console.error('[Kafka Producer] Gagal mengirim pesan:', error.message);
         }
     }
 
