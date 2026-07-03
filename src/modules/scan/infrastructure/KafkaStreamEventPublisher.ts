@@ -3,7 +3,7 @@ import { Producer } from 'kafkajs';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
 import {getKafkaProducer} from "../../../config/kafka.client";
 
-export class KafkaAnalyticsPublisher implements IAnalyticsPublisher {
+export class KafkaStreamEventPublisher implements IAnalyticsPublisher {
     private producer!: Producer;
     private topic = 'ceramic-scan-completed';
 
