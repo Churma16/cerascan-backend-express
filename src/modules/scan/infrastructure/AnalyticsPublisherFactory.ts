@@ -1,8 +1,7 @@
 import {IAnalyticsPublisher} from './IAnalyticsPublisher';
-import {KafkaAnalyticsPublisher} from './KafkaAnalyticsPublisher';
-import { log } from '../../../utils/logger';
-
-// import { HiveMqAnalyticsPublisher } from './HiveMqAnalyticsPublisher'; // nanti diimport kalau sudah ada
+import {KafkaStreamEventPublisher} from './KafkaStreamEventPublisher';
+import {log} from '../../../utils/logger';
+import {RabbitStreamEventPublisher} from "./RabbitStreamEventPublisher";
 
 export class AnalyticsPublisherFactory {
     private static instance: IAnalyticsPublisher;
@@ -12,13 +11,11 @@ export class AnalyticsPublisherFactory {
             const env = process.env.NODE_ENV || 'development';
 
             if (env === 'production') {
-                // Nanti return new HiveMqAnalyticsPublisher();
-                // Sementara kita arahkan ke Kafka atau buat penanda
-                log.info('Publisher Factory', 'Menggunakan HiveMQ Publisher (Production Mode)');
-                this.instance = new KafkaAnalyticsPublisher(); // Ganti ke HiveMQ jika file sudah siap
+                log.info('Publisher Factory', 'Menggunakan RabbitMQ Streams (Production Mode)');
+                this.instance = new RabbitStreamEventPublisher();
             } else {
                 log.info('Publisher Factory', 'Menggunakan Kafka Publisher (Development Mode)');
-                this.instance = new KafkaAnalyticsPublisher();
+                this.instance = new KafkaStreamEventPublisher();
             }
         }
         return this.instance;
