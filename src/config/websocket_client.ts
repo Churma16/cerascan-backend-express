@@ -1,5 +1,3 @@
-// config/websocket_client.ts (Contoh path)
-
 import {Server as SocketIOServer} from 'socket.io';
 import http from 'http';
 import {setupSocketHandlers} from "../modules/socket/socket.handler";
