@@ -14,18 +14,20 @@ import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
 import {initPassport} from "./config/passport_client";
-import {connectKafkaProducer} from "./config/kafka.client";
 import {connectMongoDB} from "./config/mongodb_client";
 import {log} from "./utils/logger";
-import {startAnalyticsConsumer} from "./worker/analytics.worker";
+import {startAnalyticsWorker} from "./worker/analytics_worker_manager";
 
 dotenv.config();
 
 // Nonaktifkan console.log di environment Production untuk keamanan dan performa
 if (process.env.NODE_ENV === 'production') {
-    console.log = () => {};
-    console.info = () => {};
-    console.debug = () => {};
+    console.log = () => {
+    };
+    console.info = () => {
+    };
+    console.debug = () => {
+    };
 }
 
 const PORT = process.env.PORT || 3000;
@@ -43,8 +45,9 @@ const startServer = async () => {
         await connectRedis();
         await connectRabbitMQ();
         await connectMongoDB();
-        await connectKafkaProducer();
         await RabbitMQClient.setupExchange();
+
+        await startAnalyticsWorker();
 
 
         // Nyalakan semua Subscriber
@@ -53,10 +56,6 @@ const startServer = async () => {
         await AiScanSubscriber.start();
 
 
-        startAnalyticsConsumer().catch(err => {
-            console.error('❌ Gagal menjalankan Kafka Consumer:', err);
-        });
-
         initPassport();
 
         CronWorker.start();
@@ -64,7 +63,7 @@ const startServer = async () => {
         log.info('FRONTEND_URL', `Frontend URL is ${process.env.FRONTEND_URL}`);
 
         server.listen(PORT, () => {
-            log.system(`🚀 API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
+            log.system(`[GIN]API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('Tidak dapat terhubung ke database:', error);
