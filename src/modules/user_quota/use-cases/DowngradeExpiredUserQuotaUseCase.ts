@@ -9,8 +9,7 @@ export class DowngradeExpiredUserQuotaUseCase {
         this.userQuotaRepository = userQuotaRepository;
     }
 
-    async execute(redis: any) {
-        const today = new Date();
+    async execute(redis: any, today: Date) {
 
         const expiredQuotas = await this.userQuotaRepository.findAll({
             where: {

@@ -13,16 +13,19 @@ export class CronWorker {
             const redis = getRedisClient();
 
             try {
+                // Ambil referensi waktu hari ini (berkat TZ='Asia/Jakarta', new Date() aman)
+                const today = new Date();
+
                 // TUGAS 1: SINKRONISASI REDIS KE POSTGRESQL
                 const syncUserQuotaToDbUseCase = new SyncUserQuotaToDbUseCase();
                 await syncUserQuotaToDbUseCase.execute(redis);
 
                 // TUGAS 2: RESET KERAS (USE IT OR LOSE IT) - OPTIMIZED
                 const downgradeExpiredUsersUseCase = new DowngradeExpiredUsersUseCase();
-                await downgradeExpiredUsersUseCase.execute();
+                await downgradeExpiredUsersUseCase.execute(today, redis);
 
                 const downgradeExpiredUserQuotaUseCase = new DowngradeExpiredUserQuotaUseCase();
-                await downgradeExpiredUserQuotaUseCase.execute(redis);
+                await downgradeExpiredUserQuotaUseCase.execute(redis, today);
 
                 const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
                 await syncLeaderboardToDbUseCase.execute(redis);
