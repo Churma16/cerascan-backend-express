@@ -6,7 +6,7 @@ import {kafka} from "../config/kafka.client";
 import {getRedisClient} from "../config/redis_client";
 
 const consumer = kafka.consumer({groupId: 'ceramic-analytics-group'});
-const TOPIC_NAME = 'ceramic-defect-analytics';
+const TOPIC_NAME = 'ceramic-scan-completed';
 
 export const startAnalyticsConsumer = async (): Promise<void> => {
     try {
@@ -61,7 +61,7 @@ export const startAnalyticsConsumer = async (): Promise<void> => {
                         }
                     );
 
-                    console.log(`🍃 [MongoDB] Data mentah & KPI Harian untuk user ${userId} hari ${todayDateStr} berhasil diupdate.`);
+                    console.log(`[MongoDB] Data mentah & KPI Harian untuk user ${userId} hari ${todayDateStr} berhasil diupdate.`);
 
                     try {
                         const redis = getRedisClient();
@@ -72,12 +72,12 @@ export const startAnalyticsConsumer = async (): Promise<void> => {
                             await redis.del('dashboard:kpi');
                             await redis.del('dashboard:trend');
                         }
-                        console.log(`🧹 [Redis] Cache dashboard untuk user ${userId} telah dibersihkan.`);
+                        console.log(`[Redis] Cache dashboard untuk user ${userId} telah dibersihkan.`);
                     } catch (redisErr: any) {
-                        console.error('⚠️ [Kafka Consumer] Gagal menghapus cache Redis:', redisErr.message);
+                        console.error('[Kafka Consumer] Gagal menghapus cache Redis:', redisErr.message);
                     }
                 } catch (err: any) {
-                    console.error('❌ [Kafka Consumer] Gagal memproses pesan analitik:', err.message);
+                    console.error('[Kafka Consumer] Gagal memproses pesan analitik:', err.message);
                     throw err;
                 }
             },
