@@ -55,8 +55,8 @@ export const startAnalyticsConsumer = async (): Promise<void> => {
                             }
                         },
                         {
-                            upsert: true, // Jika data hari ini belum ada, buat baru otomatis
-                            new: true     // Kembalikan data setelah ter-update
+                            upsert: true,
+                            new: true
                         }
                     );
 

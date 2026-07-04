@@ -13,9 +13,6 @@ export interface MongoScanStats {
 }
 
 export class MongoScanAnalyticsRepository {
-    /**
-     * Mengambil metrik analitik scan yang sudah di-agregasi dari MongoDB
-     */
     static async getScanKPIs(
         userId: number | undefined,
         startOfCurrentMonth: Date,

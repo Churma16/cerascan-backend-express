@@ -8,7 +8,6 @@ export class RabbitStreamEventPublisher implements IAnalyticsPublisher {
 
     async connect(): Promise<void> {
         this.channel = getRabbitChannel();
-        // Deklarasi Stream Queue RabbitMQ
         await this.channel.assertQueue(this.streamName, {
             durable: true,
             arguments: {

@@ -42,9 +42,8 @@ export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
                     });
                     await analyticsData.save();
 
-                    // 2. Lakukan Agregasi Increment (CQRS / Materialized View)
-                    const todayDateStr = dayjs().format('YYYY-MM-DD'); // Dapatkan format "YYYY-MM-DD"
-                    const userId = payload.user_id || 0; // Jika guest, anggap ID-nya 0
+                    const todayDateStr = dayjs().format('YYYY-MM-DD');
+                    const userId = payload.user_id || 0;
 
                     const isDefect = ['crack', 'scratch', 'stain'].includes(payload.prediction.toLowerCase());
 
