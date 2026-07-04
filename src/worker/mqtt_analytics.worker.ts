@@ -1,6 +1,6 @@
 // File: src/worker/mqtt_analytics.worker.ts
 import { getMQTTClient } from '../config/mqtt_client';
-import { AnalyticsModel } from '../models/analytics.model';
+import { RecordScanHistoryUseCase } from '../modules/scan/use-cases/RecordScanHistoryUseCase';
 import { UserDailyKpiModel } from '../models/user_daily_kpi.model';
 import { getRedisClient } from '../config/redis_client';
 import dayjs from 'dayjs';
@@ -31,14 +31,14 @@ export const startMQTTAnalyticsConsumer = async (): Promise<void> => {
                 console.log(`📩 [MQTT Consumer] Memproses analitik scan_id: ${payload.scan_id}`);
 
                 // 1. Simpan Data Mentah (Audit Log)
-                const analyticsData = new AnalyticsModel({
+                const recordScanHistoryUseCase = new RecordScanHistoryUseCase();
+                await recordScanHistoryUseCase.execute({
                     scan_id: payload.scan_id,
                     user_id: payload.user_id,
                     prediction: payload.prediction,
                     confidence_score: payload.confidence_score,
                     inference_time: payload.inference_time
                 });
-                await analyticsData.save();
 
                 // 2. Lakukan Agregasi Increment (Materialized View)
                 const todayDateStr = dayjs().format('YYYY-MM-DD');

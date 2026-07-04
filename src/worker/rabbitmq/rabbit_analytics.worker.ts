@@ -1,8 +1,8 @@
-import { getRabbitChannel } from "../../config/rabbitmq_client";
-import {AnalyticsModel} from '../../models/analytics.model';
-import {UserDailyKpiModel} from '../../models/user_daily_kpi.model';
+import {getRabbitChannel} from "../../config/rabbitmq_client";
+import { RecordScanHistoryUseCase } from "../../modules/scan/use-cases/RecordScanHistoryUseCase";
 import dayjs from 'dayjs';
 import {getRedisClient} from "../../config/redis_client";
+import {MongoScanRepository} from "../../modules/scan/infrastructure/MongoScanRepository";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
@@ -16,7 +16,7 @@ export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
 
         await channel.assertQueue(STREAM_NAME, {
             durable: true,
-            arguments: { 'x-queue-type': 'stream' }
+            arguments: {'x-queue-type': 'stream'}
         });
 
         // Konsumsi stream dengan offset 'next'
@@ -33,40 +33,21 @@ export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
                     console.log(`[RabbitMQ Analytics Worker] Memproses analitik scan_id: ${payload.scan_id}`);
 
                     // 1. Simpan Data Mentah (Audit Log)
-                    const analyticsData = new AnalyticsModel({
+                    const recordScanHistoryUseCase = new RecordScanHistoryUseCase();
+                    await recordScanHistoryUseCase.execute({
                         scan_id: payload.scan_id,
                         user_id: payload.user_id,
                         prediction: payload.prediction,
                         confidence_score: payload.confidence_score,
                         inference_time: payload.inference_time
                     });
-                    await analyticsData.save();
 
-                    const todayDateStr = dayjs().format('YYYY-MM-DD');
                     const userId = payload.user_id || 0;
 
+
                     const isDefect = ['crack', 'scratch', 'stain'].includes(payload.prediction.toLowerCase());
-
-                    // Mongoose findOneAndUpdate + $inc melakukan update angka secara atomik di database
-                    await UserDailyKpiModel.findOneAndUpdate(
-                        {
-                            user_id: userId,
-                            date: todayDateStr
-                        },
-                        {
-                            $inc: {
-                                total_scans: 1,
-                                total_confidence: payload.confidence_score,
-                                defect_scans: isDefect ? 1 : 0,
-                                normal_scans: isDefect ? 0 : 1
-                            }
-                        },
-                        {
-                            upsert: true, // Jika data hari ini belum ada, buat baru otomatis
-                            new: true     // Kembalikan data setelah ter-update
-                        }
-                    );
-
+                    const todayDateStr = dayjs().format('YYYY-MM-DD');
+                    await MongoScanRepository.incrementScanKpi(userId, payload.confidence_score, isDefect);
                     console.log(`[MongoDB] Data mentah & KPI Harian untuk user ${userId} hari ${todayDateStr} berhasil diupdate.`);
 
                     try {
@@ -82,7 +63,7 @@ export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
                     } catch (redisErr: any) {
                         console.error('[RabbitMQ Analytics Worker] Gagal menghapus cache Redis:', redisErr.message);
                     }
-                    
+
                     channel.ack(msg);
                 } catch (err: any) {
                     console.error('[RabbitMQ Analytics Worker] Gagal memproses pesan:', err.message);
@@ -91,7 +72,7 @@ export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
             }
         }, {
             noAck: false,
-            arguments: { 'x-stream-offset': 'next' }
+            arguments: {'x-stream-offset': 'next'}
         });
 
         console.log(`[RabbitMQ Analytics Worker] Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
