@@ -19,7 +19,7 @@ import {connectMongoDB} from "./config/mongodb_client";
 import {log} from "./utils/logger";
 import {startAnalyticsWorker} from "./worker/analytics_worker_manager";
 
-dotenv.config();
+dotenv.config({ quiet: true } as any);
 
 // SET GLOBAL TIMEZONE
 process.env.TZ = 'Asia/Jakarta';
