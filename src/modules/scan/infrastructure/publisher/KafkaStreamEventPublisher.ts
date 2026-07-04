@@ -1,6 +1,6 @@
 import { Producer } from 'kafkajs';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import {getKafkaProducer} from "../../../config/kafka.client";
+import {getKafkaProducer} from "../../../../config/kafka.client";
 
 export class KafkaStreamEventPublisher implements IAnalyticsPublisher {
     private producer!: Producer;

@@ -1,6 +1,6 @@
 
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import { getRabbitChannel } from '../../../config/rabbitmq_client';
+import { getRabbitChannel } from '../../../../config/rabbitmq_client';
 
 export class RabbitStreamEventPublisher implements IAnalyticsPublisher {
     private channel: any;

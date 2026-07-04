@@ -1,6 +1,6 @@
 import { MqttClient } from 'mqtt';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import { getMQTTClient } from '../../../config/mqtt_client';
+import { getMQTTClient } from '../../../../config/mqtt_client';
 
 export class HiveMqAnalyticsPublisher implements IAnalyticsPublisher {
     private client!: MqttClient;

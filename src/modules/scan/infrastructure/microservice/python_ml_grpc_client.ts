@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import {grpcCeramicClient} from "../../../config/grpc_client";
+import {grpcCeramicClient} from "../../../../config/grpc_client";
 
 
 export interface GrpcPredictionResult {

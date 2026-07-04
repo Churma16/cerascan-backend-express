@@ -1,6 +1,7 @@
 // File: src/modules/scan/infrastructure/MongoScanAnalyticsRepository.ts
-import { UserDailyKpiModel } from '../../../models/user_daily_kpi.model';
+import {UserDailyKpiModel} from '../../../models/user_daily_kpi.model';
 import dayjs from 'dayjs';
+import {AnalyticsModel} from "../../../models/analytics.model";
 
 export interface MongoScanStats {
     totalScans: number;
@@ -12,7 +13,7 @@ export interface MongoScanStats {
     activeUsersThisMonth: number;
 }
 
-export class MongoScanAnalyticsRepository {
+export class MongoScanRepository {
     static async getScanKPIs(
         userId: number | undefined,
         startOfCurrentMonth: Date,
@@ -33,23 +34,23 @@ export class MongoScanAnalyticsRepository {
 
         // 2. Jalankan Aggregation Pipeline ringan pada data rekap harian
         const result = await UserDailyKpiModel.aggregate([
-            { $match: filter },
+            {$match: filter},
             {
                 $group: {
                     _id: null,
                     // a. Total scan sepanjang masa (jumlahkan semua hari)
-                    totalScans: { $sum: '$total_scans' },
+                    totalScans: {$sum: '$total_scans'},
 
                     // b. Akumulasi seluruh confidence score sepanjang masa
-                    accumulatedConfidence: { $sum: '$total_confidence' },
+                    accumulatedConfidence: {$sum: '$total_confidence'},
 
                     // c. Total cacat sepanjang masa
-                    unNormalScanCount: { $sum: '$defect_scans' },
+                    unNormalScanCount: {$sum: '$defect_scans'},
 
                     // d. Total scan bulan ini (filter tanggal >= awal bulan ini)
                     totalScansThisMonth: {
                         $sum: {
-                            $cond: [{ $gte: ['$date', startOfMonthStr] }, '$total_scans', 0]
+                            $cond: [{$gte: ['$date', startOfMonthStr]}, '$total_scans', 0]
                         }
                     },
 
@@ -59,8 +60,8 @@ export class MongoScanAnalyticsRepository {
                             $cond: [
                                 {
                                     $and: [
-                                        { $gte: ['$date', startOfLastMonthStr] },
-                                        { $lte: ['$date', endOfLastMonthStr] }
+                                        {$gte: ['$date', startOfLastMonthStr]},
+                                        {$lte: ['$date', endOfLastMonthStr]}
                                     ]
                                 },
                                 '$total_scans',
@@ -73,7 +74,7 @@ export class MongoScanAnalyticsRepository {
                     defectCountThisMonth: {
                         $sum: {
                             $cond: [
-                                { $gte: ['$date', startOfMonthStr] },
+                                {$gte: ['$date', startOfMonthStr]},
                                 '$defect_scans',
                                 0
                             ]
@@ -86,8 +87,8 @@ export class MongoScanAnalyticsRepository {
                             $cond: [
                                 {
                                     $and: [
-                                        { $ne: ['$user_id', 0] }, // Abaikan guest (ID 0)
-                                        { $gte: ['$date', startOfMonthStr] }
+                                        {$ne: ['$user_id', 0]}, // Abaikan guest (ID 0)
+                                        {$gte: ['$date', startOfMonthStr]}
                                     ]
                                 },
                                 '$user_id',
@@ -127,5 +128,50 @@ export class MongoScanAnalyticsRepository {
             defectCountThisMonth: data.defectCountThisMonth || 0,
             activeUsersThisMonth: data.activeUsersArray ? data.activeUsersArray.length : 0
         };
+    }
+
+    static async incrementScanKpi(
+        userId: number,
+        confidenceScore: number,
+        isDefect: boolean
+    ): Promise<void> {
+        const todayDateStr = dayjs().format('YYYY-MM-DD');
+
+        await UserDailyKpiModel.findOneAndUpdate(
+            {
+                user_id: userId,
+                date: todayDateStr
+            },
+            {
+                $inc: {
+                    total_scans: 1,
+                    total_confidence: confidenceScore,
+                    defect_scans: isDefect ? 1 : 0,
+                    normal_scans: isDefect ? 0 : 1
+                }
+            },
+            {
+                upsert: true,
+                new: true
+            }
+        );
+    }
+
+    static async saveScanAnalytics(payload: {
+        scan_id: string;
+        user_id: number;
+        prediction: string;
+        confidence_score: number;
+        inference_time: number;
+    }): Promise<void> {
+        const analyticsData = new AnalyticsModel({
+            scan_id: payload.scan_id,
+            user_id: payload.user_id,
+            prediction: payload.prediction,
+            confidence_score: payload.confidence_score,
+            inference_time: payload.inference_time
+        });
+
+        await analyticsData.save();
     }
 }

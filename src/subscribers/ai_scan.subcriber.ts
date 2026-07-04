@@ -1,5 +1,5 @@
 import { BaseRabbitSubscriber } from "./base.subscriber";
-import { PythonMlGrpcClient } from "../modules/scan/infrastructure/python_ml_grpc_client";
+import { PythonMlGrpcClient } from "../modules/scan/infrastructure/microservice/python_ml_grpc_client";
 import { AnalyticsPublisherFactory } from "../modules/scan/infrastructure/AnalyticsPublisherFactory";
 import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFailedUseCase";
 import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
