@@ -1,8 +1,8 @@
-import { getRabbitChannel } from "../config/rabbitmq_client";
-import {AnalyticsModel} from '../models/analytics.model';
-import {UserDailyKpiModel} from '../models/user_daily_kpi.model';
+import { getRabbitChannel } from "../../config/rabbitmq_client";
+import {AnalyticsModel} from '../../models/analytics.model';
+import {UserDailyKpiModel} from '../../models/user_daily_kpi.model';
 import dayjs from 'dayjs';
-import {getRedisClient} from "../config/redis_client";
+import {getRedisClient} from "../../config/redis_client";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 

@@ -1,6 +1,6 @@
 
-import { getRabbitChannel } from "../config/rabbitmq_client";
-import { EmitScanCompletedUseCase } from "../modules/notification/use-cases/EmitScanCompletedUseCase";
+import { getRabbitChannel } from "../../config/rabbitmq_client";
+import { EmitScanCompletedUseCase } from "../../modules/notification/use-cases/EmitScanCompletedUseCase";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 

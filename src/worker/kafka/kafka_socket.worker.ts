@@ -1,5 +1,5 @@
-import {kafka} from "../config/kafka.client";
-import {EmitScanCompletedUseCase} from "../modules/notification/use-cases/EmitScanCompletedUseCase";
+import {kafka} from "../../config/kafka.client";
+import {EmitScanCompletedUseCase} from "../../modules/notification/use-cases/EmitScanCompletedUseCase";
 
 const consumer = kafka.consumer({groupId: 'ceramic-socket-group'});
 const TOPIC_NAME = 'ceramic-scan-completed';

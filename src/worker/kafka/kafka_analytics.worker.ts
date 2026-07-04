@@ -1,8 +1,8 @@
-import {AnalyticsModel} from '../models/analytics.model';
-import {UserDailyKpiModel} from '../models/user_daily_kpi.model'; // Import model baru
+import {AnalyticsModel} from '../../models/analytics.model';
+import {UserDailyKpiModel} from '../../models/user_daily_kpi.model'; // Import model baru
 import dayjs from 'dayjs';
-import {kafka} from "../config/kafka.client";
-import {getRedisClient} from "../config/redis_client";
+import {kafka} from "../../config/kafka.client";
+import {getRedisClient} from "../../config/redis_client";
 
 const consumer = kafka.consumer({groupId: 'ceramic-analytics-group'});
 const TOPIC_NAME = 'ceramic-scan-completed';

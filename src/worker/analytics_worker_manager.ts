@@ -2,13 +2,13 @@
 // import {connectMQTT} from '../config/mqtt_client';
 // import {startMQTTAnalyticsConsumer} from './mqtt_analytics.worker';
 import {connectKafkaProducer} from "../config/kafka.client";
-import {startAnalyticsConsumer} from "./kafka_analytics.worker";
-import {startSqlConsumer} from "./kafka_sql.worker";
-import {startSocketConsumer} from "./kafka_socket.worker";
+import {startAnalyticsConsumer} from "./kafka/kafka_analytics.worker";
+import {startSqlConsumer} from "./kafka/kafka_sql.worker";
+import {startSocketConsumer} from "./kafka/kafka_socket.worker";
 import {connectRabbitMQ} from "../config/rabbitmq_client";
-import {startRabbitSqlConsumer} from "./rabbit_sql.worker";
-import {startRabbitSocketConsumer} from "./rabbit_socket.worker";
-import {startRabbitAnalyticsConsumer} from "./rabbit_analytics.worker";
+import {startRabbitSqlConsumer} from "./rabbitmq/rabbit_sql.worker";
+import {startRabbitSocketConsumer} from "./rabbitmq/rabbit_socket.worker";
+import {startRabbitAnalyticsConsumer} from "./rabbitmq/rabbit_analytics.worker";
 
 export const startAnalyticsWorker = async (): Promise<void> => {
     const env = process.env.NODE_ENV || 'development';

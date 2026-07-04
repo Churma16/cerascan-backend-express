@@ -1,7 +1,7 @@
 
-import { getRabbitChannel } from "../config/rabbitmq_client";
-import { UpdateScanSuccessUseCase } from "../modules/scan/use-cases/UpdateScanSuccessUseCase";
-import { RecordCompletedScanUseCase } from "../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { getRabbitChannel } from "../../config/rabbitmq_client";
+import { UpdateScanSuccessUseCase } from "../../modules/scan/use-cases/UpdateScanSuccessUseCase";
+import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
