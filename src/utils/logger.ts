@@ -73,6 +73,10 @@ export const log = {
     const styledTag = `${colors.bgPastelYellow}${colors.textBlack} ${tag} ${colors.reset}`;
     console.log(`${styledTag} ${colors.textYellow}${msg}${colors.reset}`, ...args);
   },
+  error: (tag: string, msg: any, ...args: any[]) => {
+    const styledTag = `${colors.bgPastelRed}${colors.textBlack} ${tag} ${colors.reset}`;
+    console.error(`${styledTag} ${colors.textBlack}${msg}${colors.reset}`, ...args);
+  },
   system: (msg: any, ...args: any[]) => {
     console.log(`${colors.bright}${colors.textMagenta}${msg}${colors.reset}`, ...args);
   }

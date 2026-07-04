@@ -63,7 +63,7 @@ export abstract class BaseRabbitSubscriber {
                     eventData = JSON.parse(msg.content.toString());
                     messageId = this.getMessageId(eventData, routingKey);
                 } catch (e) {
-                    console.error(`[Worker ${this.queueName}] Gagal mem-parsing payload pesan:`, e);
+                    log.error(`Worker ${this.queueName}`, `Gagal mem-parsing payload pesan: ${e instanceof Error ? e.message : String(e)}`);
                 }
 
                 try {
@@ -77,9 +77,10 @@ export abstract class BaseRabbitSubscriber {
 
                 } catch (error: unknown) {
                     const retryCount = this.retryMap.get(messageId) || 0;
-                    console.error(
-                        `[Worker ${this.queueName}] Gagal memproses (Retry ${retryCount}/${this.maxRetries}):`,
-                        error
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    log.error(
+                        `Worker ${this.queueName}`, 
+                        `Gagal memproses (Retry ${retryCount}/${this.maxRetries}): ${errorMsg}`
                     );
 
                     if (retryCount < this.maxRetries) {
@@ -89,21 +90,21 @@ export abstract class BaseRabbitSubscriber {
                         try {
                             await this.onMaxRetriesExhausted(eventData, routingKey, error);
                         } catch (hookError) {
-                            console.error(
-                                `[Worker ${this.queueName}] Error saat menjalankan onMaxRetriesExhausted:`,
-                                hookError
+                            log.error(
+                                `Worker ${this.queueName}`, 
+                                `Error saat menjalankan onMaxRetriesExhausted: ${hookError instanceof Error ? hookError.message : String(hookError)}`
                             );
                         }
 
                         channel.nack(msg, false, false);
-                        console.error(`[Worker ${this.queueName}] Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
+                        log.error(`Worker ${this.queueName}`, `Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
                         this.retryMap.delete(messageId);
                     }
                 }
             }, {noAck: false});
 
         } catch (error: unknown) {
-            console.error(`[Worker ${this.queueName}] Gagal menyalakan subscriber:`, error);
+            log.error(`Worker ${this.queueName}`, `Gagal menyalakan subscriber: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
