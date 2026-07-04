@@ -12,7 +12,6 @@ import {RabbitMQClient} from "./modules/rabbitmq/infrastructure/rabbitmq.client"
 import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
 import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
 import {PaymentSocketSubscriber} from "./subscribers/payment_socket.subscriber";
-import {PaymentAnalyticsSubscriber} from "./subscribers/payment_analytics.subscriber";
 import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
 import {initPassport} from "./config/passport_client";
@@ -56,12 +55,17 @@ const startServer = async () => {
 
 
         // Nyalakan semua Subscriber
-        await PaymentDBSubscriber.start();
-        await PaymentEmailSubscriber.start();
-        await PaymentSocketSubscriber.start();
-        await PaymentAnalyticsSubscriber.start();
-        await AiScanSubscriber.start();
+        const paymentDB = new PaymentDBSubscriber();
+        await paymentDB.start();
 
+        const paymentEmail = new PaymentEmailSubscriber();
+        await paymentEmail.start();
+
+        const paymentSocket = new PaymentSocketSubscriber();
+        await paymentSocket.start();
+
+        const aiScan = new AiScanSubscriber();
+        await aiScan.start();
 
         initPassport();
 
