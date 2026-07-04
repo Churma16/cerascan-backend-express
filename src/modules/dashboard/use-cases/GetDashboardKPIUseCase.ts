@@ -7,7 +7,7 @@ import {IUserRepository} from "../../user/domain/IUserRepository";
 import {SequelizeUserRepository} from "../../user/infrastructure/SequelizeUserRepository";
 import {IScanRepository} from "../../scan/domain/IScanRepository";
 import {SequelizeScanRepository} from "../../scan/infrastructure/SequelizeScanRepository";
-import {MongoScanAnalyticsRepository} from "../../scan/infrastructure/MongoScanAnalyticsRepository";
+import {MongoScanRepository} from "../../scan/infrastructure/MongoScanRepository";
 
 export interface DashboardKPIResult {
     totalScans: number;
@@ -65,7 +65,7 @@ export class GetDashboardKPIUseCase {
         // Kita cukup mengirimkan `userId` jika role-nya bukan admin
         const mongoUserId = userRole !== 'admin' ? userId : undefined;
 
-        const mongoStats = await MongoScanAnalyticsRepository.getScanKPIs(
+        const mongoStats = await MongoScanRepository.getScanKPIs(
             mongoUserId,
             startOfCurrentMonth,
             startOfLastMonth,

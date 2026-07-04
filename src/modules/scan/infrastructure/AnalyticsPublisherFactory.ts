@@ -1,7 +1,7 @@
-import {IAnalyticsPublisher} from './IAnalyticsPublisher';
-import {KafkaStreamEventPublisher} from './KafkaStreamEventPublisher';
+import {IAnalyticsPublisher} from './publisher/IAnalyticsPublisher';
+import {KafkaStreamEventPublisher} from './publisher/KafkaStreamEventPublisher';
 import {log} from '../../../utils/logger';
-import {RabbitStreamEventPublisher} from "./RabbitStreamEventPublisher";
+import {RabbitStreamEventPublisher} from "./publisher/RabbitStreamEventPublisher";
 
 export class AnalyticsPublisherFactory {
     private static instance: IAnalyticsPublisher;
