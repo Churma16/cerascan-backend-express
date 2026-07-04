@@ -5,24 +5,31 @@ import {log} from "../utils/logger";
 export abstract class BaseRabbitSubscriber {
     protected abstract readonly exchangeName: string;
     protected abstract readonly queueName: string;
-    protected abstract readonly routingKey: string;
+    protected abstract readonly routingKeys: string[];
+    protected prefetchCount?: number;
 
     protected readonly maxRetries: number = 3;
     private retryMap = new Map<string, number>();
 
-    // Method wajib yang harus diisi oleh kelas anak untuk memproses data
-    protected abstract processMessage(eventData: any): Promise<void>;
+    // Method To precess message
+    protected abstract processMessage(eventData: any, routingKey: string): Promise<void>;
 
-    // Method wajib untuk mengambil ID unik dari payload (untuk tracking retry)
-    protected abstract getMessageId(eventData: any): string;
+    // Unique ID for Retry Purpose
+    protected abstract getMessageId(eventData: any, routingKey: string): string;
+
+    // Optional method for handing dlq
+    protected async onMaxRetriesExhausted(eventData: any, routingKey: string, error: unknown): Promise<void> {
+        // Implementasi default kosong. Kelas anak bisa meng-override jika butuh (contoh: update status DB ke 'failed')
+    }
 
     async start(): Promise<void> {
         try {
             const channel = getRabbitChannel();
 
-            // Catatan: Menghapus antrean di production sangat berisiko karena
-            // pesan yang belum diproses akan hilang saat server restart.
-            // Gunakan ini hanya untuk environment development.
+            if (this.prefetchCount) {
+                channel.prefetch(this.prefetchCount);
+            }
+
             if (process.env.NODE_ENV !== 'production') {
                 try {
                     await channel.deleteQueue(this.queueName);
@@ -39,20 +46,30 @@ export abstract class BaseRabbitSubscriber {
                 }
             });
 
-            await channel.bindQueue(this.queueName, this.exchangeName, this.routingKey);
+            for (const key of this.routingKeys) {
+                await channel.bindQueue(this.queueName, this.exchangeName, key);
+            }
 
-            log.info('Worker', `Mendengarkan event '${this.routingKey}' di antrean '${this.queueName}'...`);
+            log.info('Worker', `Mendengarkan event '${this.routingKeys.join(', ')}' di antrean '${this.queueName}'...`);
 
-            await channel.consume(this.queueName, async (msg:any) => {
+            await channel.consume(this.queueName, async (msg: any) => {
                 if (!msg) return;
 
-                const eventData = JSON.parse(msg.content.toString());
-                const messageId = this.getMessageId(eventData);
+                const routingKey = msg.fields.routingKey;
+                let eventData: any = null;
+                let messageId = 'unknown';
 
                 try {
-                    log.info(`Worker ${this.queueName}`, 'Menerima tugas:', eventData);
+                    eventData = JSON.parse(msg.content.toString());
+                    messageId = this.getMessageId(eventData, routingKey);
+                } catch (e) {
+                    console.error(`[Worker ${this.queueName}] Gagal mem-parsing payload pesan:`, e);
+                }
 
-                    await this.processMessage(eventData);
+                try {
+                    log.info(`Worker ${this.queueName}`, 'Menerima tugas:', eventData || 'Payload tidak valid');
+
+                    await this.processMessage(eventData, routingKey);
 
                     channel.ack(msg);
                     log.success(`Worker ${this.queueName}`, `Tugas berhasil diproses untuk ID: ${messageId}`);
@@ -69,6 +86,15 @@ export abstract class BaseRabbitSubscriber {
                         this.retryMap.set(messageId, retryCount + 1);
                         channel.nack(msg, false, true);
                     } else {
+                        try {
+                            await this.onMaxRetriesExhausted(eventData, routingKey, error);
+                        } catch (hookError) {
+                            console.error(
+                                `[Worker ${this.queueName}] Error saat menjalankan onMaxRetriesExhausted:`,
+                                hookError
+                            );
+                        }
+
                         channel.nack(msg, false, false);
                         console.error(`[Worker ${this.queueName}] Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
                         this.retryMap.delete(messageId);
