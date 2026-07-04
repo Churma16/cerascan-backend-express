@@ -3,7 +3,7 @@ import { getRabbitChannel } from "../../../config/rabbitmq_client";
 export class GetDlqMessagesUseCase {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';
 
-    async execute(limit: number = 100): Promise<any[]> {
+    async execute(requestUserId: number, isAdmin: boolean, limit: number = 100): Promise<any[]> {
         const channel = getRabbitChannel();
         const formattedMessages: any[] = [];
         const rawRabbitMessages: any[] = [];
@@ -30,6 +30,13 @@ export class GetDlqMessagesUseCase {
                 }
 
                 const trackingId = parsedPayload.orderId || parsedPayload.db_id || parsedPayload.scan_id || 'unknown';
+
+                // Filter Privasi: Jika bukan admin, pastikan pesan memiliki user_id yang cocok
+                if (!isAdmin) {
+                    if (!parsedPayload.user_id || parsedPayload.user_id !== requestUserId) {
+                        continue; // Lewati pesan ini (tetap akan di nack nanti)
+                    }
+                }
 
                 formattedMessages.push({
                     id: trackingId,

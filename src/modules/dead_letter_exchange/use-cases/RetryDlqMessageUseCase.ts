@@ -1,18 +1,20 @@
-import { getRabbitChannel } from "../../../config/rabbitmq_client";
-import { RabbitMQClient } from "../../rabbitmq/infrastructure/rabbitmq.client";
-import { Scan } from "../../../models";
+import {getRabbitChannel} from "../../../config/rabbitmq_client";
+import {RabbitMQClient} from "../../rabbitmq/infrastructure/rabbitmq.client";
+import {Scan} from "../../../models";
+import {CheckAndDecrementQuotaUseCase} from "../../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
+import {log} from "../../../utils/logger";
 
 export class RetryDlqMessageUseCase {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';
 
-    async execute(targetId: string): Promise<boolean> {
+    async execute(targetId: string, requestUserId: number, isAdmin: boolean): Promise<boolean> {
         const channel = getRabbitChannel();
         const skippedRabbitMessages: any[] = [];
         let isRetrySuccessful = false;
 
         try {
             while (true) {
-                const rabbitMessage = await channel.get(RetryDlqMessageUseCase.DLQ_QUEUE_NAME, { noAck: false });
+                const rabbitMessage = await channel.get(RetryDlqMessageUseCase.DLQ_QUEUE_NAME, {noAck: false});
                 if (!rabbitMessage) {
                     break;
                 }
@@ -34,15 +36,33 @@ export class RetryDlqMessageUseCase {
                         targetRoutingKey = deadLetterHeaders[0]['routing-keys']?.[0] || targetRoutingKey;
                     }
 
+                    if (!isAdmin && parsedPayload.user_id && parsedPayload.user_id !== requestUserId) {
+                        channel.nack(rabbitMessage, false, true);
+                        throw new Error(`403 Forbidden: Anda tidak memiliki akses untuk me-retry pesan ini.`);
+                    }
+
                     if (parsedPayload.db_id) {
+                        if (targetRoutingKey === 'scan.process' && parsedPayload.user_id) {
+                            const checkAndDecrementQuotaUseCase = new CheckAndDecrementQuotaUseCase();
+                            const hasQuota = await checkAndDecrementQuotaUseCase.execute(parsedPayload.user_id);
+
+                            if (!hasQuota) {
+                                channel.nack(rabbitMessage, false, true);
+                                throw new Error(`User ID ${parsedPayload.user_id} tidak memiliki kuota yang cukup untuk melakukan retry scan.`);
+                            }
+                        }
+
                         try {
                             await Scan.update(
-                                { prediction: 'processing' },
-                                { where: { id: parsedPayload.db_id } }
+                                {prediction: 'processing'},
+                                {where: {id: parsedPayload.db_id}}
                             );
-                            console.log(`[DLQ Service] Status DB diubah kembali ke 'processing' untuk ID: ${parsedPayload.db_id}`);
+                            log.info(
+                                'DLQ Service',
+                                `Status DB diubah kembali ke 'processing' untuk ID: ${parsedPayload.db_id}`
+                            );
                         } catch (dbError) {
-                            console.error(`[DLQ Service] Gagal update status DB ke 'processing':`, dbError);
+                            log.error('DLQ Service', 'Gagal update status DB ke \'processing\':', dbError);
                         }
                     }
 
