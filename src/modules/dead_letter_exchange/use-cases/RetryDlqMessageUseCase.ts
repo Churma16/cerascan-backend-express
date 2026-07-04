@@ -2,6 +2,7 @@ import {getRabbitChannel} from "../../../config/rabbitmq_client";
 import {RabbitMQClient} from "../../rabbitmq/infrastructure/rabbitmq.client";
 import {Scan} from "../../../models";
 import {CheckAndDecrementQuotaUseCase} from "../../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
+import {BroadcastUserLiveQuotaUseCase} from "../../user_quota/use-cases/BroadcastUserLiveQuotaUseCase";
 import {log} from "../../../utils/logger";
 
 export class RetryDlqMessageUseCase {
@@ -50,6 +51,9 @@ export class RetryDlqMessageUseCase {
                                 channel.nack(rabbitMessage, false, true);
                                 throw new Error(`User ID ${parsedPayload.user_id} tidak memiliki kuota yang cukup untuk melakukan retry scan.`);
                             }
+
+                            const broadcastUserLiveQuotaUseCase = new BroadcastUserLiveQuotaUseCase();
+                            await broadcastUserLiveQuotaUseCase.execute(parsedPayload.user_id);
                         }
 
                         try {

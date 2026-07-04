@@ -1,6 +1,7 @@
 import {getRabbitChannel} from "../config/rabbitmq_client";
 import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
 import {log} from "../utils/logger";
+import { EmitDlqUpdatedUseCase } from "../modules/notification/use-cases/EmitDlqUpdatedUseCase";
 
 export abstract class BaseRabbitSubscriber {
     protected abstract readonly exchangeName: string;
@@ -99,6 +100,9 @@ export abstract class BaseRabbitSubscriber {
                         channel.nack(msg, false, false);
                         log.error(`Worker ${this.queueName}`, `Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
                         this.retryMap.delete(messageId);
+
+                        const emitDlqUpdated = new EmitDlqUpdatedUseCase();
+                        await emitDlqUpdated.execute({ messageId, routingKey });
                     }
                 }
             }, {noAck: false});
