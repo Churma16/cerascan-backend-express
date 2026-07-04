@@ -92,6 +92,17 @@ export class PaymentController {
 
                     await RabbitMQClient.publishEvent('payment.success', eventData);
                 }
+            } else if (['deny', 'cancel', 'expire'].includes(transactionStatus)) {
+                const eventData = {
+                    orderId: orderId,
+                    transactionId: transactionId,
+                    amount: amount,
+                    payment_type: paymentType,
+                    status: transactionStatus,
+                    timestamp: new Date().toISOString()
+                };
+
+                await RabbitMQClient.publishEvent('payment.failed', eventData);
             }
 
             return sendResponse(res, 200, "Webhook diterima, tugas dikirim ke antrean latar belakang");
