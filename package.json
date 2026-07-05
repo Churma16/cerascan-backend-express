@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/proto dist/proto || xcopy /E /I /y src\\proto dist\\proto",
     "start": "node dist/server.js",
     "migrate": "ts-node ./node_modules/sequelize-cli/lib/sequelize db:migrate",
     "test": "jest --config jest.config.ts"
