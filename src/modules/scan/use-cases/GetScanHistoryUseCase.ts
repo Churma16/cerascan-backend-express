@@ -1,5 +1,6 @@
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
+import { getPresignedUrl } from "../../../utils/r2.util";
 
 export class GetScanHistoryUseCase {
     private scanRepository: IScanRepository;
@@ -23,6 +24,15 @@ export class GetScanHistoryUseCase {
             limit: limit,
         });
 
-        return scans;
+        const scansJson = scans.map((s: any) => s.toJSON());
+        for (const scan of scansJson) {
+            if (scan.saved_file_name && scan.saved_file_name.includes('scans-')) {
+                scan.file_url = await getPresignedUrl(scan.saved_file_name);
+            } else if (scan.saved_file_name) {
+                scan.file_url = `${process.env.BACKEND_URL || 'http://localhost:3000'}/uploads/${scan.saved_file_name}`;
+            }
+        }
+
+        return scansJson;
     }
 }

@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { deleteFileFromR2 } from "../../../utils/r2.util";
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
@@ -18,14 +19,22 @@ export class DeleteScanUseCase {
         }
 
         if (scan.saved_file_name) {
-            const uploadsDir = path.join(__dirname, '../../../uploads');
-            const filePath = path.join(uploadsDir, scan.saved_file_name);
-            try {
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
+            if (scan.saved_file_name.includes('scans-')) {
+                try {
+                    await deleteFileFromR2(scan.saved_file_name);
+                } catch (error: any) {
+                    console.error('Error deleting file from R2:', error.message);
                 }
-            } catch (error: any) {
-                console.error('Error deleting file:', error.message);
+            } else {
+                const uploadsDir = path.join(__dirname, '../../../uploads');
+                const filePath = path.join(uploadsDir, scan.saved_file_name);
+                try {
+                    if (fs.existsSync(filePath)) {
+                        fs.unlinkSync(filePath);
+                    }
+                } catch (error: any) {
+                    console.error('Error deleting local file:', error.message);
+                }
             }
         }
 
