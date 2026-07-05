@@ -17,7 +17,10 @@ export const startRabbitSocketConsumer = async (): Promise<void> => {
             arguments: { 'x-queue-type': 'stream' }
         });
 
-        // Konsumsi stream dengan offset 'next'
+        // set prefetch for RabbitMQ Streams
+        await channel.prefetch(100);
+
+        // consume stream dengan offset 'next'
         await channel.consume(STREAM_NAME, async (msg: any) => {
             if (msg) {
                 try {
