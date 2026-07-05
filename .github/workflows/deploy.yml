@@ -52,7 +52,7 @@ jobs:
           script: |
             cd /root/ceramic-scanner
             
-            docker compose up -d --build express-backend
+            docker compose up -d --build --no-deps express-backend
             
             sleep 5
             
