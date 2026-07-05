@@ -1,0 +1,101 @@
+version: "3.8"
+
+services:
+    # 1. Database MySQL
+    mysql-ceramic:
+        image: mysql:8.0
+        command: --innodb-buffer-pool-size=64M
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_PASS}
+            MYSQL_DATABASE: ${DB_NAME}
+        ports:
+            - "3307:3306"
+        volumes:
+            - mysql_ceramic_data:/var/lib/mysql
+        restart: always
+
+    # 2. Redis Cache
+    redis-ceramic:
+        image: redis:alpine
+        ports:
+            - "6379:6379"
+        volumes:
+            - redis_data:/data
+        restart: always
+
+    # 3. Frontend React
+    frontend:
+        build: ./frontend
+        ports:
+            - "3002:80"
+        restart: always
+
+    # 4. Backend Express
+    express-backend:
+        build: ./backend
+        ports:
+            - "5002:5000"
+        environment:
+            - PORT=${PORT:-5000}
+            - DB_HOST=${DB_HOST:-mysql-ceramic}
+            - DB_USER=${DB_USER}
+            - DB_PASS=${DB_PASS}
+            - DB_NAME=${DB_NAME}
+            - JWT_SECRET=${JWT_SECRET}
+            - MICROSERVICES_URL=${MICROSERVICES_URL:-http://python-worker:8000}
+            - RESEND_API_KEY=${RESEND_API_KEY}
+            - FRONTEND_URL=${FRONTEND_URL}
+            - MIDTRANS_SERVER_KEY=${MIDTRANS_SERVER_KEY}
+            - MIDTRANS_CLIENT_KEY=${MIDTRANS_CLIENT_KEY}
+            - REDIS_URL=${REDIS_URL:-redis://redis-ceramic:6379}
+            - RABBITMQ_URL=${RABBITMQ_URL}
+            - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+            - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            - MONGO_HOST=${MONGO_HOST:-mongodb}
+            - MONGO_PORT=${MONGO_PORT:-27017}
+            - MONGO_DB_NAME=${MONGO_DB_NAME:-cerascan}
+            - MONGO_USER=${MONGO_USER}
+            - MONGO_PASSWORD=${MONGO_PASSWORD}
+            - KAFKA_CLIENT_ID=${KAFKA_CLIENT_ID}
+            - KAFKA_BROKERS=${KAFKA_BROKERS}
+            - PYTHON_ML_GRPC_URL=${PYTHON_ML_GRPC_URL:-python-worker:50051}
+            - MQTT_BROKER_URL=${MQTT_BROKER_URL}
+            - MQTT_PORT=${MQTT_PORT}
+            - MQTT_USERNAME=${MQTT_USERNAME}
+            - MQTT_PASSWORD=${MQTT_PASSWORD}
+            - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+            - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+            - R2_TOKEN_VALUE=${R2_TOKEN_VALUE}
+            - R2_SPECIFIC_ENDPOINT=${R2_SPECIFIC_ENDPOINT}
+        volumes:
+            - ./backend/uploads:/app/uploads
+        depends_on:
+            - mysql-ceramic
+            - redis-ceramic
+            - mongodb
+        restart: always
+
+    # 5. Python Microservice
+    python-worker:
+        build: ./python-service
+        ports:
+            - "50051:50051"
+        restart: always
+
+    # 6. MongoDB
+    mongodb:
+        image: mongo:6.0
+        ports:
+            - "27017:27017"
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+            - MONGO_INITDB_DATABASE=${MONGO_DB_NAME}
+        volumes:
+            - mongodb_data:/data/db
+        restart: always
+
+volumes:
+    mysql_ceramic_data:
+    redis_data:
+    mongodb_data:
