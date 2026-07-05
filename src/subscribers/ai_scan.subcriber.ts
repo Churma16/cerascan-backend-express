@@ -5,6 +5,7 @@ import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFai
 import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
 import { RefundUserQuotaUseCase } from "../modules/user_quota/use-cases/RefundUserQuotaUseCase";
 import { log } from "../utils/logger";
+import {downloadFileFromR2} from "../utils/r2.util";
 
 export class AiScanSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';
@@ -26,9 +27,12 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
 
     protected async processMessage(eventData: any, routingKey: string): Promise<void> {
         const startTime = Date.now();
-        const result = await PythonMlGrpcClient.predictImage(eventData.file_path, eventData.original_name);
-        const inferenceTimeMs = Date.now() - startTime;
 
+        const imageBuffer = await downloadFileFromR2(eventData.r2_object_key);
+
+        const result = await PythonMlGrpcClient.predictImage(imageBuffer, eventData.original_name);
+
+        const inferenceTimeMs = Date.now() - startTime;
         const eventPublisher = AnalyticsPublisherFactory.getPublisher();
         eventPublisher.publish({
             db_id: eventData.db_id,
@@ -40,7 +44,6 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
         }).catch(err => {
             console.error('[WARNING][KAFKA] Gagal mengirim event scan_completed ke Kafka:', err.message);
         });
-
         log.success('AI Worker', `Selesai Scan ${eventData.scan_id}. Hasil: ${result.prediction}`);
     }
 

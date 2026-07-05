@@ -1,7 +1,5 @@
-import * as fs from 'fs';
-import {grpcCeramicClient} from "../../../../config/grpc_client";
-import {log} from "../../../../utils/logger";
-
+import { grpcCeramicClient } from "../../../../config/grpc_client";
+import { log } from "../../../../utils/logger";
 
 export interface GrpcPredictionResult {
     status: string;
@@ -12,11 +10,9 @@ export interface GrpcPredictionResult {
 
 export class PythonMlGrpcClient {
 
-    static async predictImage(filePath: string, originalName: string): Promise<GrpcPredictionResult> {
+    static async predictImage(imageBuffer: Buffer, originalName: string): Promise<GrpcPredictionResult> {
         return new Promise((resolve, reject) => {
             try {
-                const imageBuffer = fs.readFileSync(filePath);
-
                 grpcCeramicClient.Predict(
                     {
                         image_data: imageBuffer,
@@ -36,7 +32,7 @@ export class PythonMlGrpcClient {
                     }
                 );
             } catch (err) {
-                log.error('gRPC Client', `Error reading file: ${err instanceof Error ? err.message : String(err)}`);
+                log.error('gRPC Client', `Error sending gRPC request: ${err instanceof Error ? err.message : String(err)}`);
                 reject(err);
             }
         });

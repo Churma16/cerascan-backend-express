@@ -1,4 +1,6 @@
 import { Request, Response } from 'express';
+import * as fs from 'fs';
+import { uploadFileToR2 } from '../../utils/r2.util';
 import { sendResponse, sendResponseMulti, sendResponsePaginated } from '../../utils/response';
 import { CheckAndDecrementQuotaUseCase } from "../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
 import { AuthRequest } from "../../middleware/auth.guard";
@@ -17,16 +19,22 @@ export class ScanController {
                 return sendResponse(res, 404, 'No file found');
             }
 
+            const folderName = process.env.NODE_ENV === 'production' ? 'scans-prod/' : 'scans-dev/';
+            const fileBuffer = fs.readFileSync(req.file.path);
+            const r2ObjectKey = await uploadFileToR2(fileBuffer, req.file.mimetype, folderName);
+            fs.unlinkSync(req.file.path);
+
             const useCase = new ProcessImageUseCase();
             const results = await useCase.execute(
                 userId,
-                req.file.path,
+                r2ObjectKey,
                 req.file.originalname,
                 req.file.filename
             );
 
             return sendResponse(res, 202, 'Gambar diterima dan sedang diproses oleh AI', results);
         } catch (error: any) {
+            console.error('[Scan Error - Single]:', error);
             return sendResponse(res, 500, error.message);
         }
     }
@@ -53,11 +61,16 @@ export class ScanController {
 
             const pendingScans = [];
             const useCase = new ProcessImageUseCase();
+            const folderName = process.env.NODE_ENV === 'production' ? 'scans-prod/' : 'scans-dev/';
 
             for (const file of files) {
+                const fileBuffer = fs.readFileSync(file.path);
+                const r2ObjectKey = await uploadFileToR2(fileBuffer, file.mimetype, folderName);
+                fs.unlinkSync(file.path);
+
                 const result = await useCase.execute(
                     userId,
-                    file.path,
+                    r2ObjectKey,
                     file.originalname,
                     file.filename
                 );
@@ -71,6 +84,7 @@ export class ScanController {
                 pendingScans
             );
         } catch (error: any) {
+            console.error('[Scan Error - Batch]:', error);
             return sendResponse(res, 500, error.message);
         }
     }
