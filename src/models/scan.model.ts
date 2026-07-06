@@ -1,7 +1,6 @@
 import {DataTypes, Model} from 'sequelize';
-import sequelize from '../config/database';
+import sequelize from '../config/databaseClient';
 
-// 1. Definisikan bentuk tipe datanya (Interface)
 export interface ScanAttributes {
     id?: number;
     scan_id: string;
@@ -15,7 +14,6 @@ export interface ScanAttributes {
     updatedAt?: Date;
 }
 
-// 2. Buat Class Model
 class Scan extends Model<ScanAttributes> implements ScanAttributes {
     declare id: number;
     declare scan_id: string;
@@ -30,7 +28,6 @@ class Scan extends Model<ScanAttributes> implements ScanAttributes {
     declare readonly updatedAt: Date;
 }
 
-// 3. Inisialisasi struktur tabelnya
 Scan.init(
     {
         id: {

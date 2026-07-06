@@ -1,5 +1,5 @@
-import {getRabbitChannel} from "../../../config/rabbitmq_client";
-import {RabbitMQClient} from "../../rabbitmq/infrastructure/rabbitmq.client";
+import {getRabbitChannel} from "../../../config/rabbitmqClient";
+import {RabbitmqPublisher} from "../../rabbitmq/infrastructure/rabbitmq.publisher";
 import {Scan} from "../../../models";
 import {CheckAndDecrementQuotaUseCase} from "../../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
 import {BroadcastUserLiveQuotaUseCase} from "../../user_quota/use-cases/BroadcastUserLiveQuotaUseCase";
@@ -70,7 +70,7 @@ export class RetryDlqMessageUseCase {
                         }
                     }
 
-                    await RabbitMQClient.publishEvent(targetRoutingKey, parsedPayload);
+                    await RabbitmqPublisher.publishEvent(targetRoutingKey, parsedPayload);
                     channel.ack(rabbitMessage);
 
                     isRetrySuccessful = true;

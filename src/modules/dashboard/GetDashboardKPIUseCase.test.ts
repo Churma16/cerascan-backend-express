@@ -25,7 +25,6 @@ jest.mock('../scan/infrastructure/SequelizeScanRepository', () => {
     };
 });
 
-// Menggunakan global object untuk membagikan mock reference melintasi batas hoisting Jest
 (global as any).mockGetUserQuotaByUserIdExecute = jest.fn().mockResolvedValue(null);
 (global as any).mockGetActiveSubscriptionExecute = jest.fn().mockResolvedValue(null);
 
@@ -49,7 +48,7 @@ jest.mock('../subscription/use-cases/GetActiveSubscriptionUseCase', () => {
     };
 });
 
-jest.mock('../../config/redis_client', () => {
+jest.mock('../../config/redisClient', () => {
     return {
         __esModule: true,
         connectRedis: jest.fn(),

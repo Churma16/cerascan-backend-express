@@ -1,7 +1,7 @@
 import { Profile } from "passport-google-oauth20";
 import { InitiateFreePlanUseCase } from "../../subscription/use-cases/InitiateFreePlanUseCase";
-import sequelize from "../../../config/database";
-import { getRedisClient } from "../../../config/redis_client";
+import sequelize from "../../../config/databaseClient";
+import { getRedisClient } from "../../../config/redisClient";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 

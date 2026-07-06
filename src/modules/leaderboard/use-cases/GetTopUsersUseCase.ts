@@ -1,4 +1,4 @@
-import { getRedisClient } from "../../../config/redis_client";
+import { getRedisClient } from "../../../config/redisClient";
 import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
 import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
 import { calculateDefectRatio } from "../domain/leaderboard.domain";
@@ -27,15 +27,12 @@ export class GetTopUsersUseCase {
 
             if (!keyExists) return [];
 
-            // Ambil top users dari Redis
             const rawRankedUserIds = await redis.sendCommand(['ZREVRANGE', redisRankKey, '0', String(limit - 1)]) as string[];
 
             if (rawRankedUserIds.length === 0) return [];
 
-            // Parse string ke Number
             const parsedUserIds = rawRankedUserIds.map(id => parseInt(id)).filter(id => !isNaN(id));
 
-            // Ambil semua metrik
             const metricsPipeline = redis.multi();
             parsedUserIds.forEach(userId => {
                 const userStatsKey = `leaderboard:stats:${currentPeriod}:user:${userId}`;
@@ -43,15 +40,13 @@ export class GetTopUsersUseCase {
             });
             const rawUserMetrics = await metricsPipeline.exec();
 
-            // Ambil semua data profil user dari DB
             const userProfiles = await this.userRepository.findByIds(parsedUserIds);
 
             const userProfileMap = new Map();
             userProfiles.forEach(user => userProfileMap.set(user.id, user));
 
-            // Proses data
+            // Build Leaderboard Data
             const leaderboardEntries: any = [];
-
             parsedUserIds.forEach((userId, index) => {
                 const userProfile = userProfileMap.get(userId);
                 const metrics = rawUserMetrics[index] as Record<string, string>;

@@ -1,5 +1,5 @@
-import { getRabbitChannel } from "../../../config/rabbitmq_client";
-import { RabbitMQClient } from "../../rabbitmq/infrastructure/rabbitmq.client";
+import { getRabbitChannel } from "../../../config/rabbitmqClient";
+import { RabbitmqPublisher } from "../../rabbitmq/infrastructure/rabbitmq.publisher";
 import { Scan } from "../../../models";
 import { CheckAndDecrementQuotaUseCase } from "../../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
 import { log } from "../../../utils/logger";
@@ -43,7 +43,6 @@ export class RetryAllDlqMessagesUseCase {
                 let shouldRetry = true;
 
                 if (parsedPayload.db_id) {
-                    // Jika ini adalah scan.process, potong kuota lagi
                     if (targetRoutingKey === 'scan.process' && parsedPayload.user_id) {
                         const checkAndDecrementQuotaUseCase = new CheckAndDecrementQuotaUseCase();
                         const hasQuota = await checkAndDecrementQuotaUseCase.execute(parsedPayload.user_id);
@@ -67,7 +66,7 @@ export class RetryAllDlqMessagesUseCase {
                 }
 
                 if (shouldRetry) {
-                    await RabbitMQClient.publishEvent(targetRoutingKey, parsedPayload);
+                    await RabbitmqPublisher.publishEvent(targetRoutingKey, parsedPayload);
                     channel.ack(rabbitMessage);
                     successCount++;
                 } else {

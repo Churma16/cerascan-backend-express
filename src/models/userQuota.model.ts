@@ -1,5 +1,5 @@
 import {DataTypes, Model} from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/databaseClient";
 import User from "./user.model";
 
 export interface UserQuotaAttributes {
@@ -10,7 +10,7 @@ export interface UserQuotaAttributes {
     next_reset_date?: Date;
 }
 
-class UserQuota extends Model<UserQuotaAttributes> implements UserQuotaAttributes {
+class UserQuotaModel extends Model<UserQuotaAttributes> implements UserQuotaAttributes {
     declare id: number;
     declare user_id: number;
     declare total_quota: number;
@@ -21,7 +21,7 @@ class UserQuota extends Model<UserQuotaAttributes> implements UserQuotaAttribute
     declare readonly updatedAt: Date;
 }
 
-UserQuota.init(
+UserQuotaModel.init(
     {
         id: {
             type: DataTypes.INTEGER,
@@ -55,8 +55,8 @@ UserQuota.init(
     }
 );
 
-User.hasOne(UserQuota, {foreignKey: 'user_id', as: 'quota'});
-UserQuota.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
+User.hasOne(UserQuotaModel, {foreignKey: 'user_id', as: 'quota'});
+UserQuotaModel.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
 
-export default UserQuota;
+export default UserQuotaModel;
 

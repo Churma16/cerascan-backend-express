@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
-import { snap } from "../../config/midtrans_client";
+import { snap } from "../../config/midtransClient";
 import { AuthRequest } from "../../middleware/auth.guard";
-import { RabbitMQClient } from "../rabbitmq/infrastructure/rabbitmq.client";
+import { RabbitmqPublisher } from "../rabbitmq/infrastructure/rabbitmq.publisher";
 import { GetPlanByIdUseCase } from "../plan/use-cases/GetPlanByIdUseCase";
 import { GetUserByIdUseCase } from "../user/use-cases/GetUserByIdUseCase";
 
@@ -90,7 +90,7 @@ export class PaymentController {
                         timestamp: new Date().toISOString()
                     };
 
-                    await RabbitMQClient.publishEvent('payment.success', eventData);
+                    await RabbitmqPublisher.publishEvent('payment.success', eventData);
                 }
             } else if (['deny', 'cancel', 'expire'].includes(transactionStatus)) {
                 const eventData = {
@@ -102,7 +102,7 @@ export class PaymentController {
                     timestamp: new Date().toISOString()
                 };
 
-                await RabbitMQClient.publishEvent('payment.failed', eventData);
+                await RabbitmqPublisher.publishEvent('payment.failed', eventData);
             }
 
             return sendResponse(res, 200, "Webhook diterima, tugas dikirim ke antrean latar belakang");
@@ -114,7 +114,6 @@ export class PaymentController {
         }
     }
 
-    // ===== CRUD Payment Records =====
 
     static async create(req: Request, res: Response) {
         try {

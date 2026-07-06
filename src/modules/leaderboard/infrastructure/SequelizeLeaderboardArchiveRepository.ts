@@ -1,5 +1,5 @@
 import { Transaction } from "sequelize";
-import LeaderboardArchive, { LeaderboardArchiveAttributes } from "../../../models/leaderboard_archive.model";
+import LeaderboardArchive, { LeaderboardArchiveAttributes } from "../../../models/leaderboardArchive";
 import { ILeaderboardArchiveRepository } from "../domain/ILeaderboardArchiveRepository";
 
 export class SequelizeLeaderboardArchiveRepository implements ILeaderboardArchiveRepository {

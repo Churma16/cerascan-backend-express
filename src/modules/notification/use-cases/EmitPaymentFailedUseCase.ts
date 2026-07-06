@@ -1,4 +1,4 @@
-import { getSocket } from "../../../config/websocket_client";
+import { getSocket } from "../../../config/websocketClient";
 import { parseOrderId } from "../../payment/domain/payment.domain";
 
 export interface PaymentFailedData {

@@ -1,4 +1,4 @@
-import { kafka } from "../../config/kafka.client";
+import { kafka } from "../../config/kafkaClient";
 import { UpdateScanSuccessUseCase } from "../../modules/scan/use-cases/UpdateScanSuccessUseCase";
 import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
 import { log } from "../../utils/logger";

@@ -1,20 +1,20 @@
 import {DataTypes, Model} from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/databaseClient";
 import Plan from "./plan.model";
-import UserQuota from "./user_quota.model";
+import UserQuotaModel from "./userQuota.model";
 
 export interface UserAttributes {
     id?: number;
     full_name: string;
     email: string;
-    password?: string; // Dibuat opsional karena login via Google tidak butuh password
-    googleId?: string | null; // Tambahkan properti googleId
-    avatar?: string | null; // Tambahkan properti avatar
+    password?: string;
+    googleId?: string | null;
+    avatar?: string | null; // Google Account Avatar
     role: 'admin' | 'operator' | 'user';
     sub_tier: 'free' | 'paid';
     plan_id: number;
     plan?: Plan;
-    user_quota?: UserQuota;
+    user_quota?: UserQuotaModel;
     verified_at?: Date;
 }
 
@@ -29,7 +29,7 @@ class User extends Model<UserAttributes> implements UserAttributes {
     declare sub_tier: 'free' | 'paid';
     declare plan_id: number;
     declare plan: Plan;
-    declare user_quota: UserQuota;
+    declare user_quota: UserQuotaModel;
     declare verified_at: Date;
 
     declare readonly createdAt: Date;
@@ -54,12 +54,12 @@ User.init(
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: true, // Ubah menjadi true agar tidak error saat create user dari OAuth
+            allowNull: true,
         },
         googleId: {
             type: DataTypes.STRING,
             allowNull: true,
-            unique: true, // Pastikan tidak ada akun Google duplikat
+            unique: true,
         },
         avatar: {
             type: DataTypes.STRING,

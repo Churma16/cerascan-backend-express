@@ -1,10 +1,10 @@
 import {GetObjectCommand, PutObjectCommand, DeleteObjectCommand} from '@aws-sdk/client-s3';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
-import {r2Client} from '../config/r2_client';
+import {r2Client} from '../config/r2Client';
 import {nanoid} from 'nanoid';
 import {log} from "../utils/logger";
 
-const BUCKET_NAME = 'vgg-storage'; // Change this if your bucket name is different
+const BUCKET_NAME = 'vgg-storage';
 
 /**
  * Uploads a file buffer to Cloudflare R2
@@ -56,7 +56,6 @@ export const getPresignedUrl = async (
             Key: objectKey,
         });
 
-        // Generate a presigned URL valid for the specified time
         const url = await getSignedUrl(r2Client, command, {expiresIn});
         return url;
     } catch (error) {
@@ -81,7 +80,6 @@ export const downloadFileFromR2 = async (objectKey: string): Promise<Buffer> => 
             throw new Error('File tidak ditemukan di R2');
         }
 
-        // Ubah stream data dari R2 menjadi Buffer
         const byteArray = await response.Body.transformToByteArray();
         return Buffer.from(byteArray);
     } catch (error) {

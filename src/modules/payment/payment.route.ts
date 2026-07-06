@@ -4,7 +4,6 @@ import {requireAuth, requireRole} from "../../middleware/auth.guard";
 
 const router = Router();
 
-// Midtrans integration routes
 router.post('/checkout', requireAuth, PaymentController.createTransaction);
 router.post('/webhook', PaymentController.handleWebhook);
 

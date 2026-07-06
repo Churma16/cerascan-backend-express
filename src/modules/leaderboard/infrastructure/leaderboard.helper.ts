@@ -8,15 +8,15 @@ export class LeaderboardHelper {
         const year = parseInt(yearStr);
         const month = parseInt(monthStr);
 
-        // Awal dan akhir bulan di zona waktu Indonesia (UTC+7)
-        const startDate = new Date(Date.UTC(year, month - 1, 1) - 7 * 60 * 60 * 1000);
-        
+
         let nextYear = year;
         let nextMonth = month + 1;
         if (nextMonth > 12) {
             nextMonth = 1;
             nextYear += 1;
         }
+
+        const startDate = new Date(Date.UTC(year, month - 1, 1) - 7 * 60 * 60 * 1000);
         const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1) - 7 * 60 * 60 * 1000);
 
         const scanRepository = new SequelizeScanRepository();
@@ -62,7 +62,6 @@ export class LeaderboardHelper {
             pipeline.hSet(userStatsKey, 'defect_scans', String(stats.defect_scans));
         }
 
-        // Set TTL 35 hari pada key Redis agar dibersihkan otomatis
         pipeline.expire(redisRankKey, 35 * 24 * 60 * 60);
         for (const userIdString of Object.keys(userStatsMap)) {
             const userId = parseInt(userIdString);

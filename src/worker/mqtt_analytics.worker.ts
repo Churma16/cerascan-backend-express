@@ -1,8 +1,8 @@
 // File: src/worker/mqtt_analytics.worker.ts
-import { getMQTTClient } from '../config/mqtt_client';
+import { getMQTTClient } from '../config/mqttClient';
 import { RecordScanHistoryUseCase } from '../modules/scan/use-cases/RecordScanHistoryUseCase';
-import { UserDailyKpiModel } from '../models/user_daily_kpi.model';
-import { getRedisClient } from '../config/redis_client';
+import { UserDailyKpiModel } from '../models/userDailyKpi.model';
+import { getRedisClient } from '../config/redisClient';
 import dayjs from 'dayjs';
 
 const TOPIC_NAME = 'ceramic/defect/analytics';
@@ -30,7 +30,6 @@ export const startMQTTAnalyticsConsumer = async (): Promise<void> => {
                 const payload = JSON.parse(messageVal);
                 console.log(`📩 [MQTT Consumer] Memproses analitik scan_id: ${payload.scan_id}`);
 
-                // 1. Simpan Data Mentah (Audit Log)
                 const recordScanHistoryUseCase = new RecordScanHistoryUseCase();
                 await recordScanHistoryUseCase.execute({
                     scan_id: payload.scan_id,
@@ -40,7 +39,6 @@ export const startMQTTAnalyticsConsumer = async (): Promise<void> => {
                     inference_time: payload.inference_time
                 });
 
-                // 2. Lakukan Agregasi Increment (Materialized View)
                 const todayDateStr = dayjs().format('YYYY-MM-DD');
                 const userId = payload.user_id || 0;
 
@@ -61,13 +59,12 @@ export const startMQTTAnalyticsConsumer = async (): Promise<void> => {
                     },
                     {
                         upsert: true,
-                        returnDocument: 'after' // Menggunakan opsi terbaru Mongoose menggantikan 'new: true'
+                        returnDocument: 'after'
                     }
                 );
 
                 console.log(`🍃 [MongoDB] Data mentah & KPI Harian untuk user ${userId} hari ${todayDateStr} berhasil diupdate.`);
 
-                // 3. Hapus Cache Redis agar Dashboard langsung update seketika
                 try {
                     const redis = getRedisClient();
                     if (userId !== 0) {

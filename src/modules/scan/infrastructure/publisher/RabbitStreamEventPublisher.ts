@@ -1,6 +1,6 @@
 
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import { getRabbitChannel } from '../../../../config/rabbitmq_client';
+import { getRabbitChannel } from '../../../../config/rabbitmqClient';
 
 export class RabbitStreamEventPublisher implements IAnalyticsPublisher {
     private channel: any;
@@ -43,6 +43,6 @@ export class RabbitStreamEventPublisher implements IAnalyticsPublisher {
     }
 
     async disconnect(): Promise<void> {
-        // Disconnect biasanya dihandle global
+        // Disconnect
     }
 }

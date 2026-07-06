@@ -1,4 +1,4 @@
-import { getRedisClient } from "../../../config/redis_client";
+import { getRedisClient } from "../../../config/redisClient";
 import { BroadcastUserLiveQuotaUseCase } from "./BroadcastUserLiveQuotaUseCase";
 import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
 import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";

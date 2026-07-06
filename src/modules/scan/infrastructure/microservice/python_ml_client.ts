@@ -8,7 +8,7 @@ dotenv.config();
 export class PythonMlClient {
     static async predictImage(filePath: string, originalName: string) {
         const fileBuffer = fs.readFileSync(filePath);
-        // Menggunakan Blob dari Node.js / global
+
         const blob = new Blob([fileBuffer], {type: 'image/jpeg'});
         const formData = new FormData();
         formData.append('file', blob, originalName);

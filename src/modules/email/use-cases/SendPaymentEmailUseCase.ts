@@ -1,6 +1,6 @@
 import { Plan } from "../../../models";
 import { GetUserByIdUseCase } from "../../user/use-cases/GetUserByIdUseCase";
-import { resend } from "../../../config/resend_client";
+import { resend } from "../../../config/resendClient";
 import { formatIDRCurrency } from "../domain/email.domain";
 
 export class SendPaymentEmailUseCase {

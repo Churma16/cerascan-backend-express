@@ -1,4 +1,4 @@
-import { getRabbitChannel } from "../../../config/rabbitmq_client";
+import { getRabbitChannel } from "../../../config/rabbitmqClient";
 
 export class PurgeDlqQueueUseCase {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';

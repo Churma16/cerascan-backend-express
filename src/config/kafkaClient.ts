@@ -11,7 +11,6 @@ const customKafkaLogger = () => {
     return ({ namespace, level, label, log: logData }: any) => {
         const { message, ...extra } = logData;
 
-        // Ignore the partitioner warning since we explicitly pass it
         if (message.includes('switched default partitioner') || message.includes('KAFKAJS_NO_PARTITIONER_WARNING')) {
             return;
         }
@@ -32,7 +31,7 @@ export const kafka = new Kafka({
     clientId: process.env.KAFKA_CLIENT_ID || 'ceramic-scan-app',
     brokers: brokers,
     logCreator: customKafkaLogger,
-    logLevel: logLevel.WARN, // Restrict to warning/error to keep console clean
+    logLevel: logLevel.WARN,
 });
 
 export const connectKafkaProducer = async (): Promise<void> => {

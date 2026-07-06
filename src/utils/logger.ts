@@ -1,4 +1,3 @@
-// Force enable color support in console
 process.env.FORCE_COLOR = '1';
 
 const colors = {
@@ -8,11 +7,11 @@ const colors = {
   // Text colors
   textBlack: "\u001b[30m",
   textWhite: "\u001b[37m",
-  textGreen: "\u001b[38;5;150m",    // pastel green text
-  textYellow: "\u001b[38;5;222m",   // pastel yellow text
-  textMagenta: "\u001b[38;5;183m",  // pastel magenta text
-  
-  // Pastel Background colors (using 256-color palette)
+  textGreen: "\u001b[38;5;150m",
+  textYellow: "\u001b[38;5;222m",
+  textMagenta: "\u001b[38;5;183m",
+
+  // Background colors
   bgPastelRed: "\u001b[48;5;210m",       // Redis
   bgPastelGreen: "\u001b[48;5;151m",     // MongoDB / Cron
   bgPastelYellow: "\u001b[48;5;222m",    // RabbitMQ / Passport / Warning
@@ -28,16 +27,16 @@ const getStyledTag = (tag: string): string => {
 
   if (key.includes('mysql') || key.includes('sequelize')) {
     bg = colors.bgPastelBlue;
-    text = colors.textBlack; // Teks hitam di background pastel biru agar kontras & terbaca
+    text = colors.textBlack;
   } else if (key.includes('mongodb')) {
     bg = colors.bgPastelGreen;
     text = colors.textBlack;
   } else if (key.includes('redis')) {
     bg = colors.bgPastelRed;
-    text = colors.textBlack; // Teks hitam di background pastel merah agar kontras & terbaca
+    text = colors.textBlack;
   } else if (key.includes('kafka')) {
     bg = colors.bgPastelMagenta;
-    text = colors.textBlack; // Teks hitam di background pastel magenta agar kontras & terbaca
+    text = colors.textBlack;
   } else if (key.includes('rabbitmq') || key.includes('pub')) {
     bg = colors.bgPastelYellow;
     text = colors.textBlack;
@@ -61,7 +60,6 @@ const getStyledTag = (tag: string): string => {
   return `${bg}${text} ${tag} ${colors.reset}`;
 };
 
-// Fungsi helper untuk membungkus teks dengan warna
 export const log = {
   info: (tag: string, msg: any, ...args: any[]) => {
     console.log(`${getStyledTag(tag)} ${msg}`, ...args);
@@ -82,8 +80,7 @@ export const log = {
   }
 };
 
-// Intercept warnings from Node.js process and display them in yellow using log.warn
 process.on('warning', (warning) => {
-  if (warning.name === 'TimeoutNegativeWarning') return; // Sembunyikan TimeoutNegativeWarning
+  if (warning.name === 'TimeoutNegativeWarning') return;
   log.warn(warning.name, warning.message);
 });

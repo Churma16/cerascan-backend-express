@@ -1,4 +1,4 @@
-import { RabbitMQClient } from "../../rabbitmq/infrastructure/rabbitmq.client";
+import { RabbitmqPublisher } from "../../rabbitmq/infrastructure/rabbitmq.publisher";
 import { generateScanId } from "../domain/scan.domain";
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
@@ -19,7 +19,7 @@ export class ProcessImageUseCase {
             inference_time: '0ms',
             user_id: userId,
         });
-        await RabbitMQClient.publishEvent('scan.process', {
+        await RabbitmqPublisher.publishEvent('scan.process', {
             db_id: newScan.id,
             user_id: userId,
             scan_id: scanId,

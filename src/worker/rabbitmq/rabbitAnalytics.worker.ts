@@ -1,28 +1,37 @@
+import {getRabbitChannel} from "../../config/rabbitmqClient";
 import { RecordScanHistoryUseCase } from "../../modules/scan/use-cases/RecordScanHistoryUseCase";
 import dayjs from 'dayjs';
-import {kafka} from "../../config/kafka.client";
-import {getRedisClient} from "../../config/redis_client";
+import {getRedisClient} from "../../config/redisClient";
 import {MongoScanRepository} from "../../modules/scan/infrastructure/MongoScanRepository";
 
-const consumer = kafka.consumer({groupId: 'ceramic-analytics-group'});
-const TOPIC_NAME = 'ceramic-scan-completed';
+const STREAM_NAME = 'ceramic-scan-completed-stream';
 
-export const startAnalyticsConsumer = async (): Promise<void> => {
+export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
     try {
-        await consumer.connect();
-        console.log(' Kafka Consumer  Berhasil terhubung');
+        const channel = getRabbitChannel();
+        if (!channel) {
+            console.error('[RabbitMQ Analytics Worker] Channel belum diinisialisasi.');
+            return;
+        }
 
-        await consumer.subscribe({topic: TOPIC_NAME, fromBeginning: false});
-        console.log(` Kafka Consumer  Mendengarkan topik: ${TOPIC_NAME}`);
+        await channel.assertQueue(STREAM_NAME, {
+            durable: true,
+            arguments: {'x-queue-type': 'stream'}
+        });
 
-        await consumer.run({
-            eachMessage: async ({message}) => {
+        await channel.prefetch(100);
+
+        await channel.consume(STREAM_NAME, async (msg: any) => {
+            if (msg) {
                 try {
-                    const messageVal = message.value?.toString();
-                    if (!messageVal) return;
+                    const messageVal = msg.content.toString();
+                    if (!messageVal) {
+                        channel.ack(msg);
+                        return;
+                    }
 
                     const payload = JSON.parse(messageVal);
-                    console.log(`[Kafka Consumer] Memproses analitik scan_id: ${payload.scan_id}`);
+                    console.log(`[RabbitMQ Analytics Worker] Memproses analitik scan_id: ${payload.scan_id}`);
 
                     const recordScanHistoryUseCase = new RecordScanHistoryUseCase();
                     await recordScanHistoryUseCase.execute({
@@ -35,10 +44,10 @@ export const startAnalyticsConsumer = async (): Promise<void> => {
 
                     const userId = payload.user_id || 0;
 
-                    const todayDateStr = dayjs().format('YYYY-MM-DD');
-                    const isDefect = ['crack', 'scratch', 'stain'].includes(payload.prediction.toLowerCase());
-                    await MongoScanRepository.incrementScanKpi(userId, payload.confidence_score, isDefect);
 
+                    const isDefect = ['crack', 'scratch', 'stain'].includes(payload.prediction.toLowerCase());
+                    const todayDateStr = dayjs().format('YYYY-MM-DD');
+                    await MongoScanRepository.incrementScanKpi(userId, payload.confidence_score, isDefect);
                     console.log(`[MongoDB] Data mentah & KPI Harian untuk user ${userId} hari ${todayDateStr} berhasil diupdate.`);
 
                     try {
@@ -52,15 +61,22 @@ export const startAnalyticsConsumer = async (): Promise<void> => {
                         }
                         console.log(`[Redis] Cache dashboard untuk user ${userId} telah dibersihkan.`);
                     } catch (redisErr: any) {
-                        console.error('[Kafka Consumer] Gagal menghapus cache Redis:', redisErr.message);
+                        console.error('[RabbitMQ Analytics Worker] Gagal menghapus cache Redis:', redisErr.message);
                     }
+
+                    channel.ack(msg);
                 } catch (err: any) {
-                    console.error('[Kafka Consumer] Gagal memproses pesan analitik:', err.message);
-                    throw err;
+                    console.error('[RabbitMQ Analytics Worker] Gagal memproses pesan:', err.message);
+                    channel.nack(msg, false, false);
                 }
-            },
+            }
+        }, {
+            noAck: false,
+            arguments: {'x-stream-offset': 'next'}
         });
+
+        console.log(`[RabbitMQ Analytics Worker] Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
     } catch (error) {
-        console.error(' Kafka Consumer  Gagal menjalankan consumer:', error);
+        console.error('[RabbitMQ Analytics Worker] Gagal menjalankan consumer:', error);
     }
 };

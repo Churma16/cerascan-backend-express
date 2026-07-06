@@ -1,4 +1,4 @@
-import { getRabbitChannel } from "../../../config/rabbitmq_client";
+import { getRabbitChannel } from "../../../config/rabbitmqClient";
 
 export class GetDlqMessagesUseCase {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';
@@ -31,10 +31,9 @@ export class GetDlqMessagesUseCase {
 
                 const trackingId = parsedPayload.orderId || parsedPayload.db_id || parsedPayload.scan_id || 'unknown';
 
-                // Filter Privasi: Jika bukan admin, pastikan pesan memiliki user_id yang cocok
                 if (!isAdmin) {
                     if (!parsedPayload.user_id || parsedPayload.user_id !== requestUserId) {
-                        continue; // Lewati pesan ini (tetap akan di nack nanti)
+                        continue;
                     }
                 }
 

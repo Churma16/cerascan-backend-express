@@ -1,4 +1,4 @@
-import { getRedisClient } from "../../../config/redis_client";
+import { getRedisClient } from "../../../config/redisClient";
 
 export class UpsertUserQuotaToRedisUseCase {
     async execute(userId: number, planQuota: number) {

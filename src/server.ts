@@ -1,23 +1,23 @@
 import app from './app';
-import http from 'http'; // BARU: Import modul http bawaan Node.js
-import sequelize from './config/database';
+import http from 'http';
+import sequelize from './config/databaseClient';
 import dotenv from 'dotenv';
 
 import './models/scan.model';
 import './models/user.model';
-import {connectRabbitMQ} from "./config/rabbitmq_client";
-import {connectRedis} from "./config/redis_client";
-import {initSocket} from "./config/websocket_client"; // BARU: Import inisialisasi Socket.io
-import {RabbitMQClient} from "./modules/rabbitmq/infrastructure/rabbitmq.client";
-import {PaymentDBSubscriber} from "./subscribers/payment_db.subscribers";
-import {PaymentEmailSubscriber} from "./subscribers/payment_email.subscriber";
-import {PaymentSocketSubscriber} from "./subscribers/payment_socket.subscriber";
-import {AiScanSubscriber} from "./subscribers/ai_scan.subcriber";
+import {connectRabbitMQ} from "./config/rabbitmqClient";
+import {connectRedis} from "./config/redisClient";
+import {initSocket} from "./config/websocketClient"; // BARU: Import inisialisasi Socket.io
+import {RabbitmqPublisher} from "./modules/rabbitmq/infrastructure/rabbitmq.publisher";
+import {PaymentDBSubscriber} from "./subscribers/paymentDb.subscribers";
+import {PaymentEmailSubscriber} from "./subscribers/paymentEmail.subscriber";
+import {PaymentSocketSubscriber} from "./subscribers/paymentSocket.subscriber";
+import {AiScanSubscriber} from "./subscribers/aiScan.subcriber";
 import {CronWorker} from "./worker/daily_cron.worker";
-import {initPassport} from "./config/passport_client";
-import {connectMongoDB} from "./config/mongodb_client";
+import {initPassport} from "./config/passportClient";
+import {connectMongoDB} from "./config/mongodbClient";
 import {log} from "./utils/logger";
-import {startAnalyticsWorker} from "./worker/analytics_worker_manager";
+import {startAnalyticsWorker} from "./worker/analyticsWorkerManager";
 
 dotenv.config({ quiet: true } as any);
 
@@ -49,7 +49,7 @@ const startServer = async () => {
         await connectRedis();
         await connectRabbitMQ();
         await connectMongoDB();
-        await RabbitMQClient.setupExchange();
+        await RabbitmqPublisher.setupExchange();
 
         await startAnalyticsWorker();
 

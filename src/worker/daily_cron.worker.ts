@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import {getRedisClient} from '../config/redis_client';
+import {getRedisClient} from '../config/redisClient';
 import { SyncUserQuotaToDbUseCase } from "../modules/user_quota/use-cases/SyncUserQuotaToDbUseCase";
 import { DowngradeExpiredUserQuotaUseCase } from "../modules/user_quota/use-cases/DowngradeExpiredUserQuotaUseCase";
 import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
@@ -13,14 +13,11 @@ export class CronWorker {
             const redis = getRedisClient();
 
             try {
-                // Ambil referensi waktu hari ini (berkat TZ='Asia/Jakarta', new Date() aman)
                 const today = new Date();
 
-                // TUGAS 1: SINKRONISASI REDIS KE POSTGRESQL
                 const syncUserQuotaToDbUseCase = new SyncUserQuotaToDbUseCase();
                 await syncUserQuotaToDbUseCase.execute(redis);
 
-                // TUGAS 2: RESET KERAS (USE IT OR LOSE IT) - OPTIMIZED
                 const downgradeExpiredUsersUseCase = new DowngradeExpiredUsersUseCase();
                 await downgradeExpiredUsersUseCase.execute(today, redis);
 

@@ -2,18 +2,18 @@ syntax = "proto3";
 
 package ceramic;
 
-// Service utama untuk prediksi cacat keramik
+// Main service
 service CeramicService {
   rpc Predict(PredictRequest) returns (PredictResponse);
 }
 
-// Request membawa data gambar dalam bentuk byte biner
+// Predict Request
 message PredictRequest {
   bytes image_data = 1;
   string file_name = 2;
 }
 
-// Response mengembalikan status dan hasil klasifikasi dari AI
+// Predict Response
 message PredictResponse {
   string status = 1;
   string file_name = 2;

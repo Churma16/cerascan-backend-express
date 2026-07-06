@@ -3,7 +3,7 @@ import {sendResponse, sendResponseMulti} from "../../utils/response";
 import { GetDashboardKPIUseCase } from "./use-cases/GetDashboardKPIUseCase";
 import { GetScanHistoryUseCase } from "../scan/use-cases/GetScanHistoryUseCase";
 import { GetScanDataCountSinceUseCase } from "../scan/use-cases/GetScanDataCountSinceUseCase";
-import {getRedisClient} from "../../config/redis_client";
+import {getRedisClient} from "../../config/redisClient";
 import {AuthRequest} from "../../middleware/auth.guard";
 
 export class DashboardController {

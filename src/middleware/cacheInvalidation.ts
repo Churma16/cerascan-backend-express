@@ -1,5 +1,5 @@
 import {NextFunction, Request, Response} from "express";
-import {getRedisClient} from "../config/redis_client";
+import {getRedisClient} from "../config/redisClient";
 
 export const invalidateTrendCache = async (req: Request, res: Response, next: NextFunction) => {
     try {

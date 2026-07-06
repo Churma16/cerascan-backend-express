@@ -21,6 +21,6 @@ export const comparePassword = async (passwordInput: string, passwordHash: strin
  */
 export const generateOtp = (): { otp: string; expiredAt: Date } => {
     const otp = crypto.randomInt(100000, 999999).toString();
-    const expiredAt = new Date(Date.now() + 10 * 60 * 1000); // 10 menit
+    const expiredAt = new Date(Date.now() + 10 * 60 * 1000);
     return { otp, expiredAt };
 };

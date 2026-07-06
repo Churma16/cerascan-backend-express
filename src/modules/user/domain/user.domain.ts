@@ -8,5 +8,3 @@ export const hashPassword = async (password: string): Promise<string> => {
     return await bcrypt.hash(password, salt);
 };
 
-// Fungsi domain lainnya bisa ditambahkan di sini nantinya
-// (contoh: validasi format email, pengecekan panjang password, dll)

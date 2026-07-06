@@ -1,11 +1,11 @@
 import { Op } from "sequelize";
-import sequelize from "../../../config/database";
+import sequelize from "../../../config/databaseClient";
 import { getNowIndonesiaTime } from "../../../utils/time.helper";
 import { ExpireActiveSubscriptionsUseCase } from "../../subscription/use-cases/ExpireActiveSubscriptionsUseCase";
 import { IUserRepository } from "../domain/IUserRepository";
 import { SequelizeUserRepository } from "../infrastructure/SequelizeUserRepository";
 import { SequelizeSubscriptionRepository } from "../../subscription/infrastructure/SequelizeSubscriptionRepository";
-import UserQuota from "../../../models/user_quota.model";
+import UserQuotaModel from "../../../models/userQuota.model";
 
 export class DowngradeExpiredUsersUseCase {
     private userRepository: IUserRepository;
@@ -34,8 +34,7 @@ export class DowngradeExpiredUsersUseCase {
             if (userIds.length > 0) {
                 updatedUsersCount = await this.userRepository.bulkUpdatePlan(userIds, 1, t);
                 
-                // FORCED QUOTA DOWNGRADE
-                await UserQuota.update(
+                await UserQuotaModel.update(
                     { total_quota: 10 },
                     {
                         where: { user_id: { [Op.in]: userIds } },

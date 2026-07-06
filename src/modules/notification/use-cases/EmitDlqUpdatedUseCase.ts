@@ -1,4 +1,4 @@
-import { getSocket } from "../../../config/websocket_client";
+import { getSocket } from "../../../config/websocketClient";
 
 export interface DlqUpdatedData {
     messageId: string;

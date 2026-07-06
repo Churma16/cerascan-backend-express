@@ -1,4 +1,4 @@
-import { Plan, User, UserQuota } from "../../../models";
+import { Plan, User, UserQuotaModel } from "../../../models";
 import { ISubscriptionRepository } from "../domain/ISubscriptionRepository";
 import { SequelizeSubscriptionRepository } from "../infrastructure/SequelizeSubscriptionRepository";
 
@@ -22,7 +22,7 @@ export class GetAllSubscriptionsUseCase {
                     as: "user",
                     include: [
                         {
-                            model: UserQuota,
+                            model: UserQuotaModel,
                             as: "user_quota"
                         }
                     ]

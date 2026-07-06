@@ -1,27 +1,23 @@
-import { getRabbitChannel } from "../../../config/rabbitmq_client";
+import { getRabbitChannel } from "../../../config/rabbitmqClient";
 import { log } from "../../../utils/logger";
 
-export class RabbitMQClient {
+export class RabbitmqPublisher {
     private static readonly EXCHANGE_NAME = 'cerascan_events';
-    private static readonly DLX_EXCHANGE_NAME = 'cerascan_events_dlx'; // Dead Letter Exchange
+    private static readonly DLX_EXCHANGE_NAME = 'cerascan_events_dlx';
     private static readonly DLX_QUEUE_NAME = 'payment_dead_letter_queue';
 
-    // Dipanggil sekali saat server menyala untuk memastikan Exchange ada
     static async setupExchange(): Promise<void> {
         try {
             const channel = getRabbitChannel();
 
-            // Setup main exchange
             await channel.assertExchange(this.EXCHANGE_NAME, 'direct', {
-                durable: true // Exchange tidak hilang jika server restart
+                durable: true
             });
 
-            // Setup Dead Letter Exchange untuk error handling
             await channel.assertExchange(this.DLX_EXCHANGE_NAME, 'fanout', {
                 durable: true
             });
 
-            // Setup Dead Letter Queue untuk pesan yang gagal
             await channel.assertQueue(this.DLX_QUEUE_NAME, {
                 durable: true
             });
@@ -41,14 +37,14 @@ export class RabbitMQClient {
 
     static async publishEvent(routingKey: string, data: unknown): Promise<boolean> {
         try {
-            const channel = getRabbitChannel(); // Ambil channel dari config
+            const channel = getRabbitChannel();
             const message = Buffer.from(JSON.stringify(data));
 
             const isPublished = channel.publish(
                 this.EXCHANGE_NAME,
                 routingKey,
                 message,
-                { persistent: true } // Pesan disimpan di disk
+                { persistent: true }
             );
 
             log.success('Pub', `Event '${routingKey}' berhasil disiarkan.`);

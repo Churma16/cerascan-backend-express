@@ -5,7 +5,6 @@ import {forgotPasswordLimiter} from "../../middleware/rate_limit";
 import passport from "passport";
 
 const router = Router();
-// router.use(requireAuth);
 
 router.post('/register', AuthController.register);
 router.post('/login', AuthController.login);

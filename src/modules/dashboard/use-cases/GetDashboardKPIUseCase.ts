@@ -1,7 +1,7 @@
 import {GetUserQuotaByUserIdUseCase} from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
 import {GetActiveSubscriptionUseCase} from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
 import {getNowIndonesiaTime} from "../../../utils/time.helper";
-import {getRedisClient} from "../../../config/redis_client";
+import {getRedisClient} from "../../../config/redisClient";
 import dayjs from "dayjs";
 import {IUserRepository} from "../../user/domain/IUserRepository";
 import {SequelizeUserRepository} from "../../user/infrastructure/SequelizeUserRepository";
@@ -33,6 +33,22 @@ export interface DashboardKPIResult {
     } | null;
 }
 
+function getTrendText(totalScansLastMonth: number, totalScansThisMonth: number) {
+    let scanChangeText = "Stabil dari bulan lalu";
+    if (totalScansLastMonth > 0) {
+        const diff = totalScansThisMonth - totalScansLastMonth;
+        const pct = Math.round((diff / totalScansLastMonth) * 100);
+        if (pct > 0) {
+            scanChangeText = `Naik ${pct}% dari bulan lalu`;
+        } else if (pct < 0) {
+            scanChangeText = `Turun ${Math.abs(pct)}% dari bulan lalu`;
+        }
+    } else if (totalScansThisMonth > 0) {
+        scanChangeText = `Naik 100% dari bulan lalu`;
+    }
+    return scanChangeText;
+}
+
 export class GetDashboardKPIUseCase {
     private userRepository: IUserRepository;
     private scanRepository: IScanRepository;
@@ -61,8 +77,7 @@ export class GetDashboardKPIUseCase {
         const defectTypes = ['crack', 'scratch', 'stain'];
 
         const totalUsers = await this.userRepository.count({where: whereClauseUser});
-        // b. Ambil data Scan dari MongoDB (Menggunakan Repository Agregasi Baru)
-        // Kita cukup mengirimkan `userId` jika role-nya bukan admin
+        // b. Ambil data Scan dari MongoDB
         const mongoUserId = userRole !== 'admin' ? userId : undefined;
 
         const mongoStats = await MongoScanRepository.getScanKPIs(
@@ -71,27 +86,11 @@ export class GetDashboardKPIUseCase {
             startOfLastMonth,
             endOfLastMonth
         );
-        // Petakan hasil dari MongoDB ke variabel lokal
-        const totalScans = mongoStats.totalScans;
-        const avgAccuracy = mongoStats.averageScanAccuracy;
-        const unNormalScanCount = mongoStats.unNormalScanCount;
+
         const totalScansThisMonth = mongoStats.totalScansThisMonth;
         const totalScansLastMonth = mongoStats.totalScansLastMonth;
         const defectCountThisMonth = mongoStats.defectCountThisMonth;
-        const activeUsersThisMonth = mongoStats.activeUsersThisMonth;
-
-        let scanChangeText = "Stabil dari bulan lalu";
-        if (totalScansLastMonth > 0) {
-            const diff = totalScansThisMonth - totalScansLastMonth;
-            const pct = Math.round((diff / totalScansLastMonth) * 100);
-            if (pct > 0) {
-                scanChangeText = `Naik ${pct}% dari bulan lalu`;
-            } else if (pct < 0) {
-                scanChangeText = `Turun ${Math.abs(pct)}% dari bulan lalu`;
-            }
-        } else if (totalScansThisMonth > 0) {
-            scanChangeText = `Naik 100% dari bulan lalu`;
-        }
+        let scanChangeText = getTrendText(totalScansLastMonth, totalScansThisMonth);
 
         const defectRate = totalScansThisMonth > 0
             ? Number(((defectCountThisMonth / totalScansThisMonth) * 100).toFixed(1))
@@ -152,6 +151,11 @@ export class GetDashboardKPIUseCase {
                 console.error('Gagal mengambil data tambahan untuk dashboard:', err);
             }
         }
+
+        const totalScans = mongoStats.totalScans;
+        const avgAccuracy = mongoStats.averageScanAccuracy;
+        const unNormalScanCount = mongoStats.unNormalScanCount;
+        const activeUsersThisMonth = mongoStats.activeUsersThisMonth;
 
         return {
             totalScans,

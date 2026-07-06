@@ -23,7 +23,6 @@ export const connectRedis = async (): Promise<void> => {
     }
 };
 
-// Fungsi ini digunakan oleh Service untuk mengambil client yang sudah aktif
 export const getRedisClient = (): any => {
     if (!redisClient) {
         throw new Error('Redis client belum diinisialisasi. Pastikan connectRedis() sudah dipanggil.');

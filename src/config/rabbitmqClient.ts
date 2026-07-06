@@ -20,7 +20,6 @@ export const connectRabbitMQ = async (): Promise<void> => {
     }
 };
 
-// Fungsi ini digunakan oleh Service untuk mengambil channel yang sudah aktif
 export const getRabbitChannel = (): any => {
     if (!rabbitChannel) {
         throw new Error('Channel RabbitMQ belum diinisialisasi. Pastikan connectRabbitMQ() sudah dipanggil.');

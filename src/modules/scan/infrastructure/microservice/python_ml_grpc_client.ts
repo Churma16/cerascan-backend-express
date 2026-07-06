@@ -1,4 +1,4 @@
-import { grpcCeramicClient } from "../../../../config/grpc_client";
+import { grpcCeramicClient } from "../../../../config/grpcClient";
 import { log } from "../../../../utils/logger";
 
 export interface GrpcPredictionResult {

@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { AuthRequest } from "../../middleware/auth.guard";
-import { getRedisClient } from "../../config/redis_client";
-import sequelize from "../../config/database";
+import { getRedisClient } from "../../config/redisClient";
+import sequelize from "../../config/databaseClient";
 
 import { CreateSubscriptionUseCase } from "./use-cases/CreateSubscriptionUseCase";
 import { GetAllSubscriptionsUseCase } from "./use-cases/GetAllSubscriptionsUseCase";

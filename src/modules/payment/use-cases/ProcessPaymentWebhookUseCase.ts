@@ -1,4 +1,4 @@
-import sequelize from "../../../config/database";
+import sequelize from "../../../config/databaseClient";
 import { UpgradeTierUseCase } from "../../user/use-cases/UpgradeTierUseCase";
 import { CreateSubscriptionUseCase } from "../../subscription/use-cases/CreateSubscriptionUseCase";
 import { CreateUserQuotaFromPaymentUseCase } from "../../user_quota/use-cases/CreateUserQuotaFromPaymentUseCase";

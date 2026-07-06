@@ -1,8 +1,8 @@
 import { Transaction } from "sequelize";
-import UserOtp, { UserOtpAttributes } from "../../../models/user_otp.model";
+import UserOtpModel, { UserOtpAttributes } from "../../../models/userOtp.model";
 
 export interface IUserOtpRepository {
-    findActiveOtp(userId: number, otp: string, transaction?: Transaction): Promise<UserOtp | null>;
-    create(payload: Partial<UserOtpAttributes>, transaction?: Transaction): Promise<UserOtp>;
-    save(otp: UserOtp, transaction?: Transaction): Promise<UserOtp>;
+    findActiveOtp(userId: number, otp: string, transaction?: Transaction): Promise<UserOtpModel | null>;
+    create(payload: Partial<UserOtpAttributes>, transaction?: Transaction): Promise<UserOtpModel>;
+    save(otp: UserOtpModel, transaction?: Transaction): Promise<UserOtpModel>;
 }

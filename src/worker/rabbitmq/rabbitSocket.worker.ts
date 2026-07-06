@@ -1,5 +1,5 @@
 
-import { getRabbitChannel } from "../../config/rabbitmq_client";
+import { getRabbitChannel } from "../../config/rabbitmqClient";
 import { EmitScanCompletedUseCase } from "../../modules/notification/use-cases/EmitScanCompletedUseCase";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
@@ -17,10 +17,8 @@ export const startRabbitSocketConsumer = async (): Promise<void> => {
             arguments: { 'x-queue-type': 'stream' }
         });
 
-        // set prefetch for RabbitMQ Streams
         await channel.prefetch(100);
 
-        // consume stream dengan offset 'next'
         await channel.consume(STREAM_NAME, async (msg: any) => {
             if (msg) {
                 try {
@@ -46,7 +44,7 @@ export const startRabbitSocketConsumer = async (): Promise<void> => {
                     channel.ack(msg);
                 } catch (err: any) {
                     console.error('[RabbitMQ Socket Worker] Gagal memproses pesan:', err.message);
-                    channel.nack(msg, false, false); // Buang jika error untuk menghindari blocking stream
+                    channel.nack(msg, false, false);
                 }
             }
         }, {

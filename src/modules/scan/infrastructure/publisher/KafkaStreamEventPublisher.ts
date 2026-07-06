@@ -1,6 +1,6 @@
 import { Producer } from 'kafkajs';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import {getKafkaProducer} from "../../../../config/kafka.client";
+import {getKafkaProducer} from "../../../../config/kafkaClient";
 
 export class KafkaStreamEventPublisher implements IAnalyticsPublisher {
     private producer!: Producer;
@@ -31,6 +31,6 @@ export class KafkaStreamEventPublisher implements IAnalyticsPublisher {
     }
 
     async disconnect(): Promise<void> {
-        // Disconnect opsional, bisa dihandle global saat shutdown server
+        // Disconnect
     }
 }

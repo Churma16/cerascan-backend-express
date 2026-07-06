@@ -1,5 +1,5 @@
 import {DataTypes, Model} from "sequelize";
-import sequelize from "../config/database";
+import sequelize from "../config/databaseClient";
 import User from "./user.model";
 
 export interface UserOtpAttributes {
@@ -10,7 +10,7 @@ export interface UserOtpAttributes {
     is_used?: boolean;
 }
 
-class UserOtp extends Model<UserOtpAttributes> implements UserOtpAttributes {
+class UserOtpModel extends Model<UserOtpAttributes> implements UserOtpAttributes {
     declare id: number;
     declare user_id: number;
     declare otp: string;
@@ -21,7 +21,7 @@ class UserOtp extends Model<UserOtpAttributes> implements UserOtpAttributes {
     declare readonly updatedAt: Date;
 }
 
-UserOtp.init(
+UserOtpModel.init(
     {
         id: {
             type: DataTypes.INTEGER,
@@ -53,7 +53,7 @@ UserOtp.init(
     }
 );
 
-User.hasMany(UserOtp, {foreignKey: 'user_id', as: 'otps'});
-UserOtp.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
+User.hasMany(UserOtpModel, {foreignKey: 'user_id', as: 'otps'});
+UserOtpModel.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
 
-export default UserOtp;
+export default UserOtpModel;

@@ -1,10 +1,10 @@
 import { MqttClient } from 'mqtt';
 import { IAnalyticsPublisher, AnalyticsPayload } from './IAnalyticsPublisher';
-import { getMQTTClient } from '../../../../config/mqtt_client';
+import { getMQTTClient } from '../../../../config/mqttClient';
 
 export class HiveMqAnalyticsPublisher implements IAnalyticsPublisher {
     private client!: MqttClient;
-    private topic = 'ceramic/defect/analytics'; // Menggunakan format topic slash (/) khas MQTT
+    private topic = 'ceramic/defect/analytics';
 
     async connect(): Promise<void> {
         this.client = getMQTTClient();
@@ -30,6 +30,6 @@ export class HiveMqAnalyticsPublisher implements IAnalyticsPublisher {
     }
 
     async disconnect(): Promise<void> {
-        // Disconnect opsional, dihandle global saat shutdown server
+        // Disconnect
     }
 }

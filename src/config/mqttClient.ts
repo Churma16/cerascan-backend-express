@@ -1,4 +1,3 @@
-// File: src/config/mqtt_client.ts
 import * as mqtt from 'mqtt';
 
 let mqttClient: mqtt.MqttClient | null = null;
@@ -18,17 +17,14 @@ export const connectMQTT = async (): Promise<void> => {
 
             console.log('🔌 [MQTT] Mencoba menghubungkan ke HiveMQ Cloud...');
 
-            // Inisialisasi koneksi MQTT dengan TLS & Autentikasi
             mqttClient = mqtt.connect(brokerUrl, {
                 port: port,
                 username: username,
                 password: password,
-                // Opsi berikut sangat PENTING untuk ketangguhan (resilience) di production:
-                clean: false, // Jangan bersihkan sesi (Gunakan Persistent Session agar pesan tertahan saat consumer
-                              // offline)
+                clean: false,
                 clientId: process.env.KAFKA_CLIENT_ID || 'ceramic-scan-app-prod',
                 connectTimeout: 5000,
-                reconnectPeriod: 5000, // Coba terhubung kembali setiap 5 detik jika terputus
+                reconnectPeriod: 5000,
             });
 
             mqttClient.on('connect', () => {

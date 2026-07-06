@@ -1,5 +1,5 @@
-import {getRabbitChannel} from "../config/rabbitmq_client";
-import {RabbitMQClient} from "../modules/rabbitmq/infrastructure/rabbitmq.client";
+import {getRabbitChannel} from "../config/rabbitmqClient";
+import {RabbitmqPublisher} from "../modules/rabbitmq/infrastructure/rabbitmq.publisher";
 import {log} from "../utils/logger";
 import { EmitDlqUpdatedUseCase } from "../modules/notification/use-cases/EmitDlqUpdatedUseCase";
 
@@ -20,7 +20,6 @@ export abstract class BaseRabbitSubscriber {
 
     // Optional method for handing dlq
     protected async onMaxRetriesExhausted(eventData: any, routingKey: string, error: unknown): Promise<void> {
-        // Implementasi default kosong. Kelas anak bisa meng-override jika butuh (contoh: update status DB ke 'failed')
     }
 
     async start(): Promise<void> {
@@ -43,7 +42,7 @@ export abstract class BaseRabbitSubscriber {
             await channel.assertQueue(this.queueName, {
                 durable: true,
                 arguments: {
-                    'x-dead-letter-exchange': RabbitMQClient.getDLXExchangeName()
+                    'x-dead-letter-exchange': RabbitmqPublisher.getDLXExchangeName()
                 }
             });
 

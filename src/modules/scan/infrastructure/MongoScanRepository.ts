@@ -1,5 +1,4 @@
-// File: src/modules/scan/infrastructure/MongoScanAnalyticsRepository.ts
-import {UserDailyKpiModel} from '../../../models/user_daily_kpi.model';
+import {UserDailyKpiModel} from '../../../models/userDailyKpi.model';
 import dayjs from 'dayjs';
 import {AnalyticsModel} from "../../../models/analytics.model";
 
@@ -21,18 +20,15 @@ export class MongoScanRepository {
         endOfLastMonth: Date
     ): Promise<MongoScanStats> {
 
-        // 1. Siapkan filter berdasarkan User (jika bukan admin)
         const filter: any = {};
         if (userId !== undefined) {
             filter.user_id = userId;
         }
 
-        // Format tanggal ke string "YYYY-MM-DD" agar cocok dengan kolom `date` di DB
         const startOfMonthStr = dayjs(startOfCurrentMonth).format('YYYY-MM-DD');
         const startOfLastMonthStr = dayjs(startOfLastMonth).format('YYYY-MM-DD');
         const endOfLastMonthStr = dayjs(endOfLastMonth).format('YYYY-MM-DD');
 
-        // 2. Jalankan Aggregation Pipeline ringan pada data rekap harian
         const result = await UserDailyKpiModel.aggregate([
             {$match: filter},
             {
@@ -87,7 +83,7 @@ export class MongoScanRepository {
                             $cond: [
                                 {
                                     $and: [
-                                        {$ne: ['$user_id', 0]}, // Abaikan guest (ID 0)
+                                        {$ne: ['$user_id', 0]},
                                         {$gte: ['$date', startOfMonthStr]}
                                     ]
                                 },
@@ -114,7 +110,6 @@ export class MongoScanRepository {
 
         const data = result[0];
 
-        // Rata-rata akurasi = Total Akumulasi Skor / Total Scan
         const averageScanAccuracy = data.totalScans > 0
             ? data.accumulatedConfidence / data.totalScans
             : 0;
