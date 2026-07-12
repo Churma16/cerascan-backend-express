@@ -30,10 +30,13 @@ export class GetUserQuotaByUserIdUseCase {
 
         const remainingQuota = parseInt(remainingQuotaStr);
         const usedQuota = calculateUsedQuota(userQuota.total_quota, remainingQuota);
+        const isQuotaLow = userQuota.total_quota > 0 && (remainingQuota / userQuota.total_quota <= 0.2 || remainingQuota <= 200);
 
         return {
             total_quota: userQuota.total_quota,
             used_quota: usedQuota,
+            remaining_quota: remainingQuota,
+            is_quota_low: isQuotaLow,
             next_reset_date: userQuota.next_reset_date,
         };
     }

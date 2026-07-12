@@ -1,5 +1,6 @@
 import { getRedisClient } from "../../../config/redisClient";
 import { getSocket } from "../../../config/websocketClient";
+import { sseClient } from "../../../config/sseClient";
 import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
 import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
 
@@ -34,7 +35,12 @@ export class BroadcastUserLiveQuotaUseCase {
         }
 
         const io = getSocket();
+        
+        // Tetap pancarkan via WebSocket (bila perlu untuk kompatibilitas lama)
         io.to(`user_${userId}_quota_left`).emit("quota_update", currentQuota);
+
+        // Pancarkan juga via SSE (untuk sistem baru)
+        sseClient.emitToUser(userId.toString(), "quota_update", currentQuota);
 
         return currentQuota;
     }

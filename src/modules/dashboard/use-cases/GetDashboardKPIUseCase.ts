@@ -1,7 +1,6 @@
 import {GetUserQuotaByUserIdUseCase} from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
 import {GetActiveSubscriptionUseCase} from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
 import {getNowIndonesiaTime} from "../../../utils/time.helper";
-import {getRedisClient} from "../../../config/redisClient";
 import dayjs from "dayjs";
 import {IUserRepository} from "../../user/domain/IUserRepository";
 import {SequelizeUserRepository} from "../../user/infrastructure/SequelizeUserRepository";
@@ -113,29 +112,11 @@ export class GetDashboardKPIUseCase {
                 ]);
 
                 if (userQuota) {
-                    const redis = getRedisClient();
-                    const userQuotaKey = `user:${userId}:remaining_quota`;
-                    const remainingQuota = await redis.get(userQuotaKey);
-
-                    const total = userQuota.total_quota ?? 0;
-                    let used = userQuota.used_quota ?? 0;
-                    let remaining = total - used;
-
-                    if (remainingQuota !== null && remainingQuota !== undefined) {
-                        remaining = parseInt(remainingQuota);
-                        used = total - remaining;
-                        if (used < 0) used = 0;
-                    } else {
-                        await redis.set(userQuotaKey, remaining.toString(), 'EX', 86400);
-                    }
-
-                    const isLow = total > 0 && (remaining / total <= 0.2 || remaining <= 200);
-
                     quotaResponse = {
-                        total_quota: total,
-                        used_quota: used,
-                        remaining_quota: remaining,
-                        is_quota_low: isLow,
+                        total_quota: userQuota.total_quota,
+                        used_quota: userQuota.used_quota,
+                        remaining_quota: userQuota.remaining_quota,
+                        is_quota_low: userQuota.is_quota_low,
                         next_reset_date: userQuota.next_reset_date || null
                     };
                 }
