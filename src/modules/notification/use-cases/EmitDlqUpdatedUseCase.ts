@@ -1,17 +1,16 @@
-import { getSocket } from "../../../config/websocketClient";
+import { sseClient } from "../../../config/sseClient";
 
 export interface DlqUpdatedData {
-    messageId: string;
-    routingKey: string;
+    action: 'add' | 'remove' | 'retry';
+    data: any;
 }
 
 export class EmitDlqUpdatedUseCase {
     async execute(data: DlqUpdatedData) {
         try {
-            const io = getSocket();
-            io.emit('dlq_updated', data);
+            sseClient.broadcast('dlq_updated', data);
         } catch (error) {
-            console.error('Gagal mengirim event dlq_updated', error);
+            console.error('[SSE] Gagal memancarkan event dlq_updated:', error);
         }
     }
 }

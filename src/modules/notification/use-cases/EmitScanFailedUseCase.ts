@@ -1,4 +1,4 @@
-import { getSocket } from "../../../config/websocketClient";
+import { sseClient } from "../../../config/sseClient";
 
 export interface ScanFailedData {
     scan_id: string;
@@ -8,7 +8,6 @@ export interface ScanFailedData {
 
 export class EmitScanFailedUseCase {
     async execute(data: ScanFailedData) {
-        const io = getSocket();
-        io.emit('scan_failed', data);
+        sseClient.broadcast('scan_failed', data);
     }
 }

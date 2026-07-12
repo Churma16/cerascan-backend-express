@@ -1,27 +1,27 @@
-import { getSocket } from "../../../config/websocketClient";
+import { sseClient } from "../../../config/sseClient";
 import { parseOrderId } from "../../payment/domain/payment.domain";
 
 export interface PaymentFailedData {
     orderId: string;
-    transactionId: string;
-    amount: string;
-    payment_type: string;
+    transactionId?: string;
+    amount?: string;
+    payment_type?: string;
     status: string;
     timestamp: string;
+    error_message?: string;
 }
 
 export class EmitPaymentFailedUseCase {
     async execute(data: PaymentFailedData) {
         try {
             const { userId } = parseOrderId(data.orderId);
-            const io = getSocket();
             
-            io.to(userId.toString()).emit('payment_failed', data);
-            io.emit(`payment_failed_${data.orderId}`, data);
+            sseClient.emitToUser(userId.toString(), 'payment_failed', data);
+            sseClient.broadcast(`payment_failed_${data.orderId}`, data);
             
-            console.log(`[Socket] Event payment_failed dipancarkan untuk order: ${data.orderId}`);
+            console.log(`[SSE] Event payment_failed dipancarkan untuk order: ${data.orderId}`);
         } catch (error) {
-            console.error('[Socket] Gagal memancarkan event payment_failed:', error);
+            console.error('[SSE] Gagal memancarkan event payment_failed:', error);
         }
     }
 }

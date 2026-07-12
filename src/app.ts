@@ -13,6 +13,7 @@ import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
 import userQuotaRoute from "./modules/user_quota/user_quota.route";
 import modelInsightRoute from "./modules/model_insight/model_insight.route";
+import sseRoute from "./modules/sse/sse.route";
 import passport from "passport";
 
 const app: Application = express();
@@ -43,6 +44,7 @@ app.use('/api/subscriptions', subscriptionRoute);
 app.use('/api/leaderboards', leaderboardRoute);
 app.use('/api/user-quotas', userQuotaRoute);
 app.use('/api/model-insights', modelInsightRoute);
+app.use('/api/sse', sseRoute);
 
 
 app.get('/', (req: Request, res: Response) => {
