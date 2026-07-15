@@ -56,12 +56,12 @@ A personal sandbox and Express API gateway for the CeraScan ecosystem. This serv
 *   `config/` - Configuration for databases and external services.
 *   `models/` - Database schemas and models.
 *   `migrations/` - Database migration scripts.
-
+<!--
 ---
 
 ## Acknowledgements
 
-Special thanks and appreciation to everyone who supported the research, development, and testing of this industrial machine learning solution. *(Note: Feel free to mention your university, specific mentors, or open-source libraries here!)*
+Special thanks and appreciation to everyone who supported the research, development, and testing of this industrial machine learning solution. *(Note: Feel free to mention your university, specific mentors, or open-source libraries here!)*-->
 
 ---
 
