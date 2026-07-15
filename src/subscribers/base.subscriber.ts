@@ -101,7 +101,7 @@ export abstract class BaseRabbitSubscriber {
                         this.retryMap.delete(messageId);
 
                         const emitDlqUpdated = new EmitDlqUpdatedUseCase();
-                        await emitDlqUpdated.execute({ messageId, routingKey });
+                        await emitDlqUpdated.execute({ action: 'add', data: { messageId, routingKey } });
                     }
                 }
             }, {noAck: false});
