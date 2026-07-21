@@ -1,6 +1,6 @@
 import {Router} from "express";
-import {requireAuth} from "../../middleware/auth.guard";
-import {UserQuotaController} from "./user_quota.controller";
+import {requireAuth} from '../../middleware/auth.middleware';
+import {UserQuotaController} from './userQuota.controller';
 
 const router = Router();
 router.use(requireAuth);

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { AuthRequest } from '../../middleware/auth.middleware';
 
 import { CreateUserQuotaUseCase } from "./use-cases/CreateUserQuotaUseCase";
 import { GetUserQuotaByUserIdUseCase } from "./use-cases/GetUserQuotaByUserIdUseCase";
