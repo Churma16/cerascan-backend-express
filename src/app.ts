@@ -6,13 +6,13 @@ import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
 import scanRoutes from './modules/scan/scan.routes';
 import dashboardRoute from "./modules/dashboard/dashboard.route";
-import dlqRoute from "./modules/dead_letter_exchange/dlq.route";
+import dlqRoute from './modules/deadLetterExchange/dlq.route';
 import paymentRoute from "./modules/payment/payment.route";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
-import userQuotaRoute from "./modules/user_quota/user_quota.route";
-import modelInsightRoute from "./modules/model_insight/model_insight.route";
+import userQuotaRoute from './modules/userQuota/userQuota.route';
+import modelInsightRoute from './modules/modelInsight/modelInsight.route';
 import sseRoute from "./modules/sse/sse.route";
 import passport from "passport";
 
