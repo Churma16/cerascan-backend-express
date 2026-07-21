@@ -1,7 +1,7 @@
 import {Router} from "express";
-import {requireAuth} from "../../middleware/auth.guard";
+import {requireAuth} from '../../middleware/auth.middleware';
 import {DashboardController} from "./dashboard.controller";
-import {CacheMiddleware} from "../../middleware/cache";
+import {CacheMiddleware} from '../../middleware/cache.middleware';
 
 const router = Router();
 

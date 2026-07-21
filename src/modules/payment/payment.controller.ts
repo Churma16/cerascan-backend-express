@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { snap } from "../../config/midtransClient";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { AuthRequest } from '../../middleware/auth.middleware';
 import { RabbitmqPublisher } from "../rabbitmq/infrastructure/rabbitmq.publisher";
 import { GetPlanByIdUseCase } from "../plan/use-cases/GetPlanByIdUseCase";
 import { GetUserByIdUseCase } from "../user/use-cases/GetUserByIdUseCase";

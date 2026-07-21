@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { AuthRequest } from '../../middleware/auth.middleware';
 import { getRedisClient } from "../../config/redisClient";
 import sequelize from "../../config/databaseClient";
 
@@ -14,8 +14,8 @@ import { GetActiveSubscriptionUseCase } from "./use-cases/GetActiveSubscriptionU
 import { ChangeActiveSubsStatusUseCase } from "./use-cases/ChangeActiveSubsStatusUseCase";
 import { InitiateFreePlanUseCase } from "./use-cases/InitiateFreePlanUseCase";
 import { UpgradeTierUseCase } from "../user/use-cases/UpgradeTierUseCase";
-import { CreateUserQuotaFromPaymentUseCase } from "../user_quota/use-cases/CreateUserQuotaFromPaymentUseCase";
-import { UpsertUserQuotaToRedisUseCase } from "../user_quota/use-cases/UpsertUserQuotaToRedisUseCase";
+import { CreateUserQuotaFromPaymentUseCase } from '../userQuota/use-cases/CreateUserQuotaFromPaymentUseCase';
+import { UpsertUserQuotaToRedisUseCase } from '../userQuota/use-cases/UpsertUserQuotaToRedisUseCase';
 
 export class SubscriptionController {
     static async create(req: Request, res: Response) {

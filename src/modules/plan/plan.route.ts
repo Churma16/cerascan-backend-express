@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {requireAuth, requireRole} from "../../middleware/auth.guard";
+import {requireAuth, requireRole} from '../../middleware/auth.middleware';
 import {PlanController} from "./plan.controller";
 
 const router = Router();

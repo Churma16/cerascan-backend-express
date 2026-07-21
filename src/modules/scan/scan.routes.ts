@@ -1,8 +1,8 @@
 import {Router} from 'express';
 import {ScanController} from './scan.controller';
-import {uploadMiddleware} from '../../middleware/upload';
-import {requireAuth, requireRole} from '../../middleware/auth.guard';
-import {invalidateTrendCache} from "../../middleware/cacheInvalidation";
+import {uploadMiddleware} from '../../middleware/upload.middleware';
+import {requireAuth, requireRole} from '../../middleware/auth.middleware';
+import {invalidateTrendCache} from '../../middleware/cacheInvalidation.middleware';
 
 const router = Router();
 

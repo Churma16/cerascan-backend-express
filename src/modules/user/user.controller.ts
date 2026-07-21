@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { AuthRequest } from '../../middleware/auth.middleware';
 import { sendResponse, sendResponseMulti } from "../../utils/response";
 
 import { GetAllUsersUseCase } from "./use-cases/GetAllUsersUseCase";

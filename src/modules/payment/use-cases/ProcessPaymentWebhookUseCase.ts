@@ -1,7 +1,7 @@
 import sequelize from "../../../config/databaseClient";
 import { UpgradeTierUseCase } from "../../user/use-cases/UpgradeTierUseCase";
 import { CreateSubscriptionUseCase } from "../../subscription/use-cases/CreateSubscriptionUseCase";
-import { CreateUserQuotaFromPaymentUseCase } from "../../user_quota/use-cases/CreateUserQuotaFromPaymentUseCase";
+import { CreateUserQuotaFromPaymentUseCase } from '../../userQuota/use-cases/CreateUserQuotaFromPaymentUseCase';
 import { CreatePaymentUseCase, CreatePaymentInput } from "./CreatePaymentUseCase";
 import { parseOrderId } from "../domain/payment.domain";
 

@@ -1,8 +1,8 @@
 import { Transaction } from "sequelize";
 import { CreateSubscriptionUseCase } from "./CreateSubscriptionUseCase";
 import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
-import { CreateUserQuotaUseCase } from "../../user_quota/use-cases/CreateUserQuotaUseCase";
-import { UpsertUserQuotaToRedisUseCase } from "../../user_quota/use-cases/UpsertUserQuotaToRedisUseCase";
+import { CreateUserQuotaUseCase } from '../../userQuota/use-cases/CreateUserQuotaUseCase';
+import { UpsertUserQuotaToRedisUseCase } from '../../userQuota/use-cases/UpsertUserQuotaToRedisUseCase';
 
 export class InitiateFreePlanUseCase {
     async execute(userId: number, t?: Transaction) {

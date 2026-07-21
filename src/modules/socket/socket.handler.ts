@@ -1,6 +1,6 @@
 
 import {Server, Socket} from 'socket.io';
-import { BroadcastUserLiveQuotaUseCase } from "../user_quota/use-cases/BroadcastUserLiveQuotaUseCase";
+import { BroadcastUserLiveQuotaUseCase } from '../userQuota/use-cases/BroadcastUserLiveQuotaUseCase';
 import {log} from "../../utils/logger";
 
 export const setupSocketHandlers = (io: Server) => {

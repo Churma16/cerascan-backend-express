@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import * as fs from 'fs';
 import { uploadFileToR2 } from '../../utils/r2.util';
 import { sendResponse, sendResponseMulti, sendResponsePaginated } from '../../utils/response';
-import { CheckAndDecrementQuotaUseCase } from "../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { CheckAndDecrementQuotaUseCase } from '../userQuota/use-cases/CheckAndDecrementQuotaUseCase';
+import { AuthRequest } from '../../middleware/auth.middleware';
 
 import { ProcessImageUseCase } from './use-cases/ProcessImageUseCase';
 import { GetScanHistoryUseCase } from './use-cases/GetScanHistoryUseCase';

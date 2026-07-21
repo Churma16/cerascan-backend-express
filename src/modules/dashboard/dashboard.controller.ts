@@ -4,7 +4,7 @@ import { GetDashboardKPIUseCase } from "./use-cases/GetDashboardKPIUseCase";
 import { GetScanHistoryUseCase } from "../scan/use-cases/GetScanHistoryUseCase";
 import { GetScanDataCountSinceUseCase } from "../scan/use-cases/GetScanDataCountSinceUseCase";
 import {getRedisClient} from "../../config/redisClient";
-import {AuthRequest} from "../../middleware/auth.guard";
+import {AuthRequest} from '../../middleware/auth.middleware';
 
 export class DashboardController {
     static async getDashboardKpi(req: AuthRequest, res: Response) {

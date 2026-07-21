@@ -1,4 +1,4 @@
-import {GetUserQuotaByUserIdUseCase} from "../../user_quota/use-cases/GetUserQuotaByUserIdUseCase";
+import {GetUserQuotaByUserIdUseCase} from '../../userQuota/use-cases/GetUserQuotaByUserIdUseCase';
 import {GetActiveSubscriptionUseCase} from "../../subscription/use-cases/GetActiveSubscriptionUseCase";
 import {getNowIndonesiaTime} from "../../../utils/time.helper";
 import dayjs from "dayjs";

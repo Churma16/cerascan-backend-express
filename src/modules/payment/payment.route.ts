@@ -1,6 +1,6 @@
 import {Router} from 'express';
 import {PaymentController} from "./payment.controller";
-import {requireAuth, requireRole} from "../../middleware/auth.guard";
+import {requireAuth, requireRole} from '../../middleware/auth.middleware';
 
 const router = Router();
 
