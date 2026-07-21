@@ -1,8 +1,8 @@
 import {getRabbitChannel} from "../../../config/rabbitmqClient";
 import {RabbitmqPublisher} from "../../rabbitmq/infrastructure/rabbitmq.publisher";
 import {Scan} from "../../../models";
-import {CheckAndDecrementQuotaUseCase} from "../../user_quota/use-cases/CheckAndDecrementQuotaUseCase";
-import {BroadcastUserLiveQuotaUseCase} from "../../user_quota/use-cases/BroadcastUserLiveQuotaUseCase";
+import {CheckAndDecrementQuotaUseCase} from '../../userQuota/use-cases/CheckAndDecrementQuotaUseCase';
+import {BroadcastUserLiveQuotaUseCase} from '../../userQuota/use-cases/BroadcastUserLiveQuotaUseCase';
 import {log} from "../../../utils/logger";
 
 export class RetryDlqMessageUseCase {

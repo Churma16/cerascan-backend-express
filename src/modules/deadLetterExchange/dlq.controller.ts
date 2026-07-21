@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { sendResponse, sendResponseMulti } from "../../utils/response";
-import { AuthRequest } from "../../middleware/auth.guard";
+import { AuthRequest } from '../../middleware/auth.middleware';
 import { GetDlqMessagesUseCase } from "./use-cases/GetDlqMessagesUseCase";
 import { RetryDlqMessageUseCase } from "./use-cases/RetryDlqMessageUseCase";
 import { RetryAllDlqMessagesUseCase } from "./use-cases/RetryAllDlqMessagesUseCase";
