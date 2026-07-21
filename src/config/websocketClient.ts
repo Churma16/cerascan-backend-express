@@ -1,6 +1,6 @@
 import {Server as SocketIOServer} from 'socket.io';
 import http from 'http';
-import {setupSocketHandlers} from "../modules/socket/socket.handler";
+import {setupSocketHandlers} from '../transport/socket/socket.handler';
 import { log } from '../utils/logger';
 
 let io: SocketIOServer | null = null;

@@ -1,6 +1,6 @@
 
 import {Server, Socket} from 'socket.io';
-import { BroadcastUserLiveQuotaUseCase } from '../userQuota/use-cases/BroadcastUserLiveQuotaUseCase';
+import { BroadcastUserLiveQuotaUseCase } from '../../modules/userQuota/use-cases/BroadcastUserLiveQuotaUseCase';
 import {log} from "../../utils/logger";
 
 export const setupSocketHandlers = (io: Server) => {
@@ -32,7 +32,7 @@ const handleUserAuthentication = (socket: Socket) => {
         log.info('Socket', `User ${userId} berhasil masuk ke room: ${roomName}`);
 
         const broadcastUserLiveQuotaUseCase = new BroadcastUserLiveQuotaUseCase();
-        broadcastUserLiveQuotaUseCase.execute(Number(userId)).catch(err => {
+        broadcastUserLiveQuotaUseCase.execute(Number(userId)).catch((err: any) => {
             log.error('Socket', 'Gagal mengirim kuota awal:', err);
         });
 

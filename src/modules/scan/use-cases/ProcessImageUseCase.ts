@@ -1,4 +1,4 @@
-import { RabbitmqPublisher } from "../../rabbitmq/infrastructure/rabbitmq.publisher";
+import { RabbitmqPublisher } from "../../../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { generateScanId } from "../domain/scan.domain";
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
