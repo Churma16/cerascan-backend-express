@@ -5,7 +5,7 @@ import Plan from './plan.model';
 import Subscription from './subscription.model';
 import UserQuotaModel from './userQuota.model';
 import Payment from './payment.model';
-import LeaderboardArchive from './leaderboardArchive';
+import LeaderboardArchive from './leaderboardArchive.model';
 
 User.belongsTo(Plan, {
     foreignKey: 'plan_id',
