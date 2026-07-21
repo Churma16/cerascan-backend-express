@@ -1,6 +1,7 @@
+import { NotificationService } from "../services/notification.service";
 import { BaseRabbitSubscriber } from "./base.subscriber";
-import { EmitPaymentSuccessUseCase } from "../modules/notification/use-cases/EmitPaymentSuccessUseCase";
-import { EmitPaymentFailedUseCase } from "../modules/notification/use-cases/EmitPaymentFailedUseCase";
+
+
 
 export class PaymentSocketSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';
@@ -13,11 +14,9 @@ export class PaymentSocketSubscriber extends BaseRabbitSubscriber {
 
     protected async processMessage(eventData: any, routingKey: string): Promise<void> {
         if (routingKey === 'payment.success') {
-            const emitSuccessUseCase = new EmitPaymentSuccessUseCase();
-            await emitSuccessUseCase.execute(eventData);
+            await NotificationService.emitPaymentSuccess(eventData);
         } else if (routingKey === 'payment.failed') {
-            const emitFailedUseCase = new EmitPaymentFailedUseCase();
-            await emitFailedUseCase.execute(eventData);
+            await NotificationService.emitPaymentFailed(eventData);
         }
     }
 }

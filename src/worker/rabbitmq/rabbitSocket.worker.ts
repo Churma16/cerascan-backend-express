@@ -1,6 +1,6 @@
 
 import { getRabbitChannel } from "../../config/rabbitmqClient";
-import { EmitScanCompletedUseCase } from "../../modules/notification/use-cases/EmitScanCompletedUseCase";
+import { NotificationService } from "../../services/notification.service";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
@@ -30,8 +30,7 @@ export const startRabbitSocketConsumer = async (): Promise<void> => {
 
                     const payload = JSON.parse(messageVal);
                     if (payload.db_id) {
-                        const emitScanCompletedUseCase = new EmitScanCompletedUseCase();
-                        await emitScanCompletedUseCase.execute({
+                        await NotificationService.emitScanCompleted({
                             db_id: payload.db_id,
                             scan_id: payload.scan_id,
                             prediction: payload.prediction,

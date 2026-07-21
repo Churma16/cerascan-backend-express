@@ -1,17 +1,23 @@
-import { Plan } from "../../../models";
-import { GetUserByIdUseCase } from "../../user/use-cases/GetUserByIdUseCase";
-import { resend } from "../../../config/resendClient";
-import { formatIDRCurrency } from "../domain/email.domain";
+import { Plan } from "../models";
+import { SequelizeUserRepository } from "../modules/user/infrastructure/SequelizeUserRepository";
+import { resend } from "../config/resendClient";
 
-export class SendPaymentEmailUseCase {
-    async execute(orderId: string) {
+const userRepository = new SequelizeUserRepository();
+
+export const formatIDRCurrency = (price: number): string => {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0
+    }).format(price);
+};
+
+export class EmailService {
+    static async sendPaymentEmail(orderId: string) {
         try {
             const segments = orderId.split("-");
             const userId = Number(segments[1]);
             const planId = Number(segments[2]);
 
-            const getUserByIdUseCase = new GetUserByIdUseCase();
-            const user = await getUserByIdUseCase.execute(userId);
+            const user = await userRepository.findById(userId);
             if (!user) throw new Error(`User ID ${userId} tidak ditemukan`);
 
             const plan = await Plan.findByPk(planId);
@@ -65,7 +71,6 @@ export class SendPaymentEmailUseCase {
 
             console.log(`[Email Service] Kuitansi terkirim ke ${user.email}`);
             return data;
-
         } catch (error) {
             console.error(`[Email Service] Gagal mengirim email:`, error);
             throw error;

@@ -1,5 +1,6 @@
+import { EmailService } from "../services/email.service";
 import { BaseRabbitSubscriber } from "./base.subscriber";
-import { SendPaymentEmailUseCase } from "../modules/email/use-cases/SendPaymentEmailUseCase";
+
 
 export class PaymentEmailSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';
@@ -11,7 +12,6 @@ export class PaymentEmailSubscriber extends BaseRabbitSubscriber {
     }
 
     protected async processMessage(eventData: any, routingKey: string): Promise<void> {
-        const sendPaymentEmailUseCase = new SendPaymentEmailUseCase();
-        await sendPaymentEmailUseCase.execute(eventData.orderId);
+        await EmailService.sendPaymentEmail(eventData.orderId);
     }
 }

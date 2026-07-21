@@ -1,8 +1,9 @@
+import { NotificationService } from "../services/notification.service";
 import { BaseRabbitSubscriber } from "./base.subscriber";
 import { PythonMlGrpcClient } from '../modules/scan/infrastructure/microservice/PythonMlGrpcClient';
 import { AnalyticsPublisherFactory } from "../modules/scan/infrastructure/AnalyticsPublisherFactory";
 import { UpdateScanFailedUseCase } from "../modules/scan/use-cases/UpdateScanFailedUseCase";
-import { EmitScanFailedUseCase } from "../modules/notification/use-cases/EmitScanFailedUseCase";
+
 import { RefundUserQuotaUseCase } from '../modules/userQuota/use-cases/RefundUserQuotaUseCase';
 import { log } from "../utils/logger";
 import {downloadFileFromR2} from "../utils/r2.util";
@@ -62,8 +63,7 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
 
         try {
             if (eventData.scan_id) {
-                const emitScanFailedUseCase = new EmitScanFailedUseCase();
-                await emitScanFailedUseCase.execute({
+                await NotificationService.emitScanFailed({
                     scan_id: eventData.scan_id,
                     db_id: eventData.db_id,
                     error: error instanceof Error ? error.message : 'Unknown error'

@@ -1,5 +1,5 @@
 import {kafka} from "../../config/kafkaClient";
-import {EmitScanCompletedUseCase} from "../../modules/notification/use-cases/EmitScanCompletedUseCase";
+import { NotificationService } from "../../services/notification.service";
 import {log} from "../../utils/logger";
 
 const consumer = kafka.consumer({groupId: 'ceramic-socket-group'});
@@ -23,7 +23,6 @@ export const startSocketConsumer = async (): Promise<void> => {
                     log.info('Kafka Socket Worker', `Mengirim notifikasi scan_id: ${payload.scan_id}`);
 
                     if (payload.db_id) {
-                        const emitScanCompletedUseCase = new EmitScanCompletedUseCase();
                         const scanData = {
                             db_id: payload.db_id,
                             scan_id: payload.scan_id,
@@ -31,7 +30,7 @@ export const startSocketConsumer = async (): Promise<void> => {
                             confidence: payload.confidence_score,
                             inference_time: payload.inference_time
                         };
-                        await emitScanCompletedUseCase.execute(scanData);
+                        await NotificationService.emitScanCompleted(scanData);
                         log.success('Kafka Socket Worker', `Notifikasi terkirim untuk scan_id: ${payload.scan_id}`);
                     }
 
