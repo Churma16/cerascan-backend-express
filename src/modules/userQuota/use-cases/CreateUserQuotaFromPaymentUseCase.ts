@@ -1,4 +1,5 @@
-import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
+import { SequelizePlanRepository } from "../../plan/infrastructure/SequelizePlanRepository";
+
 import { Transaction } from "sequelize";
 import { IUserQuotaRepository } from "../domain/IUserQuotaRepository";
 import { SequelizeUserQuotaRepository } from "../infrastructure/SequelizeUserQuotaRepository";
@@ -11,8 +12,9 @@ export class CreateUserQuotaFromPaymentUseCase {
     }
 
     async execute(userId: number, planId: number, t?: Transaction) {
-        const getPlanByIdUseCase = new GetPlanByIdUseCase();
-        const selectedPlan = await getPlanByIdUseCase.execute(planId);
+        const planRepository = new SequelizePlanRepository();
+        const selectedPlan = await planRepository.findByPk(planId);
+        if (!selectedPlan) throw new Error(`Plan dengan ID ${planId} tidak ditemukan`);
         const nextResetDate = new Date(Date.now() + selectedPlan.duration_days * 24 * 60 * 60 * 1000);
 
         const [userQuota] = await this.userQuotaRepository.upsert({

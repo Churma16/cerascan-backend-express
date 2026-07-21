@@ -1,13 +1,10 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { AuthRequest } from '../../middleware/auth.middleware';
-
-import { CreatePlanUseCase } from "./use-cases/CreatePlanUseCase";
-import { GetAllPlansUseCase } from "./use-cases/GetAllPlansUseCase";
-import { GetPlanByIdUseCase } from "./use-cases/GetPlanByIdUseCase";
-import { UpdatePlanUseCase } from "./use-cases/UpdatePlanUseCase";
-import { DeletePlanUseCase } from "./use-cases/DeletePlanUseCase";
+import { SequelizePlanRepository } from "./infrastructure/SequelizePlanRepository";
 import { CalculateUpgradePriceUseCase } from "./use-cases/CalculateUpgradePriceUseCase";
+
+const planRepository = new SequelizePlanRepository();
 
 export class PlanController {
     static async create(req: Request, res: Response) {
@@ -17,10 +14,8 @@ export class PlanController {
                 return sendResponse(res, 400, "Semua field (name, price, scan_quota, duration_days) harus diisi");
             }
             const payload = { name, price, scan_quota, duration_days };
-
-            const useCase = new CreatePlanUseCase();
-            const newPlan = await useCase.execute(payload);
-            return sendResponse(res, 201, "Plan berhasil dibuat", newPlan);
+            const newPlan = await planRepository.create(payload);
+            return sendResponse(res, 201, "Plan berhasil dibuat", newPlan.toJSON());
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
@@ -28,9 +23,8 @@ export class PlanController {
 
     static async getAll(req: Request, res: Response) {
         try {
-            const useCase = new GetAllPlansUseCase();
-            const plans = await useCase.execute();
-            return sendResponse(res, 200, "Daftar plan berhasil diambil", plans);
+            const plans = await planRepository.findAll();
+            return sendResponse(res, 200, "Daftar plan berhasil diambil", plans.map(p => p.toJSON()));
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
@@ -42,11 +36,13 @@ export class PlanController {
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID plan harus berupa angka yang valid");
             }
-            const useCase = new GetPlanByIdUseCase();
-            const plan = await useCase.execute(Number(id));
-            return sendResponse(res, 200, "Plan berhasil diambil", plan);
+            const plan = await planRepository.findByPk(Number(id));
+            if (!plan) {
+                return sendResponse(res, 404, "Plan tidak ditemukan");
+            }
+            return sendResponse(res, 200, "Plan berhasil diambil", plan.toJSON());
         } catch (error: any) {
-            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
 
@@ -67,11 +63,16 @@ export class PlanController {
                 return sendResponse(res, 400, "Minimal satu field harus diupdate");
             }
 
-            const useCase = new UpdatePlanUseCase();
-            const updatedPlan = await useCase.execute(Number(id), payload);
-            return sendResponse(res, 200, "Plan berhasil diupdate", updatedPlan);
+            const plan = await planRepository.findByPk(Number(id));
+            if (!plan) {
+                return sendResponse(res, 404, "Plan tidak ditemukan");
+            }
+
+            await planRepository.update(Number(id), payload);
+            const updatedPlan = await planRepository.findByPk(Number(id));
+            return sendResponse(res, 200, "Plan berhasil diupdate", updatedPlan?.toJSON());
         } catch (error: any) {
-            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
 
@@ -81,11 +82,14 @@ export class PlanController {
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID plan harus berupa angka yang valid");
             }
-            const useCase = new DeletePlanUseCase();
-            const result = await useCase.execute(Number(id));
-            return sendResponse(res, 200, result.message, null);
+            const plan = await planRepository.findByPk(Number(id));
+            if (!plan) {
+                return sendResponse(res, 404, "Plan tidak ditemukan");
+            }
+            await planRepository.destroy(Number(id));
+            return sendResponse(res, 200, `Plan dengan ID ${id} berhasil dihapus`, null);
         } catch (error: any) {
-            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
 

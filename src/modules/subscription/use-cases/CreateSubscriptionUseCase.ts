@@ -1,5 +1,6 @@
+import { SequelizePlanRepository } from "../../plan/infrastructure/SequelizePlanRepository";
 import { Transaction } from "sequelize";
-import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
+
 import { ISubscriptionRepository } from "../domain/ISubscriptionRepository";
 import { SequelizeSubscriptionRepository } from "../infrastructure/SequelizeSubscriptionRepository";
 
@@ -28,8 +29,8 @@ export class CreateSubscriptionUseCase {
         note?: string,
         t?: Transaction
     ) {
-        const getPlanByIdUseCase = new GetPlanByIdUseCase();
-        const plan = await getPlanByIdUseCase.execute(planId);
+        const planRepository = new SequelizePlanRepository();
+        const plan = await planRepository.findByPk(planId);
         if (!plan) {
             throw new Error(`Plan dengan ID ${planId} tidak ditemukan`);
         }

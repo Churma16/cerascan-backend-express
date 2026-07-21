@@ -13,7 +13,7 @@ import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
 import userQuotaRoute from './modules/userQuota/userQuota.route';
 import modelInsightRoute from './modules/modelInsight/modelInsight.route';
-import sseRoute from "./modules/sse/sse.route";
+import sseRoute from './transport/sse/sse.route';
 import passport from "passport";
 
 const app: Application = express();

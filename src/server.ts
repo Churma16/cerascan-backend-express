@@ -8,7 +8,7 @@ import './models/user.model';
 import {connectRabbitMQ} from "./config/rabbitmqClient";
 import {connectRedis} from "./config/redisClient";
 import {initSocket} from "./config/websocketClient"; // BARU: Import inisialisasi Socket.io
-import {RabbitmqPublisher} from "./modules/rabbitmq/infrastructure/rabbitmq.publisher";
+import {RabbitmqPublisher} from './transport/rabbitmq/infrastructure/rabbitmq.publisher';
 import {PaymentDBSubscriber} from './subscribers/paymentDb.subscriber';
 import {PaymentEmailSubscriber} from "./subscribers/paymentEmail.subscriber";
 import {PaymentSocketSubscriber} from "./subscribers/paymentSocket.subscriber";

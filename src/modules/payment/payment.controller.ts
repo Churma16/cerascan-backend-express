@@ -1,10 +1,12 @@
+import { SequelizeUserRepository } from "../user/infrastructure/SequelizeUserRepository";
+import { SequelizePlanRepository } from "../plan/infrastructure/SequelizePlanRepository";
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { snap } from "../../config/midtransClient";
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { RabbitmqPublisher } from "../rabbitmq/infrastructure/rabbitmq.publisher";
-import { GetPlanByIdUseCase } from "../plan/use-cases/GetPlanByIdUseCase";
-import { GetUserByIdUseCase } from "../user/use-cases/GetUserByIdUseCase";
+import { RabbitmqPublisher } from "../../transport/rabbitmq/infrastructure/rabbitmq.publisher";
+
+
 
 import { CreatePaymentUseCase } from "./use-cases/CreatePaymentUseCase";
 import { GetAllPaymentsUseCase } from "./use-cases/GetAllPaymentsUseCase";
@@ -23,15 +25,15 @@ export class PaymentController {
                 return sendResponse(res, 400, "User ID tidak boleh kosong");
             }
 
-            const getUserByIdUseCase = new GetUserByIdUseCase();
-            const user = await getUserByIdUseCase.execute(userId);
+            const userRepository = new SequelizeUserRepository();
+        const user = await userRepository.findById(userId);
             if (!user) {
                 return sendResponse(res, 404, "User tidak ditemukan");
             }
 
             const planId: number = req.body.plan_id;
-            const getPlanByIdUseCase = new GetPlanByIdUseCase();
-            const selectedPlan = await getPlanByIdUseCase.execute(planId);
+            const planRepository = new SequelizePlanRepository();
+        const selectedPlan = await planRepository.findByPk(planId);
             if (!selectedPlan) {
                 return sendResponse(res, 404, `Plan dengan ID ${planId} tidak ditemukan`);
             }

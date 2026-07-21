@@ -1,6 +1,7 @@
+import { SequelizePlanRepository } from "../../plan/infrastructure/SequelizePlanRepository";
 import { Transaction } from "sequelize";
 import { CreateSubscriptionUseCase } from "./CreateSubscriptionUseCase";
-import { GetPlanByIdUseCase } from "../../plan/use-cases/GetPlanByIdUseCase";
+
 import { CreateUserQuotaUseCase } from '../../userQuota/use-cases/CreateUserQuotaUseCase';
 import { UpsertUserQuotaToRedisUseCase } from '../../userQuota/use-cases/UpsertUserQuotaToRedisUseCase';
 
@@ -16,8 +17,8 @@ export class InitiateFreePlanUseCase {
             t
         );
 
-        const getPlanByIdUseCase = new GetPlanByIdUseCase();
-        const freePlan = await getPlanByIdUseCase.execute(1);
+        const planRepository = new SequelizePlanRepository();
+        const freePlan = await planRepository.findByPk(1);
         if (!freePlan) {
             throw new Error('Free plan tidak ditemukan');
         }
