@@ -1,5 +1,5 @@
 import {Router} from "express";
-import {ModelInsightController} from "./model_insight.controller";
+import {ModelInsightController} from './modelInsight.controller';
 
 const router = Router();
 
