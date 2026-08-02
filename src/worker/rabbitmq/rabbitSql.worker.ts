@@ -1,15 +1,21 @@
-
 import { getRabbitChannel } from "../../config/rabbitmqClient";
-import { UpdateScanSuccessUseCase } from "../../modules/scan/use-cases/UpdateScanSuccessUseCase";
-import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { handleSqlMessage } from "../handlers/sql.handler";
+import { log } from "../../utils/logger";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
+/**
+ * Menjalankan RabbitMQ Stream Consumer untuk memperbarui SQL DB & Leaderboard di lingkungan production.
+ *
+ * @async
+ * @function startRabbitSqlConsumer
+ * @returns {Promise<void>}
+ */
 export const startRabbitSqlConsumer = async (): Promise<void> => {
     try {
         const channel = getRabbitChannel();
         if (!channel) {
-            console.error('[RabbitMQ SQL Worker] Channel belum diinisialisasi.');
+            log.error('RabbitMQ SQL Worker', 'Channel belum diinisialisasi.');
             return;
         }
 
@@ -30,29 +36,14 @@ export const startRabbitSqlConsumer = async (): Promise<void> => {
                     }
 
                     const payload = JSON.parse(messageVal);
-                    console.log(`[RabbitMQ SQL Worker] Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
+                    log.info('RabbitMQ SQL Worker', `Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
 
-                    if (payload.db_id) {
-                        const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
-                        await updateScanSuccessUseCase.execute(
-                            payload.db_id,
-                            payload.prediction,
-                            payload.confidence_score,
-                            payload.inference_time,
-                            payload.user_id
-                        );
-                        console.log(`[RabbitMQ SQL Worker] Database SQL terupdate untuk db_id: ${payload.db_id}`);
-                    }
+                    await handleSqlMessage(payload);
+                    log.success('RabbitMQ SQL Worker', `SQL & Leaderboard terupdate untuk scan_id: ${payload.scan_id}`);
 
-                    if (payload.user_id && payload.prediction) {
-                        const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
-                        await recordCompletedScanUseCase.execute(payload.user_id, payload.prediction);
-                        console.log(`[RabbitMQ SQL Worker] Leaderboard terupdate untuk user_id: ${payload.user_id}`);
-                    }
-                    
                     channel.ack(msg);
                 } catch (err: any) {
-                    console.error('[RabbitMQ SQL Worker] Gagal memproses pesan:', err.message);
+                    log.error('RabbitMQ SQL Worker', `Gagal memproses pesan: ${err.message}`);
                     channel.nack(msg, false, false);
                 }
             }
@@ -61,8 +52,8 @@ export const startRabbitSqlConsumer = async (): Promise<void> => {
             arguments: { 'x-stream-offset': 'next' }
         });
 
-        console.log(`[RabbitMQ SQL Worker] Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
-    } catch (error) {
-        console.error('[RabbitMQ SQL Worker] Gagal menjalankan consumer:', error);
+        log.info('RabbitMQ SQL Worker', `Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
+    } catch (error: any) {
+        log.error('RabbitMQ SQL Worker', `Gagal menjalankan consumer: ${error.message}`);
     }
 };

@@ -1,11 +1,17 @@
 import { kafka } from "../../config/kafkaClient";
-import { UpdateScanSuccessUseCase } from "../../modules/scan/use-cases/UpdateScanSuccessUseCase";
-import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { handleSqlMessage } from "../handlers/sql.handler";
 import { log } from "../../utils/logger";
 
 const consumer = kafka.consumer({ groupId: 'ceramic-sql-group' });
 const TOPIC_NAME = 'ceramic-scan-completed';
 
+/**
+ * Menjalankan Kafka Consumer untuk memproses penyimpan data scan ke SQL DB & Leaderboard.
+ *
+ * @async
+ * @function startSqlConsumer
+ * @returns {Promise<void>}
+ */
 export const startSqlConsumer = async (): Promise<void> => {
     try {
         await consumer.connect();
@@ -23,30 +29,14 @@ export const startSqlConsumer = async (): Promise<void> => {
                     const payload = JSON.parse(messageVal);
                     log.info('Kafka SQL Worker', `Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
 
-                    if (payload.db_id) {
-                        const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
-                        await updateScanSuccessUseCase.execute(
-                            payload.db_id,
-                            payload.prediction,
-                            payload.confidence_score,
-                            payload.inference_time,
-                            payload.user_id
-                        );
-                        log.success('Kafka SQL Worker', `Database SQL terupdate untuk db_id: ${payload.db_id}`);
-                    }
-
-                    if (payload.user_id && payload.prediction) {
-                        const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
-                        await recordCompletedScanUseCase.execute(payload.user_id, payload.prediction);
-                        log.success('Kafka SQL Worker', `Leaderboard terupdate untuk user_id: ${payload.user_id}`);
-                    }
-
+                    await handleSqlMessage(payload);
+                    log.success('Kafka SQL Worker', `SQL & Leaderboard terupdate untuk scan_id: ${payload.scan_id}`);
                 } catch (err: any) {
                     log.error('Kafka SQL Worker', `Gagal memproses pesan: ${err.message}`);
                 }
             },
         });
     } catch (error) {
-        log.error('Kafka SQL Worker', 'Gagal menjalankan consumer:', error);
+        log.error('Kafka SQL Worker', `Gagal menjalankan consumer: ${error}`);
     }
 };

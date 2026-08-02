@@ -1,15 +1,25 @@
 import cron from 'node-cron';
-import {getRedisClient} from '../config/redisClient';
+import { getRedisClient } from '../config/redisClient';
 import { SyncUserQuotaToDbUseCase } from '../modules/userQuota/use-cases/SyncUserQuotaToDbUseCase';
 import { DowngradeExpiredUserQuotaUseCase } from '../modules/userQuota/use-cases/DowngradeExpiredUserQuotaUseCase';
 import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
 import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/DowngradeExpiredUsersUseCase";
 import { log } from "../utils/logger";
 
+/**
+ * Worker penjadwalan harian (Cron Worker) yang bertugas menyinkronkan data pemakaian kuota,
+ * kedaluwarsa pengguna, kuota yang kedaluwarsa, dan peringkat leaderboard dari Redis ke database.
+ */
 export class CronWorker {
-    static start() {
+    /**
+     * Memulai jadwal cron job yang mengeksekusi sinkronisasi otomatis setiap malam pukul 23:59.
+     *
+     * @static
+     * @returns {void}
+     */
+    static start(): void {
         cron.schedule('59 23 * * *', async () => {
-            log.info('Cron', '🌙 Memulai sinkronisasi pembukuan kuota...');
+            log.info('Cron', 'Memulai sinkronisasi pembukuan kuota...');
             const redis = getRedisClient();
 
             try {
@@ -35,6 +45,4 @@ export class CronWorker {
 
         log.info('Cron Worker', 'Penjadwalan aktif. Menunggu eksekusi pada jam 23:59...');
     }
-
-
 }
