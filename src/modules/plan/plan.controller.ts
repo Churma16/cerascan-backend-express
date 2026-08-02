@@ -1,10 +1,8 @@
 import { Request, Response } from "express";
 import { sendResponse } from "../../utils/response";
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { SequelizePlanRepository } from "./infrastructure/SequelizePlanRepository";
+import { PlanService } from "./plan.service";
 import { CalculateUpgradePriceUseCase } from "./use-cases/CalculateUpgradePriceUseCase";
-
-const planRepository = new SequelizePlanRepository();
 
 export class PlanController {
     static async create(req: Request, res: Response) {
@@ -14,8 +12,8 @@ export class PlanController {
                 return sendResponse(res, 400, "Semua field (name, price, scan_quota, duration_days) harus diisi");
             }
             const payload = { name, price, scan_quota, duration_days };
-            const newPlan = await planRepository.create(payload);
-            return sendResponse(res, 201, "Plan berhasil dibuat", newPlan.toJSON());
+            const newPlan = await PlanService.createPlan(payload);
+            return sendResponse(res, 201, "Plan berhasil dibuat", newPlan);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
@@ -23,8 +21,8 @@ export class PlanController {
 
     static async getAll(req: Request, res: Response) {
         try {
-            const plans = await planRepository.findAll();
-            return sendResponse(res, 200, "Daftar plan berhasil diambil", plans.map(p => p.toJSON()));
+            const plans = await PlanService.getAllPlans();
+            return sendResponse(res, 200, "Daftar plan berhasil diambil", plans);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
@@ -36,13 +34,10 @@ export class PlanController {
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID plan harus berupa angka yang valid");
             }
-            const plan = await planRepository.findByPk(Number(id));
-            if (!plan) {
-                return sendResponse(res, 404, "Plan tidak ditemukan");
-            }
-            return sendResponse(res, 200, "Plan berhasil diambil", plan.toJSON());
+            const plan = await PlanService.getPlanById(Number(id));
+            return sendResponse(res, 200, "Plan berhasil diambil", plan);
         } catch (error: any) {
-            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
     }
 
@@ -63,16 +58,10 @@ export class PlanController {
                 return sendResponse(res, 400, "Minimal satu field harus diupdate");
             }
 
-            const plan = await planRepository.findByPk(Number(id));
-            if (!plan) {
-                return sendResponse(res, 404, "Plan tidak ditemukan");
-            }
-
-            await planRepository.update(Number(id), payload);
-            const updatedPlan = await planRepository.findByPk(Number(id));
-            return sendResponse(res, 200, "Plan berhasil diupdate", updatedPlan?.toJSON());
+            const updatedPlan = await PlanService.updatePlan(Number(id), payload);
+            return sendResponse(res, 200, "Plan berhasil diupdate", updatedPlan);
         } catch (error: any) {
-            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
     }
 
@@ -82,14 +71,10 @@ export class PlanController {
             if (!id || isNaN(Number(id))) {
                 return sendResponse(res, 400, "ID plan harus berupa angka yang valid");
             }
-            const plan = await planRepository.findByPk(Number(id));
-            if (!plan) {
-                return sendResponse(res, 404, "Plan tidak ditemukan");
-            }
-            await planRepository.destroy(Number(id));
-            return sendResponse(res, 200, `Plan dengan ID ${id} berhasil dihapus`, null);
+            const result = await PlanService.deletePlan(Number(id));
+            return sendResponse(res, 200, result.message, null);
         } catch (error: any) {
-            return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
+            return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
     }
 
