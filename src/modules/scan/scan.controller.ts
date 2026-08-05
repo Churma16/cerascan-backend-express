@@ -10,7 +10,20 @@ import { GetScanHistoryUseCase } from './use-cases/GetScanHistoryUseCase';
 import { GetPaginatedScanHistoryUseCase } from './use-cases/GetPaginatedScanHistoryUseCase';
 import { DeleteScanUseCase } from './use-cases/DeleteScanUseCase';
 
+/**
+ * Controller utama untuk mengelola endpoint pemindaian (scan) gambar kecacatan keramik.
+ */
 export class ScanController {
+    /**
+     * Memproses pemindaian satu gambar tunggal.
+     * Mengunggah gambar ke R2 storage dan mendaftarkan tugas ke pipeline pemrosesan AI.
+     *
+     * @async
+     * @static
+     * @param {AuthRequest} req - Express request dengan data file dan autentikasi pengguna.
+     * @param {Response} res - Express response.
+     * @returns {Promise<Response>} Response HTTP 202 Accepted jika gambar berhasil diterima.
+     */
     static async scanImage(req: AuthRequest, res: Response) {
         try {
             const userId = req.user?.id;
@@ -39,6 +52,16 @@ export class ScanController {
         }
     }
 
+    /**
+     * Memproses pemindaian banyak gambar sekaligus (batch upload).
+     * Memeriksa dan menguraikan kuota harian pengguna sebelum memasukkan file ke pipeline pemrosesan.
+     *
+     * @async
+     * @static
+     * @param {AuthRequest} req - Express request dengan array file dan autentikasi pengguna.
+     * @param {Response} res - Express response.
+     * @returns {Promise<Response>} Response HTTP 202 Accepted jika batch berhasil diterima, atau 403 jika kuota tidak cukup.
+     */
     static async batchScanImages(req: AuthRequest, res: Response) {
         try {
             const files = req.files as Express.Multer.File[];
@@ -89,6 +112,16 @@ export class ScanController {
         }
     }
 
+    /**
+     * Mengambil riwayat scan milik pengguna yang sedang terautentikasi (atau semua data jika pengguna adalah admin).
+     * Memotong data berdasarkan halaman jika parameter query `page` dispesifikasikan.
+     *
+     * @async
+     * @static
+     * @param {AuthRequest} req - Express request terautentikasi dengan opsional query `page` dan `limit`.
+     * @param {Response} res - Express response.
+     * @returns {Promise<Response>} Response HTTP berisi daftar riwayat scan.
+     */
     static async getScanHistory(req: AuthRequest, res: Response) {
         try {
             let userId = req.user?.id;
@@ -113,6 +146,15 @@ export class ScanController {
         }
     }
 
+    /**
+     * Mengambil riwayat scan publik (scan yang dilakukan oleh pengguna tanpa akun / guest).
+     *
+     * @async
+     * @static
+     * @param {Request} req - Express request dengan opsional query `page` dan `limit`.
+     * @param {Response} res - Express response.
+     * @returns {Promise<Response>} Response HTTP berisi daftar riwayat scan publik.
+     */
     static async getPublicScanHistory(req: Request, res: Response) {
         try {
             const page = req.query.page ? parseInt(req.query.page as string) : undefined;
@@ -132,6 +174,15 @@ export class ScanController {
         }
     }
 
+    /**
+     * Menghapus rekaman data scan berdasarkan ID utama. Khusus untuk role Admin.
+     *
+     * @async
+     * @static
+     * @param {Request} req - Express request dengan parameter `id`.
+     * @param {Response} res - Express response.
+     * @returns {Promise<Response>} Response HTTP 200 OK jika berhasil dihapus.
+     */
     static async deleteScan(req: Request, res: Response) {
         try {
             const { id } = req.params;

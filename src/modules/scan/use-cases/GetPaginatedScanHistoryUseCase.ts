@@ -2,13 +2,28 @@ import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 import { getPresignedUrl } from "../../../utils/r2.util";
 
+/**
+ * Use case untuk mengambil riwayat scan berhalaman (pagination).
+ */
 export class GetPaginatedScanHistoryUseCase {
     private scanRepository: IScanRepository;
 
+    /**
+     * @param {IScanRepository} [scanRepository=new SequelizeScanRepository()] - Repositori data scan.
+     */
     constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
         this.scanRepository = scanRepository;
     }
 
+    /**
+     * Mengeksekusi pencarian riwayat scan berhalaman.
+     *
+     * @async
+     * @param {number} page - Halaman ke berapa yang diambil.
+     * @param {number} limit - Jumlah data per halaman.
+     * @param {number|null} [userId] - Filter ID pengguna (opsional, `null` untuk anonim, `undefined` untuk semua).
+     * @returns {Promise<{ count: number; rows: any[] }>} Objek berisi jumlah total data dan baris riwayat scan.
+     */
     async execute(page: number, limit: number, userId?: number | null) {
         const whereClause: any = {};
 

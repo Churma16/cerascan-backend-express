@@ -1,14 +1,21 @@
 import { generateId } from "../../../utils/generator";
 
 /**
- * Domain function untuk membuat Scan ID dengan format spesifik.
+ * Membuat Scan ID unik dengan format `#SCN-[ID]`.
+ *
+ * @function generateScanId
+ * @returns {string} String ID scan unik terformat.
  */
 export const generateScanId = (): string => {
     return `#SCN-${generateId()}`;
 };
 
 /**
- * Domain function untuk memformat Date objek menjadi format MM/DD.
+ * Memformat objek Date menjadi format string `MM/DD`.
+ *
+ * @function formatScanDate
+ * @param {Date} dateObj - Objek tanggal yang akan diformat.
+ * @returns {string} Tanggal yang diformat menjadi `MM/DD`.
  */
 export const formatScanDate = (dateObj: Date): string => {
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');

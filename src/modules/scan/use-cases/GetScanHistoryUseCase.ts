@@ -2,13 +2,27 @@ import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 import { getPresignedUrl } from "../../../utils/r2.util";
 
+/**
+ * Use case untuk mengambil daftar riwayat scan terbaru berdasarkan batas tertentu.
+ */
 export class GetScanHistoryUseCase {
     private scanRepository: IScanRepository;
 
+    /**
+     * @param {IScanRepository} [scanRepository=new SequelizeScanRepository()] - Repositori data scan.
+     */
     constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
         this.scanRepository = scanRepository;
     }
 
+    /**
+     * Mengeksekusi pencarian riwayat scan.
+     *
+     * @async
+     * @param {number} limit - Jumlah maksimal data yang akan diambil.
+     * @param {number|null} [userId] - Filter ID pengguna (opsional, `null` untuk anonim, `undefined` untuk semua).
+     * @returns {Promise<any[]>} Array riwayat scan terformat dengan URL file.
+     */
     async execute(limit: number, userId?: number | null) {
         const whereClause: any = {};
 

@@ -4,13 +4,27 @@ import { deleteFileFromR2 } from "../../../utils/r2.util";
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
+/**
+ * Use case untuk menghapus data scan beserta file gambar terkait (di R2 cloud storage atau penyimpanan lokal).
+ */
 export class DeleteScanUseCase {
     private scanRepository: IScanRepository;
 
+    /**
+     * @param {IScanRepository} [scanRepository=new SequelizeScanRepository()] - Repositori data scan.
+     */
     constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
         this.scanRepository = scanRepository;
     }
 
+    /**
+     * Mengeksekusi penghapusan scan berdasarkan ID utama.
+     *
+     * @async
+     * @param {number} scanId - ID utama scan di database.
+     * @returns {Promise<any>} Entitas Scan yang telah dihapus.
+     * @throws {Error} Jika data scan tidak ditemukan.
+     */
     async execute(scanId: number) {
         const scan = await this.scanRepository.findById(scanId);
 

@@ -4,13 +4,28 @@ import { formatScanDate } from "../domain/scan.domain";
 import { IScanRepository } from "../domain/IScanRepository";
 import { SequelizeScanRepository } from "../infrastructure/SequelizeScanRepository";
 
+/**
+ * Use case untuk mengambil tren statistik akumulasi scan dan kecacatan dalam N hari terakhir.
+ */
 export class GetScanDataCountSinceUseCase {
     private scanRepository: IScanRepository;
 
+    /**
+     * @param {IScanRepository} [scanRepository=new SequelizeScanRepository()] - Repositori data scan.
+     */
     constructor(scanRepository: IScanRepository = new SequelizeScanRepository()) {
         this.scanRepository = scanRepository;
     }
 
+    /**
+     * Mengeksekusi kalkulasi statistik tren scan harian.
+     *
+     * @async
+     * @param {number} [limitDays=7] - Jumlah hari ke belakang yang akan dihitung.
+     * @param {number} [userId] - ID pengguna untuk pemfilteran (opsional).
+     * @param {string} [userRole] - Role pengguna ('admin' untuk melihat seluruh data).
+     * @returns {Promise<Array<{ date: string; total_scan: number; defect_count: number }>>} Array tren statistik harian.
+     */
     async execute(limitDays: number = 7, userId?: number, userRole?: string) {
         const now = getNowIndonesiaTime();
 
