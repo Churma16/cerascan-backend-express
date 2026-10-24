@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { sendResponse, sendResponseMulti } from "../../utils/response.util";
 import { scanService } from "../../services/scan.service";
-import { getRedisClient } from "../../config/redisClient";
+import { analyticsService } from "../../services/analytics.service";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { DashboardService } from "./dashboard.service";
 
@@ -30,14 +30,7 @@ export class DashboardController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            const result = await scanService.getScanTrend(7, userId, userRole);
-
-            if (userRole && userRole !== "admin" && userId) {
-                await getRedisClient().setEx("dashboard:trend:" + userId, 3600, JSON.stringify(result));
-            } else {
-                await getRedisClient().setEx("dashboard:trend", 3600, JSON.stringify(result));
-            }
-
+            const result = await analyticsService.getScanTrend(7, userId, userRole);
             return sendResponseMulti(res, 200, "Trend scan berhasil diambil", result);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
