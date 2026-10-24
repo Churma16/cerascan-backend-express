@@ -1,14 +1,14 @@
-import passport from 'passport';
-import {Strategy as GoogleStrategy} from 'passport-google-oauth20';
-import dotenv from 'dotenv';
-import {HandleGoogleLoginUseCase} from "../modules/auth/use-cases/HandleGoogleLoginUseCase";
-import { log } from '../utils/logger';
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import dotenv from "dotenv";
+import { authService } from "../services/auth.service";
+import { log } from "../utils/logger.util";
 
 dotenv.config();
 
 export const initPassport = (): void => {
     if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-        console.error('[Passport] ERROR FATAL: GOOGLE_CLIENT_ID atau GOOGLE_CLIENT_SECRET tidak ditemukan!');
+        log.warn("Passport", "GOOGLE_CLIENT_ID atau GOOGLE_CLIENT_SECRET tidak ditemukan!");
         return;
     }
 
@@ -17,20 +17,19 @@ export const initPassport = (): void => {
             {
                 clientID: process.env.GOOGLE_CLIENT_ID as string,
                 clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-                callbackURL: '/api/auth/google/callback',
+                callbackURL: "/api/auth/google/callback",
             },
             async (accessToken, refreshToken, profile, done) => {
                 try {
-                    const useCase = new HandleGoogleLoginUseCase();
-                    const user = await useCase.execute(profile);
-                    return done(null, user);
+                    const authenticatedUser = await authService.handleGoogleAuth(profile);
+                    return done(null, authenticatedUser);
                 } catch (error: any) {
-                    console.error('\n[Passport] Gagal melakukan autentikasi Google:');
-                    console.error('Pesan Asli:', error.message);
+                    log.error("Passport", "Gagal melakukan autentikasi Google", error);
 
-                    if (error.name === 'SequelizeDatabaseError') {
-                        console.error(
-                            '[Passport] DIAGNOSA: Terjadi masalah pada struktur tabel. Kemungkinan besar kolom seperti googleId, sub_tier, atau plan_id belum ditambahkan lewat migrasi.'
+                    if (error.name === "SequelizeDatabaseError") {
+                        log.error(
+                            "Passport",
+                            "DIAGNOSA: Terjadi masalah pada struktur tabel. Kemungkinan besar kolom seperti googleId, sub_tier, atau plan_id belum ditambahkan lewat migrasi."
                         );
                     }
 
@@ -40,5 +39,5 @@ export const initPassport = (): void => {
         )
     );
 
-    log.info('Passport', 'Google OAuth2 Strategy berhasil diinisialisasi.');
+    log.info("Passport", "Google OAuth2 Strategy berhasil diinisialisasi.");
 };

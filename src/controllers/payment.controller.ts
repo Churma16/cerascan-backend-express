@@ -1,22 +1,24 @@
 import { Request, Response } from "express";
 import { paymentService } from "../services/payment.service";
-import { sendResponse } from "../utils/response";
+import { sendResponse } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
+import {
+    CreatePaymentDto,
+    OrderIdParamDto,
+    PaymentIdParamDto
+} from "../schemas/payment.schema";
+import { UserIdParamDto } from "../schemas/quota.schema";
 
 export class PaymentController {
     static async createTransaction(req: AuthRequest, res: Response) {
         try {
             const userId = req.user?.id;
             if (!userId) {
-                return sendResponse(res, 400, "User ID tidak boleh kosong");
+                return sendResponse(res, 401, "Pengguna tidak terautentikasi");
             }
 
-            const planId = Number(req.body.plan_id);
-            if (!planId || isNaN(planId)) {
-                return sendResponse(res, 400, "Plan ID harus diisi dan valid");
-            }
-
-            const checkoutResult = await paymentService.createCheckoutTransaction(userId, planId);
+            const { plan_id } = req.body as CreatePaymentDto;
+            const checkoutResult = await paymentService.createCheckoutTransaction(userId, plan_id);
 
             return sendResponse(res, 200, "Token transaksi berhasil dibuat", checkoutResult);
         } catch (error: any) {
@@ -29,7 +31,6 @@ export class PaymentController {
             await paymentService.handleMidtransWebhook(req.body);
             return sendResponse(res, 200, "Webhook berhasil diproses");
         } catch (error: any) {
-            console.error("[Payment Webhook Error]:", error);
             return sendResponse(res, 500, error.message);
         }
     }
@@ -45,11 +46,7 @@ export class PaymentController {
 
     static async getById(req: Request, res: Response) {
         try {
-            const id = Number(req.params.id);
-            if (isNaN(id)) {
-                return sendResponse(res, 400, "ID harus berupa angka");
-            }
-
+            const { id } = req.params as unknown as PaymentIdParamDto;
             const payment = await paymentService.getPaymentById(id);
             if (!payment) {
                 return sendResponse(res, 404, "Pembayaran tidak ditemukan");
@@ -63,8 +60,8 @@ export class PaymentController {
 
     static async getByOrderId(req: Request, res: Response) {
         try {
-            const orderId = req.params.order_id as string;
-            const payment = await paymentService.getPaymentByOrderId(orderId);
+            const { order_id } = req.params as unknown as OrderIdParamDto;
+            const payment = await paymentService.getPaymentByOrderId(order_id);
             if (!payment) {
                 return sendResponse(res, 404, "Pembayaran tidak ditemukan");
             }
@@ -77,12 +74,8 @@ export class PaymentController {
 
     static async getByUserId(req: Request, res: Response) {
         try {
-            const userId = Number(req.params.user_id);
-            if (isNaN(userId)) {
-                return sendResponse(res, 400, "User ID harus berupa angka");
-            }
-
-            const payments = await paymentService.getPaymentsByUserId(userId);
+            const { user_id } = req.params as unknown as UserIdParamDto;
+            const payments = await paymentService.getPaymentsByUserId(user_id);
             return sendResponse(res, 200, "Data pembayaran pengguna berhasil diambil", payments);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
@@ -114,11 +107,11 @@ export class PaymentController {
 
     static async updateStatus(req: Request, res: Response) {
         try {
-            const id = Number(req.params.id);
+            const { id } = req.params as unknown as PaymentIdParamDto;
             const { status } = req.body;
 
-            if (isNaN(id) || !status) {
-                return sendResponse(res, 400, "ID dan status harus diisi");
+            if (!status) {
+                return sendResponse(res, 400, "Status harus diisi");
             }
 
             const success = await paymentService.updatePaymentStatus(id, status);
@@ -134,11 +127,7 @@ export class PaymentController {
 
     static async delete(req: Request, res: Response) {
         try {
-            const id = Number(req.params.id);
-            if (isNaN(id)) {
-                return sendResponse(res, 400, "ID harus berupa angka");
-            }
-
+            const { id } = req.params as unknown as PaymentIdParamDto;
             const success = await paymentService.deletePayment(id);
             if (!success) {
                 return sendResponse(res, 404, "Pembayaran tidak ditemukan");

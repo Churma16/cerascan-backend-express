@@ -1,0 +1,86 @@
+process.env.FORCE_COLOR = "1";
+
+const colors = {
+    reset: "\u001b[0m",
+    bright: "\u001b[1m",
+
+    // Text colors
+    textBlack: "\u001b[30m",
+    textWhite: "\u001b[37m",
+    textGreen: "\u001b[38;5;150m",
+    textYellow: "\u001b[38;5;222m",
+    textMagenta: "\u001b[38;5;183m",
+
+    // Background colors
+    bgPastelRed: "\u001b[48;5;210m",
+    bgPastelGreen: "\u001b[48;5;151m",
+    bgPastelYellow: "\u001b[48;5;222m",
+    bgPastelBlue: "\u001b[48;5;153m",
+    bgPastelMagenta: "\u001b[48;5;183m",
+    bgPastelCyan: "\u001b[48;5;116m"
+};
+
+const getStyledTag = (tag: string): string => {
+    const key = tag.toLowerCase().trim();
+    let bg = colors.bgPastelCyan;
+    let text = colors.textBlack;
+
+    if (key.includes("mysql") || key.includes("sequelize")) {
+        bg = colors.bgPastelBlue;
+        text = colors.textBlack;
+    } else if (key.includes("mongodb")) {
+        bg = colors.bgPastelGreen;
+        text = colors.textBlack;
+    } else if (key.includes("redis")) {
+        bg = colors.bgPastelRed;
+        text = colors.textBlack;
+    } else if (key.includes("kafka")) {
+        bg = colors.bgPastelMagenta;
+        text = colors.textBlack;
+    } else if (key.includes("rabbitmq") || key.includes("pub")) {
+        bg = colors.bgPastelYellow;
+        text = colors.textBlack;
+    } else if (key.includes("socket")) {
+        bg = colors.bgPastelCyan;
+        text = colors.textBlack;
+    } else if (key.includes("worker") || key.includes("storageservice")) {
+        bg = colors.bgPastelCyan;
+        text = colors.textBlack;
+    } else if (key.includes("passport")) {
+        bg = colors.bgPastelYellow;
+        text = colors.textBlack;
+    } else if (key.includes("cron")) {
+        bg = colors.bgPastelGreen;
+        text = colors.textBlack;
+    } else if (key.includes("frontend_url")) {
+        bg = colors.bgPastelMagenta;
+        text = colors.textBlack;
+    }
+
+    return `${bg}${text} ${tag} ${colors.reset}`;
+};
+
+export const log = {
+    info: (tag: string, message: any, ...args: any[]) => {
+        console.log(`${getStyledTag(tag)} ${message}`, ...args);
+    },
+    success: (tag: string, message: any, ...args: any[]) => {
+        console.log(`${getStyledTag(tag)} ${colors.textGreen}${message}${colors.reset}`, ...args);
+    },
+    warn: (tag: string, message: any, ...args: any[]) => {
+        const styledTag = `${colors.bgPastelYellow}${colors.textBlack} ${tag} ${colors.reset}`;
+        console.log(`${styledTag} ${colors.textYellow}${message}${colors.reset}`, ...args);
+    },
+    error: (tag: string, message: any, ...args: any[]) => {
+        const styledTag = `${colors.bgPastelRed}${colors.textBlack} ${tag} ${colors.reset}`;
+        console.error(`${styledTag} ${colors.textBlack}${message}${colors.reset}`, ...args);
+    },
+    system: (message: any, ...args: any[]) => {
+        console.log(`${colors.bright}${colors.textMagenta}${message}${colors.reset}`, ...args);
+    }
+};
+
+process.on("warning", (warning) => {
+    if (warning.name === "TimeoutNegativeWarning") return;
+    log.warn(warning.name, warning.message);
+});

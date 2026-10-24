@@ -4,7 +4,7 @@ import { PythonMlGrpcClient } from "../services/pythonMlClient.service";
 import { scanService } from "../services/scan.service";
 import { quotaService } from "../services/quota.service";
 import { getRedisClient } from "../config/redisClient";
-import { downloadFileFromR2 } from "../utils/r2.util";
+import { storageService } from "../services/storage.service";
 import { log } from "../utils/logger";
 import { RecordCompletedScanUseCase } from "../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
 
@@ -25,7 +25,7 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
     protected async processMessage(eventData: any, routingKey: string): Promise<void> {
         const startTime = Date.now();
 
-        const imageBuffer = await downloadFileFromR2(eventData.r2_object_key);
+        const imageBuffer = await storageService.downloadFile(eventData.r2_object_key);
         const predictionResult = await PythonMlGrpcClient.predictImage(imageBuffer, eventData.original_name);
         const inferenceDurationMs = Date.now() - startTime;
         const inferenceTimeString = `${inferenceDurationMs}ms`;
