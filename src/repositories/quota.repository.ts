@@ -1,6 +1,5 @@
-import { Transaction, FindOptions } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes } from "sequelize";
 import { UserQuotaModel } from "../models";
-import { UserQuotaAttributes } from "../models/userQuota.model";
 
 export class QuotaRepository {
     async findByUserId(userId: number, transaction?: Transaction): Promise<UserQuotaModel | null> {
@@ -18,15 +17,15 @@ export class QuotaRepository {
         return await UserQuotaModel.findAll(options);
     }
 
-    async create(payload: Partial<UserQuotaAttributes>, transaction?: Transaction): Promise<UserQuotaModel> {
+    async create(payload: CreationAttributes<UserQuotaModel>, transaction?: Transaction): Promise<UserQuotaModel> {
         return await UserQuotaModel.create(payload as any, { transaction });
     }
 
-    async upsert(payload: Partial<UserQuotaAttributes>, options?: { transaction?: Transaction; returning?: boolean }): Promise<[UserQuotaModel, boolean | null]> {
+    async upsert(payload: CreationAttributes<UserQuotaModel>, options?: { transaction?: Transaction; returning?: boolean }): Promise<[UserQuotaModel, boolean | null]> {
         return await UserQuotaModel.upsert(payload as any, options);
     }
 
-    async update(userId: number, payload: Partial<UserQuotaAttributes>, transaction?: Transaction): Promise<number> {
+    async update(userId: number, payload: Partial<CreationAttributes<UserQuotaModel>>, transaction?: Transaction): Promise<number> {
         const [affectedCount] = await UserQuotaModel.update(payload, {
             where: { user_id: userId },
             transaction
@@ -34,7 +33,7 @@ export class QuotaRepository {
         return affectedCount;
     }
 
-    async bulkCreate(records: Array<Partial<UserQuotaAttributes>>, options?: { updateOnDuplicate?: string[]; transaction?: Transaction }): Promise<UserQuotaModel[]> {
+    async bulkCreate(records: Array<CreationAttributes<UserQuotaModel>>, options?: { updateOnDuplicate?: string[]; transaction?: Transaction }): Promise<UserQuotaModel[]> {
         return await UserQuotaModel.bulkCreate(records as any[], options as any);
     }
 }

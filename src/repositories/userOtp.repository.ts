@@ -1,6 +1,5 @@
-import { Transaction } from "sequelize";
+import { Transaction, CreationAttributes } from "sequelize";
 import { UserOtpModel } from "../models";
-import { UserOtpAttributes } from "../models/userOtp.model";
 
 export class UserOtpRepository {
     async findActiveOtp(userId: number, otp: string, transaction?: Transaction): Promise<UserOtpModel | null> {
@@ -15,7 +14,7 @@ export class UserOtpRepository {
         });
     }
 
-    async create(payload: Partial<UserOtpAttributes>, transaction?: Transaction): Promise<UserOtpModel> {
+    async create(payload: CreationAttributes<UserOtpModel>, transaction?: Transaction): Promise<UserOtpModel> {
         return await UserOtpModel.create(payload as any, { transaction });
     }
 

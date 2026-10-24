@@ -1,4 +1,4 @@
-import { literal, Op } from "sequelize";
+import { literal, Op, CreationAttributes } from "sequelize";
 import sequelize from "../config/databaseClient";
 import { snap } from "../config/midtransClient";
 import { paymentRepository, PaymentRepository } from "../repositories/payment.repository";
@@ -215,7 +215,7 @@ export class PaymentService {
         });
     }
 
-    async createPayment(payload: Partial<PaymentAttributes>): Promise<Payment> {
+    async createPayment(payload: CreationAttributes<Payment>): Promise<Payment> {
         return await this.paymentRepo.create(payload);
     }
 

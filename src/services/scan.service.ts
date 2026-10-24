@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { scanRepository, ScanRepository } from "../repositories/scan.repository";
-import { generateId } from "../utils/generator";
+import { generateId } from "../utils/generator.util";
 import { storageService } from "./storage.service";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
@@ -17,6 +17,12 @@ export interface PaginatedResult<T> {
     count: number;
     page: number;
     limit: number;
+}
+
+export interface GetScanHistoryOptions {
+    limit?: number;
+    userId?: number | null;
+    page?: number;
 }
 
 export class ScanService {
@@ -81,7 +87,6 @@ export class ScanService {
         const hasAvailableQuota = await quotaService.checkAndDecrementQuota(userId, totalImages);
 
         if (!hasAvailableQuota) {
-            // Clean up any uploaded temp files if quota exceeded
             for (const file of files) {
                 if (file.path && fs.existsSync(file.path)) {
                     try {
@@ -124,13 +129,10 @@ export class ScanService {
         return { pendingScans, quotaExceeded: false };
     }
 
-    async getScanHistory(
-        limit: number = 50,
-        userId?: number | null,
-        page?: number
-    ): Promise<Scan[] | PaginatedResult<Scan>> {
+    async getScanHistory(options: GetScanHistoryOptions = {}): Promise<Scan[] | PaginatedResult<Scan>> {
+        const { limit = 50, userId, page } = options;
         const whereClause: any = {};
-        if (userId !== undefined) {
+        if (userId !== undefined && userId !== null) {
             whereClause.user_id = userId;
         }
 

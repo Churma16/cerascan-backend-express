@@ -1,8 +1,26 @@
+import { Transaction } from "sequelize";
 import { subscriptionRepository, SubscriptionRepository } from "../repositories/subscription.repository";
 import { planRepository, PlanRepository } from "../repositories/plan.repository";
 import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
 import { Subscription } from "../models";
 import { SubscriptionAttributes } from "../models/subscription.model";
+
+export interface CreateSubscriptionOptions {
+    userId: number;
+    planId: number;
+    status?: "active" | "expired" | "canceled";
+    acquisitionMethod?: string;
+    note?: string;
+    transaction?: Transaction;
+}
+
+export interface GiveSubscriptionOptions {
+    userId: number;
+    planId: number;
+    acquisitionMethod?: string;
+    note?: string;
+    transaction?: Transaction;
+}
 
 export class SubscriptionService {
     private subRepo: SubscriptionRepository;
@@ -16,14 +34,17 @@ export class SubscriptionService {
         this.planRepo = planRepo;
     }
 
-    async createSubscription(
-        userId: number,
-        planId: number,
-        status: "active" | "expired" | "canceled" = "active",
-        acquisitionMethod: string = "midtrans_payment",
-        note?: string
-    ): Promise<Subscription> {
-        const plan = await this.planRepo.findByPk(planId);
+    async createSubscription(options: CreateSubscriptionOptions): Promise<Subscription> {
+        const {
+            userId,
+            planId,
+            status = "active",
+            acquisitionMethod = "midtrans_payment",
+            note,
+            transaction
+        } = options;
+
+        const plan = await this.planRepo.findByPk(planId, transaction);
         if (!plan) {
             throw new Error(`Plan dengan ID ${planId} tidak ditemukan`);
         }
@@ -40,7 +61,7 @@ export class SubscriptionService {
             status,
             acquisition_method: acquisitionMethod,
             note
-        });
+        }, transaction);
     }
 
     async getAllSubscriptions(): Promise<Subscription[]> {
@@ -84,15 +105,19 @@ export class SubscriptionService {
         return { message: `Subscription dengan ID ${id} berhasil dihapus` };
     }
 
-    async giveSubscription(
-        userId: number,
-        planId: number,
-        acquisitionMethod: string = "admin_grant",
-        note: string = "Diberikan langsung oleh Administrator"
-    ) {
+    async giveSubscription(options: GiveSubscriptionOptions) {
+        const {
+            userId,
+            planId,
+            acquisitionMethod = "admin_grant",
+            note = "Diberikan langsung oleh Administrator",
+            transaction
+        } = options;
+
         return await UserPlanLifecycleService.assignPlan(userId, planId, {
             acquisitionMethod,
-            note
+            note,
+            transaction
         });
     }
 }

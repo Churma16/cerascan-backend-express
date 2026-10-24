@@ -1,6 +1,5 @@
-import { Transaction, FindOptions } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes } from "sequelize";
 import { User, Plan } from "../models";
-import { UserAttributes } from "../models/user.model";
 
 export class UserRepository {
     async findById(id: number, transaction?: Transaction): Promise<User | null> {
@@ -37,11 +36,11 @@ export class UserRepository {
         });
     }
 
-    async create(payload: Partial<UserAttributes>, transaction?: Transaction): Promise<User> {
+    async create(payload: CreationAttributes<User>, transaction?: Transaction): Promise<User> {
         return await User.create(payload as any, { transaction });
     }
 
-    async update(id: number, payload: Partial<UserAttributes>, transaction?: Transaction): Promise<number> {
+    async update(id: number, payload: Partial<CreationAttributes<User>>, transaction?: Transaction): Promise<number> {
         const [affectedCount] = await User.update(payload, {
             where: { id },
             transaction

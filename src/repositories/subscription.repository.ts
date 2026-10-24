@@ -1,4 +1,4 @@
-import { Transaction, FindOptions } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes } from "sequelize";
 import { Subscription } from "../models";
 import { SubscriptionAttributes } from "../models/subscription.model";
 
@@ -39,11 +39,11 @@ export class SubscriptionRepository {
         });
     }
 
-    async create(payload: Partial<SubscriptionAttributes>, transaction?: Transaction): Promise<Subscription> {
+    async create(payload: CreationAttributes<Subscription>, transaction?: Transaction): Promise<Subscription> {
         return await Subscription.create(payload as any, { transaction });
     }
 
-    async update(payload: Partial<SubscriptionAttributes>, options: { where: any; transaction?: Transaction }): Promise<number> {
+    async update(payload: Partial<CreationAttributes<Subscription>>, options: { where: any; transaction?: Transaction }): Promise<number> {
         const [affectedCount] = await Subscription.update(payload, options);
         return affectedCount;
     }

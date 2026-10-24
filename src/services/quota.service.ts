@@ -1,4 +1,4 @@
-import { Op, Transaction } from "sequelize";
+import { Op, Transaction, CreationAttributes } from "sequelize";
 import { quotaRepository, QuotaRepository } from "../repositories/quota.repository";
 import { getRedisClient } from "../config/redisClient";
 import { getSocket } from "../config/websocketClient";
@@ -7,6 +7,13 @@ import { UserQuotaModel } from "../models";
 import { UserQuotaAttributes } from "../models/userQuota.model";
 import { log } from "../utils/logger";
 
+export interface InitializeUserQuotaOptions {
+    userId: number;
+    totalQuota: number;
+    nextResetDate?: Date;
+    transaction?: Transaction;
+}
+
 export class QuotaService {
     private repository: QuotaRepository;
 
@@ -14,7 +21,7 @@ export class QuotaService {
         this.repository = customRepository;
     }
 
-    async createQuota(payload: Partial<UserQuotaAttributes>): Promise<UserQuotaModel> {
+    async createQuota(payload: CreationAttributes<UserQuotaModel>): Promise<UserQuotaModel> {
         return await this.repository.create(payload);
     }
 
@@ -43,12 +50,9 @@ export class QuotaService {
      * Menginisialisasi atau memperbarui kuota pengguna (biasanya saat registrasi atau upgrade paket).
      * Mengelola tabel user_quotas dan sinkronisasi ke Redis & live WebSocket.
      */
-    async initializeUserQuota(
-        userId: number,
-        totalQuota: number,
-        nextResetDate?: Date,
-        transaction?: Transaction
-    ): Promise<UserQuotaModel> {
+    async initializeUserQuota(options: InitializeUserQuotaOptions): Promise<UserQuotaModel> {
+        const { userId, totalQuota, nextResetDate, transaction } = options;
+
         const [userQuota] = await this.repository.upsert(
             {
                 user_id: userId,
@@ -245,7 +249,7 @@ export class QuotaService {
             where: { user_id: { [Op.in]: userIds } }
         });
 
-        const quotasToUpdate: Array<Partial<UserQuotaAttributes>> = [];
+        const quotasToUpdate: Array<CreationAttributes<UserQuotaModel>> = [];
 
         for (const userQuota of userQuotas) {
             const remainingQuota = quotaMap.get(userQuota.user_id);

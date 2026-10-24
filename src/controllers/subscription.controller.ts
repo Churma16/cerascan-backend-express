@@ -14,13 +14,13 @@ export class SubscriptionController {
     static async create(req: Request, res: Response) {
         try {
             const { user_id, plan_id, status, acquisition_method, note } = req.body as CreateSubscriptionDto;
-            const newSubscription = await subscriptionService.createSubscription(
-                user_id,
-                plan_id,
+            const newSubscription = await subscriptionService.createSubscription({
+                userId: user_id,
+                planId: plan_id,
                 status,
-                acquisition_method,
+                acquisitionMethod: acquisition_method,
                 note
-            );
+            });
             return sendResponse(res, 201, "Subscription berhasil dibuat", newSubscription);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
@@ -108,7 +108,12 @@ export class SubscriptionController {
     static async giveSubscription(req: Request, res: Response) {
         try {
             const { user_id, plan_id, acquisition_method, note } = req.body as GiveSubscriptionDto;
-            const result = await subscriptionService.giveSubscription(user_id, plan_id, acquisition_method, note);
+            const result = await subscriptionService.giveSubscription({
+                userId: user_id,
+                planId: plan_id,
+                acquisitionMethod: acquisition_method,
+                note
+            });
             return sendResponse(res, 200, "Subscription berhasil diberikan", result);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
