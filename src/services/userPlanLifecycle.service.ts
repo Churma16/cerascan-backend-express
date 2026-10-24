@@ -1,6 +1,5 @@
 import { Transaction } from "sequelize";
 import sequelize from "../config/databaseClient";
-import { getRedisClient } from "../config/redisClient";
 import { User, Plan, Subscription, UserQuotaModel } from "../models";
 import { quotaService } from "./quota.service";
 import { log } from "../utils/logger";
@@ -18,9 +17,7 @@ export class UserPlanLifecycleService {
      * Mengelola sinkronisasi atomik pada:
      * 1. Tabel users (plan_id, sub_tier)
      * 2. Tabel subscriptions (membatalkan subscription lama, membuat subscription aktif baru)
-     * 3. Tabel user_quotas (total_quota = plan.scan_quota, used_quota = 0, next_reset_date)
-     * 4. Cache Redis (user:{userId}:remaining_quota)
-     * 5. SSE live quota broadcast
+     * 3. Delegasi kuota ke QuotaService (DB + Redis + Socket live broadcast)
      */
     static async assignPlan(
         userId: number,
@@ -88,17 +85,11 @@ export class UserPlanLifecycleService {
                 { transaction: transactionInstance }
             );
 
-            const [userQuota] = await UserQuotaModel.upsert(
-                {
-                    user_id: userId,
-                    total_quota: selectedPlan.scan_quota,
-                    used_quota: 0,
-                    next_reset_date: endDate,
-                },
-                {
-                    transaction: transactionInstance,
-                    returning: true,
-                }
+            const userQuota = await quotaService.initializeUserQuota(
+                userId,
+                selectedPlan.scan_quota,
+                endDate,
+                transactionInstance
             );
 
             if (!isExternalTransaction) {
@@ -106,22 +97,6 @@ export class UserPlanLifecycleService {
             }
 
             const initialRemainingQuota = selectedPlan.scan_quota;
-            try {
-                const redis = getRedisClient();
-                const quotaRedisKey = `user:${userId}:remaining_quota`;
-                const redisTtlSeconds = Math.max(durationDays * 86400, 86400);
-
-                await redis.set(quotaRedisKey, initialRemainingQuota.toString(), {
-                    EX: redisTtlSeconds,
-                });
-            } catch (redisError) {
-                log.error('UserPlanService', `Gagal mengupdate Redis cache kuota untuk user ${userId}:`, redisError);
-            }
-
-
-            quotaService.broadcastLiveQuota(userId).catch((broadcastError) => {
-                log.error('UserPlanService', `Gagal memancarkan live quota untuk user ${userId}:`, broadcastError);
-            });
 
             log.success(
                 'UserPlanService',
@@ -143,40 +118,14 @@ export class UserPlanLifecycleService {
     }
 
     /**
-     * Mereset penggunaan kuota user kembali ke 0 dan menyinkronkan data ke Redis.
+     * Mereset penggunaan kuota user kembali ke 0 via QuotaService.
      */
     static async resetQuota(userId: number, transaction?: Transaction): Promise<UserQuotaModel> {
-        const userQuota = await UserQuotaModel.findOne({
-            where: { user_id: userId },
-            transaction,
-        });
-
-        if (!userQuota) {
-            throw new Error(`Data kuota untuk user ID ${userId} tidak ditemukan.`);
-        }
-
-        userQuota.used_quota = 0;
-        await userQuota.save({ transaction });
-
-        try {
-            const redis = getRedisClient();
-            const quotaRedisKey = `user:${userId}:remaining_quota`;
-            await redis.set(quotaRedisKey, userQuota.total_quota.toString(), {
-                EX: 86400,
-            });
-        } catch (redisError) {
-            log.error('UserPlanService', `Gagal sinkronisasi reset kuota ke Redis untuk user ${userId}:`, redisError);
-        }
-
-
-        quotaService.broadcastLiveQuota(userId).catch(() => {});
-
-        log.info('UserPlanService', `Kuota untuk user ID ${userId} berhasil direset (Used: 0 / Total: ${userQuota.total_quota}).`);
-        return userQuota;
+        return await quotaService.resetQuota(userId, transaction);
     }
 
     /**
-     * Menyesuaikan total kuota user secara kustom dan menyinkronkan sisa kuota ke Redis.
+     * Menyesuaikan total kuota user secara kustom via QuotaService.
      */
     static async updateCustomQuota(
         userId: number,
@@ -184,38 +133,7 @@ export class UserPlanLifecycleService {
         newNextResetDate?: Date,
         transaction?: Transaction
     ): Promise<UserQuotaModel> {
-        const userQuota = await UserQuotaModel.findOne({
-            where: { user_id: userId },
-            transaction,
-        });
-
-        if (!userQuota) {
-            throw new Error(`Data kuota untuk user ID ${userId} tidak ditemukan.`);
-        }
-
-        userQuota.total_quota = newTotalQuota;
-        if (newNextResetDate) {
-            userQuota.next_reset_date = newNextResetDate;
-        }
-        await userQuota.save({ transaction });
-
-        const calculatedRemaining = Math.max(userQuota.total_quota - userQuota.used_quota, 0);
-
-        try {
-            const redis = getRedisClient();
-            const quotaRedisKey = `user:${userId}:remaining_quota`;
-            await redis.set(quotaRedisKey, calculatedRemaining.toString(), {
-                EX: 86400,
-            });
-        } catch (redisError) {
-            log.error('UserPlanService', `Gagal sinkronisasi update custom kuota ke Redis untuk user ${userId}:`, redisError);
-        }
-
-
-        quotaService.broadcastLiveQuota(userId).catch(() => {});
-
-        log.info('UserPlanService', `Total kuota user ID ${userId} diperbarui menjadi ${newTotalQuota} (Sisa: ${calculatedRemaining}).`);
-        return userQuota;
+        return await quotaService.updateCustomQuota(userId, newTotalQuota, newNextResetDate, transaction);
     }
 
     /**

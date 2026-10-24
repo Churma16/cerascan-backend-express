@@ -1,10 +1,11 @@
-import { Op } from "sequelize";
+import { Op, Transaction } from "sequelize";
 import { quotaRepository, QuotaRepository } from "../repositories/quota.repository";
 import { getRedisClient } from "../config/redisClient";
 import { getSocket } from "../config/websocketClient";
 import { sseClient } from "../config/sseClient";
 import { UserQuotaModel } from "../models";
 import { UserQuotaAttributes } from "../models/userQuota.model";
+import { log } from "../utils/logger";
 
 export class QuotaService {
     private repository: QuotaRepository;
@@ -17,31 +18,117 @@ export class QuotaService {
         return await this.repository.create(payload);
     }
 
-    async getQuotaByUserId(userId: number): Promise<UserQuotaModel> {
-        const quota = await this.repository.findByUserId(userId);
+    async getQuotaByUserId(userId: number, transaction?: Transaction): Promise<UserQuotaModel> {
+        const quota = await this.repository.findByUserId(userId, transaction);
         if (!quota) {
             throw new Error(`User quota tidak ditemukan untuk user ID ${userId}`);
         }
         return quota;
     }
 
-    async updateQuota(userId: number, payload: Partial<UserQuotaAttributes>): Promise<UserQuotaModel> {
-        await this.getQuotaByUserId(userId);
-        await this.repository.update(userId, payload);
-        return await this.getQuotaByUserId(userId);
+    async updateQuota(userId: number, payload: Partial<UserQuotaAttributes>, transaction?: Transaction): Promise<UserQuotaModel> {
+        await this.getQuotaByUserId(userId, transaction);
+        await this.repository.update(userId, payload, transaction);
+        return await this.getQuotaByUserId(userId, transaction);
     }
 
-    async incrementUsedQuota(userId: number, amount: number): Promise<UserQuotaModel> {
-        const quota = await this.getQuotaByUserId(userId);
+    async incrementUsedQuota(userId: number, amount: number, transaction?: Transaction): Promise<UserQuotaModel> {
+        const quota = await this.getQuotaByUserId(userId, transaction);
         const newUsedQuota = quota.used_quota + amount;
-        await this.repository.update(userId, { used_quota: newUsedQuota });
-        return await this.getQuotaByUserId(userId);
+        await this.repository.update(userId, { used_quota: newUsedQuota }, transaction);
+        return await this.getQuotaByUserId(userId, transaction);
     }
 
-    async resetQuota(userId: number): Promise<UserQuotaModel> {
-        await this.getQuotaByUserId(userId);
-        await this.repository.update(userId, { used_quota: 0 });
-        return await this.getQuotaByUserId(userId);
+    /**
+     * Menginisialisasi atau memperbarui kuota pengguna (biasanya saat registrasi atau upgrade paket).
+     * Mengelola tabel user_quotas dan sinkronisasi ke Redis & live WebSocket.
+     */
+    async initializeUserQuota(
+        userId: number,
+        totalQuota: number,
+        nextResetDate?: Date,
+        transaction?: Transaction
+    ): Promise<UserQuotaModel> {
+        const [userQuota] = await this.repository.upsert(
+            {
+                user_id: userId,
+                total_quota: totalQuota,
+                used_quota: 0,
+                next_reset_date: nextResetDate
+            },
+            {
+                transaction,
+                returning: true
+            }
+        );
+
+        try {
+            const redis = getRedisClient();
+            const quotaKey = `user:${userId}:remaining_quota`;
+            await redis.set(quotaKey, totalQuota.toString(), "EX", 86400 * 30);
+        } catch (redisError) {
+            log.error("QuotaService", `Gagal mengupdate Redis cache kuota untuk user ${userId}:`, redisError);
+        }
+
+        this.broadcastLiveQuota(userId).catch(error => {
+            log.error("QuotaService", `Gagal memancarkan live quota untuk user ${userId}:`, error);
+        });
+
+        return userQuota;
+    }
+
+    /**
+     * Mereset pemakaian kuota user menjadi 0 di database, menyinkronkan ke Redis, dan memancarkan live socket.
+     */
+    async resetQuota(userId: number, transaction?: Transaction): Promise<UserQuotaModel> {
+        const userQuota = await this.getQuotaByUserId(userId, transaction);
+        userQuota.used_quota = 0;
+        await userQuota.save({ transaction });
+
+        try {
+            const redis = getRedisClient();
+            const quotaKey = `user:${userId}:remaining_quota`;
+            await redis.set(quotaKey, userQuota.total_quota.toString(), "EX", 86400);
+        } catch (redisError) {
+            log.error("QuotaService", `Gagal sinkronisasi reset kuota ke Redis untuk user ${userId}:`, redisError);
+        }
+
+        this.broadcastLiveQuota(userId).catch(() => {});
+        log.info("QuotaService", `Kuota user ID ${userId} berhasil direset (Used: 0 / Total: ${userQuota.total_quota}).`);
+
+        return userQuota;
+    }
+
+    /**
+     * Menyesuaikan total kuota user secara kustom dan menyinkronkan sisa kuota ke Redis.
+     */
+    async updateCustomQuota(
+        userId: number,
+        newTotalQuota: number,
+        newNextResetDate?: Date,
+        transaction?: Transaction
+    ): Promise<UserQuotaModel> {
+        const userQuota = await this.getQuotaByUserId(userId, transaction);
+        userQuota.total_quota = newTotalQuota;
+        if (newNextResetDate) {
+            userQuota.next_reset_date = newNextResetDate;
+        }
+        await userQuota.save({ transaction });
+
+        const calculatedRemaining = Math.max(userQuota.total_quota - userQuota.used_quota, 0);
+
+        try {
+            const redis = getRedisClient();
+            const quotaKey = `user:${userId}:remaining_quota`;
+            await redis.set(quotaKey, calculatedRemaining.toString(), "EX", 86400);
+        } catch (redisError) {
+            log.error("QuotaService", `Gagal sinkronisasi update custom kuota ke Redis untuk user ${userId}:`, redisError);
+        }
+
+        this.broadcastLiveQuota(userId).catch(() => {});
+        log.info("QuotaService", `Total kuota user ID ${userId} diperbarui menjadi ${newTotalQuota} (Sisa: ${calculatedRemaining}).`);
+
+        return userQuota;
     }
 
     async checkAndDecrementQuota(userId: number | undefined, totalImages: number = 1): Promise<boolean> {

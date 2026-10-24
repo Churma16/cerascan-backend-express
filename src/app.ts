@@ -2,7 +2,7 @@ import express, {Application, Request, Response} from 'express';
 import cors from 'cors';
 import path from 'path';
 
-import authRoutes from './modules/auth/auth.routes';
+import authRoutes from './routes/auth.routes';
 import userRoutes from './modules/user/user.routes';
 import scanRoutes from './routes/scan.routes';
 import dashboardRoute from "./modules/dashboard/dashboard.route";
