@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { scanRepository, ScanRepository } from "../repositories/scan.repository";
 import { generateId } from "../utils/generator";
-import { uploadFileToR2 } from "../utils/r2.util";
+import { storageService } from "./storage.service";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
 import { Scan } from "../models";
@@ -49,7 +49,7 @@ export class ScanService {
     async initiateSingleScan(input: InitiateSingleScanInput): Promise<Scan> {
         const folderName = input.folderName || (process.env.NODE_ENV === "production" ? "scans-prod/" : "scans-dev/");
         const fileBuffer = this.extractFileBuffer(input.file);
-        const r2ObjectKey = await uploadFileToR2(fileBuffer, input.file.mimetype, folderName);
+        const r2ObjectKey = await storageService.uploadFile(fileBuffer, input.file.mimetype, folderName);
         const scanIdentifier = this.generateScanIdentifier();
 
         const createdScan = await this.repository.create({
@@ -98,7 +98,7 @@ export class ScanService {
         for (const file of files) {
             const fileBuffer = this.extractFileBuffer(file);
             const scanIdentifier = this.generateScanIdentifier();
-            const r2ObjectKey = await uploadFileToR2(fileBuffer, file.mimetype, folderName);
+            const r2ObjectKey = await storageService.uploadFile(fileBuffer, file.mimetype, folderName);
 
             const createdScan = await this.repository.create({
                 scan_id: scanIdentifier,
