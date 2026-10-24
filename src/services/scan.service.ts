@@ -1,10 +1,12 @@
 import * as fs from "fs";
+import { col, fn, literal, Op } from "sequelize";
 import { scanRepository, ScanRepository } from "../repositories/scan.repository";
 import { generateId } from "../utils/generator.util";
 import { storageService } from "./storage.service";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
 import { Scan } from "../models";
+import { getNowIndonesiaTime } from "../utils/time.helper";
 
 export interface InitiateSingleScanInput {
     userId: number | undefined;
@@ -129,7 +131,7 @@ export class ScanService {
         return { pendingScans, quotaExceeded: false };
     }
 
-    async getScanHistory(options: GetScanHistoryOptions = {}): Promise<Scan[] | PaginatedResult<Scan>> {
+    async getScanHistory(options: GetScanHistoryOptions = {}): Promise<any[] | PaginatedResult<any>> {
         const { limit = 50, userId, page } = options;
         const whereClause: any = {};
         if (userId !== undefined && userId !== null) {
@@ -145,19 +147,121 @@ export class ScanService {
                 offset
             });
 
+            const enrichedRows = await Promise.all(
+                paginatedResults.rows.map(scan => this.attachFileUrl(scan))
+            );
+
             return {
-                rows: paginatedResults.rows,
+                rows: enrichedRows,
                 count: paginatedResults.count,
                 page,
                 limit
             };
         }
 
-        return await this.repository.findAll({
+        const scans = await this.repository.findAll({
             where: whereClause,
             order: [["created_at", "DESC"]],
             limit
         });
+
+        return await Promise.all(scans.map(scan => this.attachFileUrl(scan)));
+    }
+
+    private async attachFileUrl(scan: Scan): Promise<any> {
+        const scanJson: any = typeof scan.toJSON === "function" ? scan.toJSON() : { ...scan };
+        if (scanJson.saved_file_name && scanJson.saved_file_name.includes("scans-")) {
+            scanJson.file_url = await storageService.getPresignedUrl(scanJson.saved_file_name);
+        } else if (scanJson.saved_file_name) {
+            scanJson.file_url = `${process.env.BACKEND_URL || "http://localhost:3000"}/uploads/${scanJson.saved_file_name}`;
+        }
+        return scanJson;
+    }
+
+    async getScanTrend(
+        limitDays: number = 7,
+        userId?: number,
+        userRole?: string
+    ): Promise<Array<{ date: string; total_scan: number; defect_count: number }>> {
+        const now = getNowIndonesiaTime();
+        let dbScans: any[] = [];
+
+        try {
+            const startDate = new Date(now);
+            startDate.setDate(now.getDate() - (limitDays - 1));
+            startDate.setHours(0, 0, 0, 0);
+
+            const whereClause: any = {
+                createdAt: {
+                    [Op.gte]: startDate
+                }
+            };
+
+            if (userRole && userRole !== "admin" && userId) {
+                whereClause.user_id = userId;
+            }
+
+            dbScans = await this.repository.findAll({
+                attributes: [
+                    [fn("DATE", col("createdAt")), "date"],
+                    [fn("COUNT", col("id")), "total_scan"],
+                    [literal(`SUM(CASE WHEN prediction != 'normal' THEN 1 ELSE 0 END)`), "defect_count"]
+                ],
+                where: whereClause,
+                group: [fn("DATE", col("createdAt"))],
+                order: [[fn("DATE", col("createdAt")), "ASC"]],
+                raw: true
+            } as any);
+        } catch (error) {
+            console.error("Failed to query scan data trend, using empty list fallback:", error);
+            dbScans = [];
+        }
+
+        const result: Array<{ date: string; total_scan: number; defect_count: number }> = [];
+
+        for (let i = limitDays - 1; i >= 0; i--) {
+            const targetDate = new Date(now);
+            targetDate.setDate(now.getDate() - i);
+            const dateString = this.formatDateMMDD(targetDate);
+
+            const foundData = dbScans.find((scan: any) => {
+                if (!scan || !scan.date) return false;
+                const parts = String(scan.date).split(/[-/]/);
+                if (parts.length >= 3) {
+                    let monthStr = "";
+                    let dayStr = "";
+                    if (parts[0].length === 4) {
+                        monthStr = parts[1].padStart(2, "0");
+                        dayStr = parts[2].substring(0, 2).padStart(2, "0");
+                    } else if (parts[2].length === 4) {
+                        monthStr = parts[0].padStart(2, "0");
+                        dayStr = parts[1].padStart(2, "0");
+                    }
+                    if (monthStr && dayStr) {
+                        return `${monthStr}/${dayStr}` === dateString;
+                    }
+                }
+                try {
+                    return this.formatDateMMDD(new Date(scan.date)) === dateString;
+                } catch {
+                    return false;
+                }
+            });
+
+            result.push({
+                date: dateString,
+                total_scan: foundData ? Number(foundData.total_scan) : 0,
+                defect_count: foundData ? Number(foundData.defect_count) : 0
+            });
+        }
+
+        return result;
+    }
+
+    private formatDateMMDD(dateObj: Date): string {
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        return `${month}/${day}`;
     }
 
     async deleteScanById(scanId: number): Promise<boolean> {

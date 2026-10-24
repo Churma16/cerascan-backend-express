@@ -1,12 +1,10 @@
-import { GetUserQuotaByUserIdUseCase } from '../userQuota/use-cases/GetUserQuotaByUserIdUseCase';
-import { GetActiveSubscriptionUseCase } from "../subscription/use-cases/GetActiveSubscriptionUseCase";
+import { quotaService } from "../../services/quota.service";
+import { subscriptionService } from "../../services/subscription.service";
+import { scanRepository } from "../../repositories/scan.repository";
+import { userRepository } from "../../repositories/user.repository";
 import { getNowIndonesiaTime } from "../../utils/time.helper";
 import dayjs from "dayjs";
-import { SequelizeUserRepository } from "../user/infrastructure/SequelizeUserRepository";
-import { MongoScanRepository } from "../scan/infrastructure/MongoScanRepository";
 import { getRedisClient } from "../../config/redisClient";
-
-const userRepository = new SequelizeUserRepository();
 
 function getTrendText(totalScansLastMonth: number, totalScansThisMonth: number) {
     let scanChangeText = "Stabil dari bulan lalu";
@@ -28,18 +26,18 @@ export class DashboardService {
     static async getDashboardKPI(userId?: number, userRole?: string) {
         const whereClauseUser: Record<string, any> = {};
 
-        if (userRole !== 'admin') {
+        if (userRole !== "admin") {
             whereClauseUser.id = userId;
         }
 
-        const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf('month').toDate();
-        const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').startOf('month').toDate();
-        const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, 'month').endOf('month').toDate();
+        const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf("month").toDate();
+        const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").startOf("month").toDate();
+        const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").endOf("month").toDate();
 
         const totalUsers = await userRepository.count({ where: whereClauseUser });
-        const mongoUserId = userRole !== 'admin' ? userId : undefined;
+        const mongoUserId = userRole !== "admin" ? userId : undefined;
 
-        const mongoStats = await MongoScanRepository.getScanKPIs(
+        const mongoStats = await scanRepository.getScanKpiStatistics(
             mongoUserId,
             startOfCurrentMonth,
             startOfLastMonth,
@@ -61,12 +59,12 @@ export class DashboardService {
         if (userId) {
             try {
                 const [userQuota, activeSubscription] = await Promise.all([
-                    (new GetUserQuotaByUserIdUseCase()).execute(userId).catch((err: any) => {
-                        console.error('Gagal mengambil user quota:', err);
+                    quotaService.getUserQuotaDetails(userId).catch((err: any) => {
+                        console.error("Gagal mengambil user quota:", err);
                         return null;
                     }),
-                    (new GetActiveSubscriptionUseCase()).execute(userId).catch((err: any) => {
-                        console.error('Gagal mengambil active subscription:', err);
+                    subscriptionService.getActiveSubscriptionByUserId(userId).catch((err: any) => {
+                        console.error("Gagal mengambil active subscription:", err);
                         return null;
                     })
                 ]);
@@ -83,13 +81,13 @@ export class DashboardService {
 
                 if (activeSubscription) {
                     subResponse = {
-                        plan_name: activeSubscription.plan?.name ?? 'Free Plan',
+                        plan_name: (activeSubscription as any).plan?.name ?? "Free Plan",
                         status: activeSubscription.status,
                         end_date: activeSubscription.end_date || null
                     };
                 }
             } catch (err) {
-                console.error('Gagal mengambil data tambahan untuk dashboard:', err);
+                console.error("Gagal mengambil data tambahan untuk dashboard:", err);
             }
         }
 
@@ -108,9 +106,9 @@ export class DashboardService {
         };
 
         if (userId) {
-            await getRedisClient().setEx('dashboard:kpi:' + userId, 300, JSON.stringify(response));
+            await getRedisClient().setEx("dashboard:kpi:" + userId, 300, JSON.stringify(response));
         } else {
-            await getRedisClient().setEx('dashboard:kpi', 300, JSON.stringify(response));
+            await getRedisClient().setEx("dashboard:kpi", 300, JSON.stringify(response));
         }
 
         return response;

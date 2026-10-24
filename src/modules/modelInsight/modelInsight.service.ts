@@ -1,21 +1,19 @@
 import dayjs from "dayjs";
 import { getNowIndonesiaTime } from "../../utils/time.helper";
 import { col, fn, literal, Op } from "sequelize";
-import { SequelizeScanRepository } from "../scan/infrastructure/SequelizeScanRepository";
-
-const scanRepository = new SequelizeScanRepository();
+import { scanRepository } from "../../repositories/scan.repository";
 
 export class ModelInsightService {
     static async getModelInsightKPI() {
-        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
+        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, "day").toDate();
 
-        const averageAccuracy = await scanRepository.aggregate('confidence', 'avg', {
+        const averageAccuracy = await scanRepository.aggregate("confidence", "avg", {
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             }
         });
 
-        const averageInference = await scanRepository.aggregate('inference_time', 'avg', {
+        const averageInference = await scanRepository.aggregate("inference_time", "avg", {
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             }
@@ -43,20 +41,20 @@ export class ModelInsightService {
     }
 
     static async getPredictionDistribution() {
-        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
+        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, "day").toDate();
 
         const scanDistributionRaw = await scanRepository.findAll({
             attributes: [
-                'prediction',
-                [fn('COUNT', col('id')), 'total']
+                "prediction",
+                [fn("COUNT", col("id")), "total"]
             ],
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
             },
-            group: ['prediction']
+            group: ["prediction"]
         });
 
-        const predictionKeyArray = ['Crack', 'Normal', 'Scratch', 'Stain'];
+        const predictionKeyArray = ["Crack", "Normal", "Scratch", "Stain"];
         const scanDistribution: any[] = [];
 
         predictionKeyArray.forEach((predictionKey) => {
@@ -74,15 +72,15 @@ export class ModelInsightService {
             });
         });
 
-        const normalData = scanDistribution.find(item => item.prediction === 'Normal');
-        const defectData = scanDistribution.filter(item => item.prediction !== 'Normal');
+        const normalData = scanDistribution.find(item => item.prediction === "Normal");
+        const defectData = scanDistribution.filter(item => item.prediction !== "Normal");
 
         defectData.sort((a, b) => b.total - a.total);
         return normalData ? [normalData, ...defectData] : defectData;
     }
 
     static async getConfidenceDistribution() {
-        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, 'day').toDate();
+        const thirtyDaysAgo = dayjs(getNowIndonesiaTime()).subtract(30, "day").toDate();
 
         const confidenceRaw = await scanRepository.findAll({
             attributes: [
@@ -96,9 +94,9 @@ export class ModelInsightService {
                             ELSE '>95%'
                         END
                     `),
-                    'confidenceRanges'
+                    "confidenceRanges"
                 ],
-                [fn('COUNT', col('id')), 'total']
+                [fn("COUNT", col("id")), "total"]
             ],
             where: {
                 createdAt: { [Op.gte]: thirtyDaysAgo }
@@ -116,16 +114,16 @@ export class ModelInsightService {
             ]
         });
 
-        const confidenceRanges = ['<60%', '60-80%', '80-90%', '90-95%', '>95%'];
+        const confidenceRanges = ["<60%", "60-80%", "80-90%", "90-95%", ">95%"];
         const confidenceDistribution: any[] = [];
 
         confidenceRanges.forEach((confidenceRangesKey) => {
             const matchingData = confidenceRaw.find(
-                (item: any) => String(item.getDataValue('confidenceRanges' as any)) === confidenceRangesKey
+                (item: any) => String(item.getDataValue("confidenceRanges" as any)) === confidenceRangesKey
             );
 
             const totalCount = matchingData
-                ? Number(matchingData.getDataValue('total' as any))
+                ? Number(matchingData.getDataValue("total" as any))
                 : 0;
 
             confidenceDistribution.push({

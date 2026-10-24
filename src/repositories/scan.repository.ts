@@ -49,6 +49,14 @@ export class ScanRepository {
         return await Scan.findAll(options);
     }
 
+    async count(options?: any): Promise<number> {
+        return (await (Scan as any).count(options)) as number;
+    }
+
+    async aggregate(field: string, aggregateFunction: string, options?: any): Promise<any> {
+        return await (Scan as any).aggregate(field, aggregateFunction, options);
+    }
+
     async create(payload: CreationAttributes<Scan>, transaction?: Transaction): Promise<Scan> {
         return await Scan.create(payload as any, { transaction });
     }
@@ -73,7 +81,7 @@ export class ScanRepository {
     async countSince(userId: number | undefined, sinceDate: Date): Promise<number> {
         const whereClause: any = {
             created_at: {
-                [dayjs().isValid() ? '$gte' : '>=']: sinceDate
+                [dayjs().isValid() ? "$gte" : ">="]: sinceDate
             }
         };
         if (userId !== undefined) {

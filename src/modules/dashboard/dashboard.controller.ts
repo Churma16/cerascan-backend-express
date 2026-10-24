@@ -1,9 +1,8 @@
 import { Request, Response } from "express";
-import { sendResponse, sendResponseMulti } from "../../utils/response";
-import { GetScanHistoryUseCase } from "../scan/use-cases/GetScanHistoryUseCase";
-import { GetScanDataCountSinceUseCase } from "../scan/use-cases/GetScanDataCountSinceUseCase";
+import { sendResponse, sendResponseMulti } from "../../utils/response.util";
+import { scanService } from "../../services/scan.service";
 import { getRedisClient } from "../../config/redisClient";
-import { AuthRequest } from '../../middleware/auth.middleware';
+import { AuthRequest } from "../../middleware/auth.middleware";
 import { DashboardService } from "./dashboard.service";
 
 export class DashboardController {
@@ -20,9 +19,8 @@ export class DashboardController {
 
     static async getLatestScanData(req: Request, res: Response) {
         try {
-            const useCase = new GetScanHistoryUseCase();
-            const scanData = await useCase.execute(5);
-            return sendResponseMulti(res, 200, "Data scan terbaru berhasil diambil", scanData);
+            const scanData = await scanService.getScanHistory({ limit: 5 });
+            return sendResponseMulti(res, 200, "Data scan terbaru berhasil diambil", scanData as any[]);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }
@@ -32,16 +30,15 @@ export class DashboardController {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
-            const useCase = new GetScanDataCountSinceUseCase();
-            const result = await useCase.execute(7, userId, userRole);
+            const result = await scanService.getScanTrend(7, userId, userRole);
 
-            if (userRole && userRole !== 'admin' && userId) {
-                await getRedisClient().setEx('dashboard:trend:' + userId, 3600, JSON.stringify(result));
+            if (userRole && userRole !== "admin" && userId) {
+                await getRedisClient().setEx("dashboard:trend:" + userId, 3600, JSON.stringify(result));
             } else {
-                await getRedisClient().setEx('dashboard:trend', 3600, JSON.stringify(result));
+                await getRedisClient().setEx("dashboard:trend", 3600, JSON.stringify(result));
             }
 
-            return sendResponseMulti(res, 200, 'Trend scan berhasil diambil', result);
+            return sendResponseMulti(res, 200, "Trend scan berhasil diambil", result);
         } catch (error: any) {
             return sendResponse(res, 500, error.message);
         }

@@ -1,13 +1,12 @@
 import { Op } from "sequelize";
-import { SequelizeScanRepository } from "../../scan/infrastructure/SequelizeScanRepository";
+import { scanRepository } from "../../../repositories/scan.repository";
 
 export class LeaderboardHelper {
     static async rebuildLeaderboardCache(redis: any, period: string) {
         console.log(`[Leaderboard] Rebuilding cache for period: ${period}`);
-        const [yearStr, monthStr] = period.split('-');
+        const [yearStr, monthStr] = period.split("-");
         const year = parseInt(yearStr);
         const month = parseInt(monthStr);
-
 
         let nextYear = year;
         let nextMonth = month + 1;
@@ -19,7 +18,6 @@ export class LeaderboardHelper {
         const startDate = new Date(Date.UTC(year, month - 1, 1) - 7 * 60 * 60 * 1000);
         const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1) - 7 * 60 * 60 * 1000);
 
-        const scanRepository = new SequelizeScanRepository();
         const scans = await scanRepository.findAll({
             where: {
                 createdAt: {
@@ -45,31 +43,32 @@ export class LeaderboardHelper {
             }
             const stats = userStatsMap[userId];
             stats.total_scans += 1;
-            if (scan.prediction && scan.prediction.toLowerCase() !== 'normal') {
+            if (scan.prediction && scan.prediction.toLowerCase() !== "normal") {
                 stats.defect_scans += 1;
             }
         }
 
-        const redisRankKey = `leaderboard:rank:${period}`;
         const pipeline = redis.multi();
+        const totalLeaderboardKey = `leaderboard:${period}:total_scans`;
+        const defectLeaderboardKey = `leaderboard:${period}:defect_scans`;
 
-        for (const userIdString of Object.keys(userStatsMap)) {
-            const userId = parseInt(userIdString);
-            const stats = userStatsMap[userId];
-            const userStatsKey = `leaderboard:stats:${period}:user:${userId}`;
-            pipeline.zAdd(redisRankKey, { score: stats.total_scans, value: String(userId) });
-            pipeline.hSet(userStatsKey, 'total_scans', String(stats.total_scans));
-            pipeline.hSet(userStatsKey, 'defect_scans', String(stats.defect_scans));
+        pipeline.del(totalLeaderboardKey);
+        pipeline.del(defectLeaderboardKey);
+
+        for (const [userIdStr, stats] of Object.entries(userStatsMap)) {
+            const userId = parseInt(userIdStr);
+            if (stats.total_scans > 0) {
+                pipeline.zAdd(totalLeaderboardKey, [{ score: stats.total_scans, value: userId.toString() }]);
+            }
+            if (stats.defect_scans > 0) {
+                pipeline.zAdd(defectLeaderboardKey, [{ score: stats.defect_scans, value: userId.toString() }]);
+            }
         }
 
-        pipeline.expire(redisRankKey, 35 * 24 * 60 * 60);
-        for (const userIdString of Object.keys(userStatsMap)) {
-            const userId = parseInt(userIdString);
-            const userStatsKey = `leaderboard:stats:${period}:user:${userId}`;
-            pipeline.expire(userStatsKey, 35 * 24 * 60 * 60);
-        }
+        pipeline.expire(totalLeaderboardKey, 86400 * 60);
+        pipeline.expire(defectLeaderboardKey, 86400 * 60);
 
         await pipeline.exec();
-        console.log(`[Leaderboard] Rebuilt cache for ${Object.keys(userStatsMap).length} users`);
+        console.log(`[Leaderboard] Successfully rebuilt cache for ${Object.keys(userStatsMap).length} users in ${period}`);
     }
 }
