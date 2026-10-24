@@ -9,7 +9,7 @@ import { startRabbitAnalyticsConsumer } from "./rabbitmq/rabbitAnalytics.worker"
 import { log } from "../utils/logger";
 
 /**
- * Menginisialisasi dan menjalankan worker analitik berdasarkan environment.
+ * Menginisialisasi dan menjalankan worker analitik stream berdasarkan environment.
  * Menggunakan RabbitMQ Streams jika berjalan di mode `production`,
  * dan menggunakan Kafka jika berjalan di mode `development`.
  *
@@ -18,41 +18,48 @@ import { log } from "../utils/logger";
  * @returns {Promise<void>}
  */
 export const startAnalyticsWorker = async (): Promise<void> => {
-    const env = process.env.NODE_ENV || 'development';
+    const isProduction = process.env.NODE_ENV === "production";
 
     try {
-        if (env === 'production') {
-            log.info('Worker Manager', 'Start (RabbitMQ Streams)...');
+        if (isProduction) {
+            log.info("Worker Manager", "Memulai Stream Worker (RabbitMQ Streams - Production)...");
             await connectRabbitMQ();
-            
+
             startRabbitAnalyticsConsumer().catch(err => {
-                log.error('Worker Manager', 'Gagal menjalankan RabbitMQ Analytics Consumer:', err);
+                log.error("Worker Manager", "Gagal menjalankan RabbitMQ Analytics Consumer:", err);
             });
-            
+
             startRabbitSqlConsumer().catch(err => {
-                log.error('Worker Manager', 'Gagal menjalankan RabbitMQ SQL Consumer:', err);
+                log.error("Worker Manager", "Gagal menjalankan RabbitMQ SQL Consumer:", err);
             });
-            
+
             startRabbitSocketConsumer().catch(err => {
-                log.error('Worker Manager', 'Gagal menjalankan RabbitMQ Socket Consumer:', err);
+                log.error("Worker Manager", "Gagal menjalankan RabbitMQ Socket Consumer:", err);
             });
         } else {
-            log.info('Worker Manager', 'Start (Kafka)...');
-            await connectKafkaProducer();
-            
-            startAnalyticsConsumer().catch((err: any) => {
-                log.error('Worker Manager', 'Gagal menjalankan Kafka Analytics Consumer:', err);
-            });
-            
-            startSqlConsumer().catch((err: any) => {
-                log.error('Worker Manager', 'Gagal menjalankan Kafka SQL Consumer:', err);
-            });
-            
-            startSocketConsumer().catch((err: any) => {
-                log.error('Worker Manager', 'Gagal menjalankan Kafka Socket Consumer:', err);
-            });
+            log.info("Worker Manager", "Memulai Stream Worker (Kafka - Development)...");
+            const isKafkaConnected = await connectKafkaProducer();
+
+            if (isKafkaConnected) {
+                startAnalyticsConsumer().catch((err: any) => {
+                    log.error("Worker Manager", "Gagal menjalankan Kafka Analytics Consumer:", err);
+                });
+
+                startSqlConsumer().catch((err: any) => {
+                    log.error("Worker Manager", "Gagal menjalankan Kafka SQL Consumer:", err);
+                });
+
+                startSocketConsumer().catch((err: any) => {
+                    log.error("Worker Manager", "Gagal menjalankan Kafka Socket Consumer:", err);
+                });
+            } else {
+                log.warn(
+                    "Worker Manager",
+                    "Kafka tidak terhubung. Stream worker Kafka dilewati; fallback in-memory akan digunakan saat event selesai."
+                );
+            }
         }
     } catch (error: any) {
-        log.error('Worker Manager', `Gagal menginisialisasi infrastruktur broker: ${error.message}`);
+        log.error("Worker Manager", `Gagal menginisialisasi infrastruktur broker: ${error.message}`);
     }
 };

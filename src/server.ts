@@ -1,37 +1,30 @@
-import app from './app';
-import http from 'http';
-import sequelize from './config/databaseClient';
-import dotenv from 'dotenv';
+import app from "./app";
+import http from "http";
+import sequelize from "./config/databaseClient";
+import dotenv from "dotenv";
 
-import './models/scan.model';
-import './models/user.model';
-import {connectRabbitMQ} from "./config/rabbitmqClient";
-import {connectRedis} from "./config/redisClient";
-import {initSocket} from "./config/websocketClient"; // BARU: Import inisialisasi Socket.io
-import {RabbitmqPublisher} from './transport/rabbitmq/infrastructure/rabbitmq.publisher';
-import {PaymentDBSubscriber} from './subscribers/paymentDb.subscriber';
-import {PaymentEmailSubscriber} from "./subscribers/paymentEmail.subscriber";
-import {PaymentSocketSubscriber} from "./subscribers/paymentSocket.subscriber";
-import {AiScanSubscriber} from './subscribers/aiScan.subscriber';
-import {CronWorker} from './worker/dailyCron.worker';
-import {initPassport} from "./config/passportClient";
-import {connectMongoDB} from "./config/mongodbClient";
-import {log} from "./utils/logger";
-import {startAnalyticsWorker} from "./worker/analyticsWorkerManager";
+import "./models/scan.model";
+import "./models/user.model";
+import { connectRabbitMQ } from "./config/rabbitmqClient";
+import { connectRedis } from "./config/redisClient";
+import { initSocket } from "./config/websocketClient";
+import { RabbitmqPublisher } from "./transport/rabbitmq/infrastructure/rabbitmq.publisher";
+import { startAllSubscribers } from "./subscribers";
+import { DailyCronJob } from "./jobs/dailyCron.job";
+import { initPassport } from "./config/passportClient";
+import { connectMongoDB } from "./config/mongodbClient";
+import { log } from "./utils/logger";
 
 dotenv.config({ quiet: true } as any);
 
 // SET GLOBAL TIMEZONE
-process.env.TZ = 'Asia/Jakarta';
+process.env.TZ = "Asia/Jakarta";
 
 // Nonaktifkan console.log di environment Production untuk keamanan dan performa
-if (process.env.NODE_ENV === 'production') {
-    console.log = () => {
-    };
-    console.info = () => {
-    };
-    console.debug = () => {
-    };
+if (process.env.NODE_ENV === "production") {
+    console.log = () => {};
+    console.info = () => {};
+    console.debug = () => {};
 }
 
 const PORT = process.env.PORT || 3000;
@@ -43,41 +36,28 @@ initSocket(server);
 const startServer = async () => {
     try {
         await sequelize.authenticate();
-        log.success('MySql', 'Koneksi ke MySQL berhasil.');
-        log.success('MySql', 'Semua model telah disinkronisasi dengan database.');
+        log.success("MySql", "Koneksi ke MySQL berhasil.");
+        log.success("MySql", "Semua model telah disinkronisasi dengan database.");
 
         await connectRedis();
         await connectRabbitMQ();
         await connectMongoDB();
         await RabbitmqPublisher.setupExchange();
 
-        // await startAnalyticsWorker();
-
-
-        // Nyalakan semua Subscriber
-        const paymentDB = new PaymentDBSubscriber();
-        await paymentDB.start();
-
-        const paymentEmail = new PaymentEmailSubscriber();
-        await paymentEmail.start();
-
-        const paymentSocket = new PaymentSocketSubscriber();
-        await paymentSocket.start();
-
-        const aiScan = new AiScanSubscriber();
-        await aiScan.start();
+        // Inisialisasi seluruh event subscriber dan stream worker
+        await startAllSubscribers();
 
         initPassport();
 
-        CronWorker.start();
+        DailyCronJob.start();
 
-        log.info('FRONTEND_URL', `Frontend URL is ${process.env.FRONTEND_URL}`);
+        log.info("FRONTEND_URL", `Frontend URL is ${process.env.FRONTEND_URL}`);
 
         server.listen(PORT, () => {
-            log.system(`[GIN]API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
+            log.system(`API Gateway & WebSocket berjalan di http://localhost:${PORT}`);
         });
     } catch (error) {
-        console.error('Tidak dapat terhubung ke database:', error);
+        console.error("Tidak dapat terhubung ke database:", error);
     }
 };
 

@@ -6,10 +6,10 @@ import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/Downgrad
 import { log } from "../utils/logger";
 
 /**
- * Worker penjadwalan harian (Cron Worker) yang bertugas menyinkronkan data pemakaian kuota,
+ * Job penjadwalan harian (Daily Cron Job) yang bertugas menyinkronkan data pemakaian kuota,
  * kedaluwarsa pengguna, kuota yang kedaluwarsa, dan peringkat leaderboard dari Redis ke database.
  */
-export class CronWorker {
+export class DailyCronJob {
     /**
      * Memulai jadwal cron job yang mengeksekusi sinkronisasi otomatis setiap malam pukul 23:59.
      *
