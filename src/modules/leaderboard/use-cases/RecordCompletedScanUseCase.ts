@@ -1,5 +1,5 @@
 import { getRedisClient } from "../../../config/redisClient";
-import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
+import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
 
 export class RecordCompletedScanUseCase {
     async execute(userId: number, prediction: string) {

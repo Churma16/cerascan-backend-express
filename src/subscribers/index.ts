@@ -3,7 +3,7 @@ import { PaymentDBSubscriber } from "./paymentDb.subscriber";
 import { PaymentEmailSubscriber } from "./paymentEmail.subscriber";
 import { PaymentSocketSubscriber } from "./paymentSocket.subscriber";
 import { startAnalyticsWorker } from "../worker/analyticsWorkerManager";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 /**
  * Memulai seluruh RabbitMQ Event Subscribers dan Stream Workers

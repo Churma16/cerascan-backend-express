@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { sendResponse } from "../../utils/response";
+import { sendResponse } from "../../utils/response.util";
 import { GetTopUsersUseCase } from './use-cases/GetTopUsersUseCase';
 
 export class LeaderboardController {

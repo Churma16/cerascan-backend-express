@@ -1,4 +1,4 @@
-import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
+import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
 import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
 import { ILeaderboardArchiveRepository } from "../domain/ILeaderboardArchiveRepository";
 import { SequelizeLeaderboardArchiveRepository } from "../infrastructure/SequelizeLeaderboardArchiveRepository";

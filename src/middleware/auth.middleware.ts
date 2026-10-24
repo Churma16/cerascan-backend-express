@@ -1,6 +1,6 @@
 import {NextFunction, Request, Response} from 'express';
 import jwt from 'jsonwebtoken';
-import {sendResponse} from '../utils/response';
+import { sendResponse } from '../utils/response.util';
 
 const SECRET_KEY = process.env.JWT_SECRET || 'fallback_secret_key';
 

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { AuthRequest } from '../../middleware/auth.middleware';
-import { sendResponse, sendResponseMulti } from "../../utils/response";
+import { sendResponse, sendResponseMulti } from "../../utils/response.util";
 import { UserService } from "./user.service";
 
 export class UserController {

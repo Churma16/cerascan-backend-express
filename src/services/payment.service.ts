@@ -8,7 +8,7 @@ import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq
 import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
 import { Payment } from "../models";
 import { PaymentAttributes } from "../models/payment.model";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 export interface CreateCheckoutResult {
     token: string;

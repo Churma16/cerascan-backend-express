@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { getNowIndonesiaTime } from "../utils/time.helper";
+import { getNowIndonesiaTime } from "../utils/time.util";
 import { analyticsRepository, AnalyticsRepository, ModelInsightMetrics } from "../repositories/analytics.repository";
 import { userRepository } from "../repositories/user.repository";
 import { scanRepository } from "../repositories/scan.repository";

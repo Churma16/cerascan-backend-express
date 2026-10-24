@@ -39,7 +39,7 @@ jest.mock("../models", () => ({
     }
 }));
 
-jest.mock("../utils/logger", () => ({
+jest.mock("../utils/logger.util", () => ({
     log: {
         info: jest.fn(),
         error: jest.fn(),

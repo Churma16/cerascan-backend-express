@@ -2,7 +2,7 @@ import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sd
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2Client } from "../config/r2Client";
 import { nanoid } from "nanoid";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 const BUCKET_NAME = process.env.R2_BUCKET_NAME || "vgg-storage";
 

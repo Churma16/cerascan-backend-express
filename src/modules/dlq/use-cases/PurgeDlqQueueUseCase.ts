@@ -1,7 +1,7 @@
 import { getRabbitChannel } from "../../../config/rabbitmqClient";
 import { DeadLetterMessage } from "../../../models";
 import { NotificationService } from "../../../services/notification.service";
-import { log } from "../../../utils/logger";
+import { log } from "../../../utils/logger.util";
 
 export class PurgeDlqQueueUseCase {
     private static readonly DLQ_QUEUE_NAME = 'payment_dead_letter_queue';

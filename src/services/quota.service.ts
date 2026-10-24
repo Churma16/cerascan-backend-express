@@ -5,7 +5,7 @@ import { getSocket } from "../config/websocketClient";
 import { sseClient } from "../config/sseClient";
 import { UserQuotaModel } from "../models";
 import { UserQuotaAttributes } from "../models/userQuota.model";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 export interface InitializeUserQuotaOptions {
     userId: number;

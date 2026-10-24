@@ -4,7 +4,7 @@ import { DeadLetterMessageAttributes } from "../../../models/deadLetterMessage.m
 import { RabbitmqPublisher } from "../../../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "../../../services/quota.service";
 import { NotificationService } from "../../../services/notification.service";
-import { log } from "../../../utils/logger";
+import { log } from "../../../utils/logger.util";
 
 export class RetryAllDlqMessagesUseCase {
     async execute(requestUserId: number, isAdmin: boolean): Promise<{ successCount: number; skippedCount: number }> {

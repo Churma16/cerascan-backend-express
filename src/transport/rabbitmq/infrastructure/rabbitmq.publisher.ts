@@ -1,5 +1,5 @@
 import { getRabbitChannel } from "../../../config/rabbitmqClient";
-import { log } from "../../../utils/logger";
+import { log } from "../../../utils/logger.util";
 
 export class RabbitmqPublisher {
     private static readonly EXCHANGE_NAME = 'cerascan_events';

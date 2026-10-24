@@ -1,6 +1,6 @@
 import { getSocket } from "../config/websocketClient";
 import { sseClient } from "../config/sseClient";
-import { parseOrderId } from "../utils/order.helper";
+import { parseOrderId } from "../utils/order.util";
 
 export interface ScanCompletedData {
     db_id: number;

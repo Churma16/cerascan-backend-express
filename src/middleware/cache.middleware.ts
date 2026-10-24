@@ -1,6 +1,6 @@
 import {NextFunction, Request, Response} from 'express';
 import {getRedisClient} from '../config/redisClient';
-import {sendResponse, sendResponseMulti} from '../utils/response';
+import { sendResponse, sendResponseMulti } from '../utils/response.util';
 
 export class CacheMiddleware {
     /**

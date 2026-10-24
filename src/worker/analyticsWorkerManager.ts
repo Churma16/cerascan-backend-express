@@ -3,10 +3,10 @@ import { startAnalyticsConsumer } from "./kafka/kafkaAnalytics.worker";
 import { startSqlConsumer } from "./kafka/kafkaSql.worker";
 import { startSocketConsumer } from "./kafka/kafkaSocket.worker";
 import { connectRabbitMQ } from "../config/rabbitmqClient";
-import { startRabbitSqlConsumer } from "./rabbitmq/rabbitSql.worker";
-import { startRabbitSocketConsumer } from "./rabbitmq/rabbitSocket.worker";
-import { startRabbitAnalyticsConsumer } from "./rabbitmq/rabbitAnalytics.worker";
-import { log } from "../utils/logger";
+import { startRabbitmqSqlConsumer } from "./rabbitmq/rabbitmqSql.worker";
+import { startRabbitmqSocketConsumer } from "./rabbitmq/rabbitmqSocket.worker";
+import { startRabbitmqAnalyticsConsumer } from "./rabbitmq/rabbitmqAnalytics.worker";
+import { log } from "../utils/logger.util";
 
 /**
  * Menginisialisasi dan menjalankan worker analitik stream berdasarkan environment.
@@ -25,15 +25,15 @@ export const startAnalyticsWorker = async (): Promise<void> => {
             log.info("Worker Manager", "Memulai Stream Worker (RabbitMQ Streams - Production)...");
             await connectRabbitMQ();
 
-            startRabbitAnalyticsConsumer().catch(err => {
+            startRabbitmqAnalyticsConsumer().catch(err => {
                 log.error("Worker Manager", "Gagal menjalankan RabbitMQ Analytics Consumer:", err);
             });
 
-            startRabbitSqlConsumer().catch(err => {
+            startRabbitmqSqlConsumer().catch(err => {
                 log.error("Worker Manager", "Gagal menjalankan RabbitMQ SQL Consumer:", err);
             });
 
-            startRabbitSocketConsumer().catch(err => {
+            startRabbitmqSocketConsumer().catch(err => {
                 log.error("Worker Manager", "Gagal menjalankan RabbitMQ Socket Consumer:", err);
             });
         } else {

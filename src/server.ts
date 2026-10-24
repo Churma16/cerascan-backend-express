@@ -13,7 +13,7 @@ import { startAllSubscribers } from "./subscribers";
 import { DailyCronJob } from "./jobs/dailyCron.job";
 import { initPassport } from "./config/passportClient";
 import { connectMongoDB } from "./config/mongodbClient";
-import { log } from "./utils/logger";
+import { log } from "./utils/logger.util";
 
 dotenv.config({ quiet: true } as any);
 

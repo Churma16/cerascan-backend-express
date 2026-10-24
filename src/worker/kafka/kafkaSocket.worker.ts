@@ -1,6 +1,6 @@
 import { kafka } from "../../config/kafkaClient";
 import { handleSocketMessage } from "../handlers/socket.handler";
-import { log } from "../../utils/logger";
+import { log } from "../../utils/logger.util";
 
 const consumer = kafka.consumer({ groupId: 'ceramic-socket-group' });
 const TOPIC_NAME = 'ceramic-scan-completed';

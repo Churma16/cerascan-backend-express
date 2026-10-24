@@ -3,7 +3,7 @@ import { getKafkaProducer } from "../../config/kafkaClient";
 import { handleSqlMessage } from "../../worker/handlers/sql.handler";
 import { handleAnalyticsMessage } from "../../worker/handlers/analytics.handler";
 import { handleSocketMessage } from "../../worker/handlers/socket.handler";
-import { log } from "../../utils/logger";
+import { log } from "../../utils/logger.util";
 
 export interface ScanCompletedPayload {
     scan_id: string;

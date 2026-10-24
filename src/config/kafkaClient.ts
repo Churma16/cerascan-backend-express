@@ -1,5 +1,5 @@
 import { Kafka, Producer, logLevel, Partitioners } from "kafkajs";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 let kafkaProducer: Producer | null = null;
 

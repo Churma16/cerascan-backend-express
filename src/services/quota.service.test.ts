@@ -8,7 +8,7 @@ import { UserQuotaAttributes } from "../models/userQuota.model";
 jest.mock("../config/redisClient");
 jest.mock("../config/websocketClient");
 jest.mock("../config/sseClient");
-jest.mock("../utils/logger", () => ({
+jest.mock("../utils/logger.util", () => ({
     log: {
         info: jest.fn(),
         error: jest.fn(),

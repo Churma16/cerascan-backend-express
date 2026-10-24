@@ -1,6 +1,6 @@
 import { getRabbitChannel } from "../../config/rabbitmqClient";
 import { handleAnalyticsMessage } from "../handlers/analytics.handler";
-import { log } from "../../utils/logger";
+import { log } from "../../utils/logger.util";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
@@ -11,7 +11,7 @@ const STREAM_NAME = 'ceramic-scan-completed-stream';
  * @function startRabbitAnalyticsConsumer
  * @returns {Promise<void>}
  */
-export const startRabbitAnalyticsConsumer = async (): Promise<void> => {
+export const startRabbitmqAnalyticsConsumer = async (): Promise<void> => {
     try {
         const channel = getRabbitChannel();
         if (!channel) {

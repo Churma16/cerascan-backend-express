@@ -1,21 +1,21 @@
 import { getRabbitChannel } from "../../config/rabbitmqClient";
-import { handleSqlMessage } from "../handlers/sql.handler";
-import { log } from "../../utils/logger";
+import { handleSocketMessage } from "../handlers/socket.handler";
+import { log } from "../../utils/logger.util";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
 /**
- * Menjalankan RabbitMQ Stream Consumer untuk memperbarui SQL DB & Leaderboard di lingkungan production.
+ * Menjalankan RabbitMQ Stream Consumer untuk memancarkan notifikasi real-time WebSocket di lingkungan production.
  *
  * @async
- * @function startRabbitSqlConsumer
+ * @function startRabbitSocketConsumer
  * @returns {Promise<void>}
  */
-export const startRabbitSqlConsumer = async (): Promise<void> => {
+export const startRabbitmqSocketConsumer = async (): Promise<void> => {
     try {
         const channel = getRabbitChannel();
         if (!channel) {
-            log.error('RabbitMQ SQL Worker', 'Channel belum diinisialisasi.');
+            log.error('RabbitMQ Socket Worker', 'Channel belum diinisialisasi.');
             return;
         }
 
@@ -36,14 +36,14 @@ export const startRabbitSqlConsumer = async (): Promise<void> => {
                     }
 
                     const payload = JSON.parse(messageVal);
-                    log.info('RabbitMQ SQL Worker', `Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
+                    log.info('RabbitMQ Socket Worker', `Mengirim notifikasi scan_id: ${payload.scan_id}`);
 
-                    await handleSqlMessage(payload);
-                    log.success('RabbitMQ SQL Worker', `SQL & Leaderboard terupdate untuk scan_id: ${payload.scan_id}`);
+                    await handleSocketMessage(payload);
+                    log.success('RabbitMQ Socket Worker', `Notifikasi terkirim untuk scan_id: ${payload.scan_id}`);
 
                     channel.ack(msg);
                 } catch (err: any) {
-                    log.error('RabbitMQ SQL Worker', `Gagal memproses pesan: ${err.message}`);
+                    log.error('RabbitMQ Socket Worker', `Gagal memproses pesan: ${err.message}`);
                     channel.nack(msg, false, false);
                 }
             }
@@ -52,8 +52,8 @@ export const startRabbitSqlConsumer = async (): Promise<void> => {
             arguments: { 'x-stream-offset': 'next' }
         });
 
-        log.info('RabbitMQ SQL Worker', `Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
+        log.info('RabbitMQ Socket Worker', `Berhasil terhubung dan mendengarkan stream: ${STREAM_NAME}`);
     } catch (error: any) {
-        log.error('RabbitMQ SQL Worker', `Gagal menjalankan consumer: ${error.message}`);
+        log.error('RabbitMQ Socket Worker', `Gagal menjalankan consumer: ${error.message}`);
     }
 };

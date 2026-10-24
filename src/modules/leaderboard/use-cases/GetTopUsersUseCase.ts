@@ -1,5 +1,5 @@
 import { getRedisClient } from "../../../config/redisClient";
-import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
+import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
 import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
 import { calculateDefectRatio } from "../domain/leaderboard.domain";
 import { IUserRepository } from "../../user/domain/IUserRepository";

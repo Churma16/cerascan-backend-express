@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { sendResponse } from "../../utils/response";
+import { sendResponse } from "../../utils/response.util";
 import { ModelInsightService } from "./modelInsight.service";
 
 export class ModelInsightController {

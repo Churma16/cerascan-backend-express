@@ -1,5 +1,5 @@
 import { grpcCeramicClient } from "../config/grpcClient";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 export interface GrpcPredictionResult {
     status: string;
