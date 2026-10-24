@@ -85,12 +85,12 @@ export class UserPlanLifecycleService {
                 { transaction: transactionInstance }
             );
 
-            const userQuota = await quotaService.initializeUserQuota(
+            const userQuota = await quotaService.initializeUserQuota({
                 userId,
-                selectedPlan.scan_quota,
-                endDate,
-                transactionInstance
-            );
+                totalQuota: selectedPlan.scan_quota,
+                nextResetDate: endDate,
+                transaction: transactionInstance
+            });
 
             if (!isExternalTransaction) {
                 await transactionInstance.commit();

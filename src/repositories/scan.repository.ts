@@ -1,4 +1,4 @@
-import { Transaction, FindOptions, Order } from "sequelize";
+import { Transaction, FindOptions, Order, CreationAttributes } from "sequelize";
 import dayjs from "dayjs";
 import { Scan } from "../models";
 import { ScanAttributes } from "../models/scan.model";
@@ -49,11 +49,11 @@ export class ScanRepository {
         return await Scan.findAll(options);
     }
 
-    async create(payload: Partial<ScanAttributes>, transaction?: Transaction): Promise<Scan> {
+    async create(payload: CreationAttributes<Scan>, transaction?: Transaction): Promise<Scan> {
         return await Scan.create(payload as any, { transaction });
     }
 
-    async update(id: number, payload: Partial<ScanAttributes>, transaction?: Transaction): Promise<number> {
+    async update(id: number, payload: Partial<CreationAttributes<Scan>>, transaction?: Transaction): Promise<number> {
         const [affectedCount] = await Scan.update(payload, {
             where: { id },
             transaction

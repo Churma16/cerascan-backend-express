@@ -63,7 +63,7 @@ export class ScanController {
             }
 
             const { page, limit } = (req.query as unknown as PaginationQueryDto) || { limit: 50 };
-            const result = await scanService.getScanHistory(limit, userId, page);
+            const result = await scanService.getScanHistory({ limit, userId, page });
 
             if (page !== undefined && !isNaN(page) && "rows" in result) {
                 return sendResponsePaginated(res, "Scan berhasil", result.rows, result.count, page, limit);
@@ -78,7 +78,7 @@ export class ScanController {
     static async getPublicScanHistory(req: Request, res: Response) {
         try {
             const { page, limit } = (req.query as unknown as PaginationQueryDto) || { limit: 50 };
-            const result = await scanService.getScanHistory(limit, null, page);
+            const result = await scanService.getScanHistory({ limit, page });
 
             if (page !== undefined && !isNaN(page) && "rows" in result) {
                 return sendResponsePaginated(res, "Scan berhasil", result.rows, result.count, page, limit);

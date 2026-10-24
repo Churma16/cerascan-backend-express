@@ -1,6 +1,5 @@
-import { Transaction, FindOptions } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes } from "sequelize";
 import { Payment } from "../models";
-import { PaymentAttributes } from "../models/payment.model";
 
 export class PaymentRepository {
     async findById(id: number, transaction?: Transaction): Promise<Payment | null> {
@@ -19,11 +18,11 @@ export class PaymentRepository {
         return await Payment.findAll(options);
     }
 
-    async create(payload: Partial<PaymentAttributes>, transaction?: Transaction): Promise<Payment> {
+    async create(payload: CreationAttributes<Payment>, transaction?: Transaction): Promise<Payment> {
         return await Payment.create(payload as any, { transaction });
     }
 
-    async update(id: number, payload: Partial<PaymentAttributes>, transaction?: Transaction): Promise<number> {
+    async update(id: number, payload: Partial<CreationAttributes<Payment>>, transaction?: Transaction): Promise<number> {
         const [affectedCount] = await Payment.update(payload, {
             where: { id },
             transaction
