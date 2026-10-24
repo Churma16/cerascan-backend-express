@@ -51,7 +51,7 @@ const startServer = async () => {
         await connectMongoDB();
         await RabbitmqPublisher.setupExchange();
 
-        await startAnalyticsWorker();
+        // await startAnalyticsWorker();
 
 
         // Nyalakan semua Subscriber

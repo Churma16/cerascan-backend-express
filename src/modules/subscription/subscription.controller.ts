@@ -12,12 +12,10 @@ import { UpdateSubscriptionUseCase } from "./use-cases/UpdateSubscriptionUseCase
 import { DeleteSubscriptionUseCase } from "./use-cases/DeleteSubscriptionUseCase";
 import { GetActiveSubscriptionUseCase } from "./use-cases/GetActiveSubscriptionUseCase";
 import { ChangeActiveSubsStatusUseCase } from "./use-cases/ChangeActiveSubsStatusUseCase";
-import { InitiateFreePlanUseCase } from "./use-cases/InitiateFreePlanUseCase";
-import { UpgradeTierUseCase } from "../user/use-cases/UpgradeTierUseCase";
-import { CreateUserQuotaFromPaymentUseCase } from '../userQuota/use-cases/CreateUserQuotaFromPaymentUseCase';
-import { UpsertUserQuotaToRedisUseCase } from '../userQuota/use-cases/UpsertUserQuotaToRedisUseCase';
+import { UserPlanLifecycleService } from "../../services/userPlanLifecycle.service";
 
 export class SubscriptionController {
+
     static async create(req: Request, res: Response) {
         try {
             const { user_id, plan_id, status, acquisition_method, note } = req.body;
@@ -153,51 +151,28 @@ export class SubscriptionController {
     }
 
     static async giveSubscription(req: Request, res: Response) {
-        const { user_id, plan_id, acquisition_method, note } = req.body;
-        if (!user_id || !plan_id) {
-            return sendResponse(res, 400, "User ID dan Plan ID harus diisi");
-        }
-
-        const t = await sequelize.transaction();
-
         try {
-            const changeActiveSubsStatusUseCase = new ChangeActiveSubsStatusUseCase();
-            await changeActiveSubsStatusUseCase.execute(user_id, "canceled", t);
+            const { user_id, plan_id, acquisition_method, note } = req.body;
+            if (!user_id || !plan_id) {
+                return sendResponse(res, 400, "User ID dan Plan ID harus diisi");
+            }
 
-            const createSubscriptionUseCase = new CreateSubscriptionUseCase();
-            const subscription = await createSubscriptionUseCase.execute(
-                user_id,
-                plan_id,
-                'active',
-                acquisition_method,
-                note,
-                t
+            const result = await UserPlanLifecycleService.assignPlan(
+                Number(user_id),
+                Number(plan_id),
+                {
+                    acquisitionMethod: acquisition_method || 'admin_grant',
+                    note: note || 'Diberikan langsung oleh Administrator',
+                }
             );
 
-            const upgradeTierUseCase = new UpgradeTierUseCase();
-            const user = await upgradeTierUseCase.execute(user_id, plan_id, t);
-
-            const createUserQuotaFromPaymentUseCase = new CreateUserQuotaFromPaymentUseCase();
-            const userQuota = await createUserQuotaFromPaymentUseCase.execute(user_id, plan_id, t);
-
-            const upsertUserQuotaToRedisUseCase = new UpsertUserQuotaToRedisUseCase();
-            const newQuotaRedis = await upsertUserQuotaToRedisUseCase.execute(user_id, userQuota.total_quota);
-
-            await t.commit();
             return sendResponse(
                 res,
                 200,
                 "Subscription berhasil diberikan",
-                { subscription, user, userQuota, newQuotaRedis }
+                result
             );
         } catch (error: any) {
-            await t.rollback();
-            try {
-                const redis = getRedisClient();
-                await redis.del(`user:${user_id}:remaining_quota`);
-            } catch (redisErr) {
-                console.error("Gagal menghapus cache Redis setelah rollback giveSubscription:", redisErr);
-            }
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
@@ -209,11 +184,19 @@ export class SubscriptionController {
                 return sendResponse(res, 400, "user_id wajib diisi");
             }
 
-            const useCase = new InitiateFreePlanUseCase();
-            const result = await useCase.execute(user_id);
+            const result = await UserPlanLifecycleService.assignPlan(
+                Number(user_id),
+                1,
+                {
+                    acquisitionMethod: 'admin_free_initiate',
+                    note: 'Inisiasi default free plan oleh Administrator',
+                }
+            );
+
             return sendResponse(res, 201, "Free plan default berhasil diaktifkan", result);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
         }
     }
 }
+

@@ -2,6 +2,7 @@ import { UserAttributes } from "../../../models/user.model";
 import { hashPassword } from "../domain/auth.domain";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { UserPlanLifecycleService } from "../../../services/userPlanLifecycle.service";
 
 export class RegisterUserUseCase {
     private userRepository: IUserRepository;
@@ -33,6 +34,11 @@ export class RegisterUserUseCase {
             role: payload.role!,
             sub_tier: payload.sub_tier!,
             plan_id: 1,
+        });
+
+        await UserPlanLifecycleService.assignPlan(newUser.id, 1, {
+            acquisitionMethod: 'registration',
+            note: 'Free plan otomatis saat registrasi',
         });
 
         const userJSON = newUser.toJSON();

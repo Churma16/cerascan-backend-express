@@ -1,9 +1,9 @@
 import { Profile } from "passport-google-oauth20";
-import { InitiateFreePlanUseCase } from "../../subscription/use-cases/InitiateFreePlanUseCase";
 import sequelize from "../../../config/databaseClient";
 import { getRedisClient } from "../../../config/redisClient";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { UserPlanLifecycleService } from "../../../services/userPlanLifecycle.service";
 
 export class HandleGoogleLoginUseCase {
     private userRepository: IUserRepository;
@@ -50,8 +50,12 @@ export class HandleGoogleLoginUseCase {
                 verified_at: new Date()
             }, t);
 
-            const initiateFreePlanUseCase = new InitiateFreePlanUseCase();
-            await initiateFreePlanUseCase.execute(user.id, t);
+            await UserPlanLifecycleService.assignPlan(user.id, 1, {
+                acquisitionMethod: 'google_oauth',
+                note: 'Free plan otomatis saat pendaftaran Google OAuth',
+                transaction: t,
+            });
+
             await t.commit();
             return user;
         } catch (error) {
