@@ -5,6 +5,7 @@ import { hashPassword } from "../domain/auth.domain";
 import { EmailHelper } from "../infrastructure/email.helper";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { UserPlanLifecycleService } from "../../../services/userPlanLifecycle.service";
 
 dotenv.config();
 
@@ -39,6 +40,11 @@ export class RegisterUserV2UseCase {
             role: payload.role!,
             sub_tier: payload.sub_tier!,
             plan_id: 1,
+        });
+
+        await UserPlanLifecycleService.assignPlan(newUser.id, 1, {
+            acquisitionMethod: 'registration_v2',
+            note: 'Free plan otomatis saat registrasi v2',
         });
 
         const verificationToken = jwt.sign(

@@ -1,7 +1,5 @@
-import { RecordScanHistoryUseCase } from "../../modules/scan/use-cases/RecordScanHistoryUseCase";
-import dayjs from 'dayjs';
+import { scanService } from "../../services/scan.service";
 import { getRedisClient } from "../../config/redisClient";
-import { MongoScanRepository } from "../../modules/scan/infrastructure/MongoScanRepository";
 
 /**
  * Antarmuka payload data analitik scan.
@@ -32,12 +30,11 @@ export interface AnalyticsPayload {
  * @returns {Promise<void>}
  */
 export const handleAnalyticsMessage = async (payload: AnalyticsPayload): Promise<void> => {
-    const recordScanHistoryUseCase = new RecordScanHistoryUseCase();
     const inferenceTimeNum = typeof payload.inference_time === 'number' 
         ? payload.inference_time 
         : parseInt(String(payload.inference_time)) || 0;
 
-    await recordScanHistoryUseCase.execute({
+    await scanService.recordScanAnalytics({
         scan_id: payload.scan_id,
         user_id: payload.user_id,
         prediction: payload.prediction,
@@ -46,9 +43,6 @@ export const handleAnalyticsMessage = async (payload: AnalyticsPayload): Promise
     });
 
     const userId = payload.user_id || 0;
-    const todayDateStr = dayjs().format('YYYY-MM-DD');
-    const isDefect = ['crack', 'scratch', 'stain'].includes((payload.prediction || '').toLowerCase());
-    await MongoScanRepository.incrementScanKpi(userId, payload.confidence_score, isDefect);
 
     try {
         const redisClient = getRedisClient();

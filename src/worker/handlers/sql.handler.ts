@@ -1,4 +1,4 @@
-import { UpdateScanSuccessUseCase } from "../../modules/scan/use-cases/UpdateScanSuccessUseCase";
+import { scanService } from "../../services/scan.service";
 import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
 
 /**
@@ -34,13 +34,11 @@ export const handleSqlMessage = async (payload: SqlPayload): Promise<void> => {
             : parseInt(String(payload.db_id));
 
         if (!isNaN(dbIdNum)) {
-            const updateScanSuccessUseCase = new UpdateScanSuccessUseCase();
-            await updateScanSuccessUseCase.execute(
+            await scanService.markScanAsSuccess(
                 dbIdNum,
                 payload.prediction || '',
                 payload.confidence_score || 0,
-                String(payload.inference_time || ''),
-                payload.user_id
+                String(payload.inference_time || '')
             );
         }
     }

@@ -1,6 +1,3 @@
-import { InitiateFreePlanUseCase } from "../../subscription/use-cases/InitiateFreePlanUseCase";
-import sequelize from "../../../config/databaseClient";
-import { getRedisClient } from "../../../config/redisClient";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
 import { IUserOtpRepository } from "../domain/IUserOtpRepository";
@@ -18,7 +15,7 @@ export class VerifyOtpUseCase {
         this.userOtpRepository = userOtpRepository;
     }
 
-    async execute(email: string, otp: string) {
+    async execute(email: string, otp: string): Promise<number> {
         const user = await this.userRepository.findByEmail(email);
         if (!user) {
             throw new Error('Email tidak terdaftar');
@@ -36,23 +33,13 @@ export class VerifyOtpUseCase {
         }
 
         activeOtp.is_used = true;
-        const t = await sequelize.transaction();
+        await this.userOtpRepository.save(activeOtp);
 
-        try {
-            await this.userOtpRepository.save(activeOtp, t);
-            const initiateFreePlanUseCase = new InitiateFreePlanUseCase();
-            await initiateFreePlanUseCase.execute(user.id, t);
-            await t.commit();
-            return user.id;
-        } catch (error) {
-            await t.rollback();
-            try {
-                const redis = getRedisClient();
-                await redis.del(`user:${user.id}:remaining_quota`);
-            } catch (redisErr) {
-                console.error("Gagal menghapus cache Redis setelah rollback verifyOtp:", redisErr);
-            }
-            throw error;
+        if (!user.verified_at) {
+            user.verified_at = new Date();
+            await this.userRepository.save(user);
         }
+
+        return user.id;
     }
 }

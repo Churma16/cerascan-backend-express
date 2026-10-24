@@ -6,6 +6,7 @@ import Subscription from './subscription.model';
 import UserQuotaModel from './userQuota.model';
 import Payment from './payment.model';
 import LeaderboardArchive from './leaderboardArchive.model';
+import DeadLetterMessage from './deadLetterMessage.model';
 
 User.belongsTo(Plan, {
     foreignKey: 'plan_id',
@@ -41,5 +42,7 @@ export {
     UserQuotaModel,
     Payment,
     LeaderboardArchive,
+    DeadLetterMessage,
 };
+
 

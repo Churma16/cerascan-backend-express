@@ -1,7 +1,6 @@
-import cron from 'node-cron';
-import { getRedisClient } from '../config/redisClient';
-import { SyncUserQuotaToDbUseCase } from '../modules/userQuota/use-cases/SyncUserQuotaToDbUseCase';
-import { DowngradeExpiredUserQuotaUseCase } from '../modules/userQuota/use-cases/DowngradeExpiredUserQuotaUseCase';
+import cron from "node-cron";
+import { getRedisClient } from "../config/redisClient";
+import { quotaService } from "../services/quota.service";
 import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
 import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/DowngradeExpiredUsersUseCase";
 import { log } from "../utils/logger";
@@ -18,31 +17,25 @@ export class CronWorker {
      * @returns {void}
      */
     static start(): void {
-        cron.schedule('59 23 * * *', async () => {
-            log.info('Cron', 'Memulai sinkronisasi pembukuan kuota...');
+        cron.schedule("59 23 * * *", async () => {
+            log.info("Cron", "Memulai sinkronisasi pembukuan kuota...");
             const redis = getRedisClient();
 
             try {
                 const today = new Date();
 
-                const syncUserQuotaToDbUseCase = new SyncUserQuotaToDbUseCase();
-                await syncUserQuotaToDbUseCase.execute(redis);
+                await quotaService.syncQuotasToDatabase(redis);
 
                 const downgradeExpiredUsersUseCase = new DowngradeExpiredUsersUseCase();
                 await downgradeExpiredUsersUseCase.execute(today, redis);
 
-                const downgradeExpiredUserQuotaUseCase = new DowngradeExpiredUserQuotaUseCase();
-                await downgradeExpiredUserQuotaUseCase.execute(redis, today);
-
                 const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
                 await syncLeaderboardToDbUseCase.execute(redis);
 
-                log.success('Cron', 'Tugas malam selesai. PostgreSQL/MySQL dan Redis berhasil disinkronkan!');
+                log.success("Cron", "Tugas malam selesai. Database dan Redis berhasil disinkronkan!");
             } catch (error) {
-                console.error('[Cron] Terjadi kesalahan saat menjalankan tugas malam:', error);
+                console.error("[Cron] Terjadi kesalahan saat menjalankan tugas malam:", error);
             }
         });
-
-        log.info('Cron Worker', 'Penjadwalan aktif. Menunggu eksekusi pada jam 23:59...');
     }
 }

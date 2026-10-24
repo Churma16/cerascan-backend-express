@@ -4,14 +4,14 @@ import path from 'path';
 
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/user/user.routes';
-import scanRoutes from './modules/scan/scan.routes';
+import scanRoutes from './routes/scan.routes';
 import dashboardRoute from "./modules/dashboard/dashboard.route";
 import dlqRoute from './modules/deadLetterExchange/dlq.route';
-import paymentRoute from "./modules/payment/payment.route";
+import paymentRoute from "./routes/payment.routes";
 import planRoute from "./modules/plan/plan.route";
 import subscriptionRoute from "./modules/subscription/subscription.route";
 import leaderboardRoute from "./modules/leaderboard/leaderboard.route";
-import userQuotaRoute from './modules/userQuota/userQuota.route';
+import quotaRoutes from './routes/quota.routes';
 import modelInsightRoute from './modules/modelInsight/modelInsight.route';
 import sseRoute from './transport/sse/sse.route';
 import passport from "passport";
@@ -42,7 +42,7 @@ app.use('/api/payment', paymentRoute);
 app.use('/api/plans', planRoute);
 app.use('/api/subscriptions', subscriptionRoute);
 app.use('/api/leaderboards', leaderboardRoute);
-app.use('/api/user-quotas', userQuotaRoute);
+app.use('/api/user-quotas', quotaRoutes);
 app.use('/api/model-insights', modelInsightRoute);
 app.use('/api/sse', sseRoute);
 
