@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { scanService } from "../services/scan.service";
-import { sendResponse, sendResponseMulti, sendResponsePaginated } from "../utils/response";
+import { sendResponse, sendResponseMulti, sendResponsePaginated } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { PaginationQueryDto, ScanIdParamDto } from "../schemas/scan.schema";
 
 export class ScanController {
     static async scanImage(req: AuthRequest, res: Response) {
@@ -9,7 +10,7 @@ export class ScanController {
             const userId = req.user?.id;
 
             if (!req.file) {
-                return sendResponse(res, 404, "No file found");
+                return sendResponse(res, 404, "Tidak ada file gambar yang diunggah");
             }
 
             const scanResult = await scanService.initiateSingleScan({
@@ -61,9 +62,7 @@ export class ScanController {
                 userId = undefined;
             }
 
-            const page = req.query.page ? parseInt(req.query.page as string) : undefined;
-            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-
+            const { page, limit } = (req.query as unknown as PaginationQueryDto) || { limit: 50 };
             const result = await scanService.getScanHistory(limit, userId, page);
 
             if (page !== undefined && !isNaN(page) && "rows" in result) {
@@ -78,9 +77,7 @@ export class ScanController {
 
     static async getPublicScanHistory(req: Request, res: Response) {
         try {
-            const page = req.query.page ? parseInt(req.query.page as string) : undefined;
-            const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-
+            const { page, limit } = (req.query as unknown as PaginationQueryDto) || { limit: 50 };
             const result = await scanService.getScanHistory(limit, null, page);
 
             if (page !== undefined && !isNaN(page) && "rows" in result) {
@@ -95,14 +92,8 @@ export class ScanController {
 
     static async deleteScan(req: Request, res: Response) {
         try {
-            const { id } = req.params;
-            const scanId = parseInt(id as string);
-
-            if (isNaN(scanId)) {
-                return sendResponse(res, 400, "ID tidak valid");
-            }
-
-            const isDeleted = await scanService.deleteScanById(scanId);
+            const { id } = req.params as unknown as ScanIdParamDto;
+            const isDeleted = await scanService.deleteScanById(id);
 
             if (!isDeleted) {
                 return sendResponse(res, 404, "Data scan tidak ditemukan");

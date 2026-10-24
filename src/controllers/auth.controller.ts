@@ -1,22 +1,25 @@
 import { Request, Response } from "express";
-import { authService, AuthService } from "../services/auth.service";
+import { authService } from "../services/auth.service";
 import { sendResponse } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { UserAttributes } from "../models/user.model";
-import { log } from "../utils/logger.util";
+import {
+    RegisterDto,
+    LoginDto,
+    ChangePasswordDto,
+    ForgotPasswordDto,
+    VerifyOtpDto,
+    ResetPasswordDto,
+    VerifyEmailQueryDto
+} from "../schemas/auth.schema";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 export class AuthController {
-    private service: AuthService;
-
-    constructor(service: AuthService = authService) {
-        this.service = service;
-    }
-
-    register = async (req: Request, res: Response): Promise<void> => {
+    static async register(req: Request, res: Response) {
         try {
-            const registeredUser = await this.service.register(req.body);
+            const payload = req.body as RegisterDto;
+            const registeredUser = await authService.register(payload);
             res.status(201).json({
                 status: "success",
                 message: "Registrasi berhasil",
@@ -28,129 +31,93 @@ export class AuthController {
                 message: error.message
             });
         }
-    };
+    }
 
-    registerV2 = async (req: Request, res: Response): Promise<void> => {
+    static async registerV2(req: Request, res: Response) {
         try {
-            const registeredUser = await this.service.registerV2(req.body);
-            sendResponse(res, 201, "Registrasi berhasil", registeredUser);
+            const payload = req.body as RegisterDto;
+            const registeredUser = await authService.registerV2(payload);
+            return sendResponse(res, 201, "Registrasi berhasil", registeredUser);
         } catch (error: any) {
-            sendResponse(res, 500, error.message);
+            return sendResponse(res, 500, error.message);
         }
-    };
+    }
 
-    verifyEmail = async (req: Request, res: Response): Promise<void> => {
+    static async verifyEmail(req: Request, res: Response) {
         try {
-            const { token } = req.query;
-            if (!token) {
-                sendResponse(res, 400, "Token verifikasi tidak ditemukan");
-                return;
-            }
-
-            await this.service.verifyEmail(token as string);
-            sendResponse(res, 200, "Email Anda berhasil diverifikasi");
+            const { token } = req.query as unknown as VerifyEmailQueryDto;
+            await authService.verifyEmail(token);
+            return sendResponse(res, 200, "Email Anda berhasil diverifikasi");
         } catch (error: any) {
-            sendResponse(res, 400, error.message);
+            return sendResponse(res, 400, error.message);
         }
-    };
+    }
 
-    login = async (req: Request, res: Response): Promise<void> => {
+    static async login(req: Request, res: Response) {
         try {
-            const { email, password } = req.body;
-            if (!email || !password) {
-                res.status(400).json({
-                    status: "error",
-                    message: "Email dan password wajib diisi"
-                });
-                return;
-            }
-
-            const loginResult = await this.service.login(email, password);
-            sendResponse(res, 201, "Login Berhasil", loginResult);
+            const { email, password } = req.body as LoginDto;
+            const loginResult = await authService.login(email, password);
+            return sendResponse(res, 201, "Login Berhasil", loginResult);
         } catch (error: any) {
-            sendResponse(res, 401, error.message);
+            return sendResponse(res, 401, error.message);
         }
-    };
+    }
 
-    googleCallback = async (req: Request, res: Response): Promise<void> => {
+    static async googleCallback(req: Request, res: Response) {
         const authenticatedUser = req.user as UserAttributes;
         if (!authenticatedUser) {
-            res.redirect(`${FRONTEND_URL}/login?error=auth_failed`);
-            return;
+            return res.redirect(`${FRONTEND_URL}/login?error=auth_failed`);
         }
 
-        const authToken = this.service.buildAuthToken(authenticatedUser);
-        res.redirect(`${FRONTEND_URL}/auth/callback?token=${authToken}`);
-    };
+        const authToken = authService.buildAuthToken(authenticatedUser);
+        return res.redirect(`${FRONTEND_URL}/auth/callback?token=${authToken}`);
+    }
 
-    changePassword = async (req: AuthRequest, res: Response): Promise<void> => {
+    static async changePassword(req: AuthRequest, res: Response) {
         try {
-            const { old_password, new_password } = req.body;
+            const { old_password, new_password } = req.body as ChangePasswordDto;
             const authenticatedUserId = req.user?.id;
 
             if (!authenticatedUserId) {
-                sendResponse(res, 401, "Sesi tidak valid");
-                return;
+                return sendResponse(res, 401, "Sesi tidak valid");
             }
 
-            if (!old_password || !new_password) {
-                sendResponse(res, 400, "old_password dan new_password wajib diisi");
-                return;
-            }
-
-            await this.service.changePassword(authenticatedUserId, old_password, new_password);
-            sendResponse(res, 200, "Password berhasil diganti", true);
+            await authService.changePassword(authenticatedUserId, old_password, new_password);
+            return sendResponse(res, 200, "Password berhasil diganti", true);
         } catch (error: any) {
-            sendResponse(res, 500, error.message);
+            return sendResponse(res, 500, error.message);
         }
-    };
+    }
 
-    forgotPassword = async (req: Request, res: Response): Promise<void> => {
+    static async forgotPassword(req: Request, res: Response) {
         try {
-            const { email } = req.body;
-            if (!email) {
-                sendResponse(res, 400, "Email wajib diisi");
-                return;
-            }
-
-            await this.service.forgotPassword(email);
-            sendResponse(res, 200, "Kode OTP berhasil dikirim ke email Anda");
+            const { email } = req.body as ForgotPasswordDto;
+            await authService.forgotPassword(email);
+            return sendResponse(res, 200, "Kode OTP berhasil dikirim ke email Anda");
         } catch (error: any) {
-            sendResponse(res, 400, error.message);
+            return sendResponse(res, 400, error.message);
         }
-    };
+    }
 
-    verifyOtp = async (req: Request, res: Response): Promise<void> => {
+    static async verifyOtp(req: Request, res: Response) {
         try {
-            const { email, otp } = req.body;
-            if (!email || !otp) {
-                sendResponse(res, 400, "Email dan OTP wajib diisi");
-                return;
-            }
-
-            const verifiedUserId = await this.service.verifyOtp(email, otp);
-            sendResponse(res, 200, "OTP valid, silakan lanjutkan untuk reset password", {
+            const { email, otp } = req.body as VerifyOtpDto;
+            const verifiedUserId = await authService.verifyOtp(email, otp);
+            return sendResponse(res, 200, "OTP valid, silakan lanjutkan untuk reset password", {
                 user_id: verifiedUserId
             });
         } catch (error: any) {
-            sendResponse(res, 400, error.message);
+            return sendResponse(res, 400, error.message);
         }
-    };
+    }
 
-    resetPassword = async (req: Request, res: Response): Promise<void> => {
+    static async resetPassword(req: Request, res: Response) {
         try {
-            const { id, new_password } = req.body;
-            if (!id || !new_password) {
-                sendResponse(res, 400, "ID pengguna dan password baru wajib diisi");
-                return;
-            }
-
-            await this.service.resetPassword(Number(id), new_password);
-            sendResponse(res, 200, "Password Anda berhasil diperbarui. Silakan login kembali.");
+            const { id, new_password } = req.body as ResetPasswordDto;
+            await authService.resetPassword(id, new_password);
+            return sendResponse(res, 200, "Password Anda berhasil diperbarui. Silakan login kembali.");
         } catch (error: any) {
-            sendResponse(res, 400, error.message);
+            return sendResponse(res, 400, error.message);
         }
-    };
+    }
 }
-
-export const authController = new AuthController();

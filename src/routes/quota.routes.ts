@@ -1,14 +1,27 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.middleware";
 import { QuotaController } from "../controllers/quota.controller";
+import { validate } from "../middleware/validate.middleware";
+import {
+    userIdParamSchema,
+    createQuotaSchema,
+    updateQuotaSchema,
+    incrementQuotaSchema
+} from "../schemas/quota.schema";
 
 const router = Router();
-router.use(requireAuth);
 
-router.post("/", QuotaController.create);
-router.get("/:user_id", QuotaController.getByUserId);
-router.put("/:user_id", QuotaController.updateQuota);
-router.post("/:user_id/increment", QuotaController.incrementUsedQuota);
-router.post("/:user_id/reset", QuotaController.resetQuota);
+router.post("/", validate(createQuotaSchema), QuotaController.create);
+router.get("/:user_id", validate({ params: userIdParamSchema }), QuotaController.getByUserId);
+router.put(
+    "/:user_id",
+    validate({ params: userIdParamSchema, body: updateQuotaSchema }),
+    QuotaController.updateQuota
+);
+router.post(
+    "/:user_id/increment",
+    validate({ params: userIdParamSchema, body: incrementQuotaSchema }),
+    QuotaController.incrementUsedQuota
+);
+router.post("/:user_id/reset", validate({ params: userIdParamSchema }), QuotaController.resetQuota);
 
 export default router;
