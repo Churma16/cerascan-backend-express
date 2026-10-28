@@ -1,73 +1,74 @@
-# CeraScan Express Service
+# CeraScan: Express API Gateway
 
-[![Express Version](https://img.shields.io/badge/Express-v4.x-000000?logo=express&logoColor=white)](https://expressjs.com) [![Node Version](https://img.shields.io/badge/Node.js-%5E18.x-339933?logo=node.js&logoColor=white)](https://nodejs.org) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Express](https://img.shields.io/badge/Express-v5.x-000000?logo=express&logoColor=white)](https://expressjs.com)
+[![Node](https://img.shields.io/badge/Node.js-%5E18.x-339933?logo=node.js&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A personal sandbox and Express API gateway for the CeraScan ecosystem. This service acts as an experimental playground for integrating various robust technologies (such as Kafka, RabbitMQ, and AWS S3) while handling client requests, authentication, and orchestrating tasks with the underlying machine learning microservice.
-
----
-
-## Key Features
-
-*   **API Gateway**: Centralized entry point for frontend requests.
-*   **Authentication & Security**: Secure OAuth 2.0 (Google), JWT-based session management, and route protection.
-*   **Message Brokers**: High-throughput message queuing utilizing RabbitMQ and Kafka for background tasks.
-*   **Cloud Storage**: Integration with AWS S3 / Cloudflare R2 for reliable file and media storage.
-*   **Real-time & Streaming**: Utilizes Socket.io for instantaneous bidirectional web dashboard updates, and Server-Sent Events (SSE) for unidirectional real-time data feeds.
-*   **Payment Gateway**: Integration with Midtrans for handling transactions (Sandbox/Dev environment only).
-*   **Microservice Communication**: Acts as a bridge between the client and the Python inference engine via gRPC.
-*   **Automated Jobs & Emails**: Cron jobs for scheduled tasks and Resend for transactional emails.
+The Node.js API gateway for CeraScan. It manages user authentication, stores scan records, handles tile photo uploads, and sends inference requests to the Python ML service via gRPC.
 
 ---
 
-## Tech Stack & Libraries
+## Capabilities
 
-*   **Backend**: Node.js, Express, TypeScript
-*   **Database**: MySQL (Sequelize), MongoDB (Mongoose)
-*   **Caching & Message Brokers**: Redis, RabbitMQ, Kafka
-*   **Authentication**: Passport.js, Google OAuth, JWT, bcryptjs
-*   **Cloud Storage**: AWS S3 SDK (Cloudflare R2)
-*   **External Services**: Midtrans (Payments - Sandbox), Resend (Emails)
-*   **Real-time & Streaming**: Socket.io, Server-Sent Events (SSE)
-*   **Communication**: gRPC
+* **Client API Gateway**: Central HTTP entry point for the React frontend on port 5002.
+* **Authentication**: Google OAuth 2.0 and JWT token verification.
+* **gRPC Client**: Sends tile images to `backend-python` on port 50051 for defect prediction.
+* **Live Updates**: Pushes scan progress and results using Socket.io and Server-Sent Events (SSE).
+* **Storage and Caching**: Uploads tile images to S3-compatible storage (Cloudflare R2), caches data in Redis, and stores user records in MySQL and MongoDB.
+* **Background Tasks**: Dispatches asynchronous jobs through RabbitMQ and Kafka.
 
 ---
 
-## Installation & Setup
+## Getting Started
 
-### Steps
-1.  **Install Dependencies**:
-    ```bash
-    npm install
-    ```
-2.  **Configure Environment**:
-    ```bash
-    cp .env.example .env
-    ```
-    Ensure you fill in your specific DB credentials, broker URLs, and secret keys.
-3.  **Run Service**:
-    *   Development: `npm run dev`
-    *   Production: `npm start`
+### Prerequisites
+
+* Node.js 18 or higher
+* Running MySQL instance
+* Running Redis instance
+* Running `backend-python` gRPC server (port 50051)
+
+### Setup
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Open `.env` and fill in your database credentials, JWT secrets, and service URLs.
+
+3. Run database migrations:
+   ```bash
+   npm run migrate
+   ```
+
+4. Start the server:
+   ```bash
+   # Development mode with hot reload
+   npm run dev
+
+   # Or production build
+   npm run build
+   npm start
+   ```
+
+The gateway listens by default at `http://localhost:5002`.
 
 ---
 
-## Folder Structure
+## Directory Layout
 
-*   `src/` - Source code for controllers, routes, and services.
-*   `config/` - Configuration for databases and external services.
-*   `models/` - Database schemas and models.
-*   `migrations/` - Database migration scripts.
-<!--
----
-
-## Acknowledgements
-
-Special thanks and appreciation to everyone who supported the research, development, and testing of this industrial machine learning solution. *(Note: Feel free to mention your university, specific mentors, or open-source libraries here!)*-->
-
----
-
-## Author
-
-**Churma16**
+* `src/controllers/`: Route controllers for authentication, tile scans, and payments.
+* `src/routes/`: Express route definitions.
+* `src/services/`: gRPC client wrappers, queue handlers, and cloud storage clients.
+* `src/proto/`: Protobuf definitions matching the Python gRPC service.
+* `models/`: Sequelize and Mongoose data schemas.
+* `migrations/`: Database schema migration scripts.
 
 ---
 
