@@ -11,7 +11,7 @@ import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/
  * @property {string|number} [inference_time] - Durasi inferensi AI
  * @property {number} [user_id] - ID pengguna pemilik scan
  */
-export interface SqlPayload {
+export interface ScanPersistencePayload {
     db_id?: number | string;
     prediction?: string;
     confidence_score?: number;
@@ -23,11 +23,11 @@ export interface SqlPayload {
  * Menangani pemrosesan pesan untuk penyimpanan ke database SQL dan pembaruan leaderboard.
  *
  * @async
- * @function handleSqlMessage
- * @param {SqlPayload} payload - Data payload hasil scan yang akan disimpan.
+ * @function handleScanPersistenceMessage
+ * @param {ScanPersistencePayload} payload - Data payload hasil scan yang akan disimpan.
  * @returns {Promise<void>}
  */
-export const handleSqlMessage = async (payload: SqlPayload): Promise<void> => {
+export const handleScanPersistenceMessage = async (payload: ScanPersistencePayload): Promise<void> => {
     if (payload.db_id) {
         const dbIdNum = typeof payload.db_id === 'number' 
             ? payload.db_id 
@@ -48,3 +48,6 @@ export const handleSqlMessage = async (payload: SqlPayload): Promise<void> => {
         await recordCompletedScanUseCase.execute(payload.user_id, payload.prediction);
     }
 };
+
+export type SqlPayload = ScanPersistencePayload;
+export const handleSqlMessage = handleScanPersistenceMessage;

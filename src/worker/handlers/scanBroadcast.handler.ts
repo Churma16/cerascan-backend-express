@@ -1,16 +1,16 @@
 import { NotificationService } from "../../services/notification.service";
 
 /**
- * Antarmuka payload data untuk pemancaran event WebSocket.
+ * Antarmuka payload data untuk pemancaran event WebSocket dan SSE.
  *
- * @interface SocketPayload
+ * @interface ScanBroadcastPayload
  * @property {number|string} [db_id] - ID entitas rekaman scan di database SQL
  * @property {string} [scan_id] - ID unik transaksi scan
  * @property {string} [prediction] - Hasil prediksi kecacatan
  * @property {number} [confidence_score] - Skor akurasi model AI
  * @property {string|number} [inference_time] - Durasi inferensi AI
  */
-export interface SocketPayload {
+export interface ScanBroadcastPayload {
     db_id?: number | string;
     scan_id?: string;
     prediction?: string;
@@ -19,14 +19,14 @@ export interface SocketPayload {
 }
 
 /**
- * Menangani pemrosesan pesan untuk mengirimkan notifikasi real-time via WebSocket.
+ * Menangani pemrosesan pesan untuk mengirimkan notifikasi real-time via WebSocket dan SSE.
  *
  * @async
- * @function handleSocketMessage
- * @param {SocketPayload} payload - Data payload hasil scan yang akan dipancarkan ke client.
+ * @function handleScanBroadcastMessage
+ * @param {ScanBroadcastPayload} payload - Data payload hasil scan yang akan dipancarkan ke client.
  * @returns {Promise<void>}
  */
-export const handleSocketMessage = async (payload: SocketPayload): Promise<void> => {
+export const handleScanBroadcastMessage = async (payload: ScanBroadcastPayload): Promise<void> => {
     if (payload.db_id) {
         const dbIdNum = typeof payload.db_id === 'number' 
             ? payload.db_id 
@@ -44,3 +44,7 @@ export const handleSocketMessage = async (payload: SocketPayload): Promise<void>
         }
     }
 };
+
+// Backward compatibility aliases
+export type SocketPayload = ScanBroadcastPayload;
+export const handleSocketMessage = handleScanBroadcastMessage;

@@ -1,6 +1,6 @@
 import { getRabbitChannel } from "../../config/rabbitmqClient";
-import { handleSqlMessage } from "../handlers/sql.handler";
-import { log } from "../../utils/logger";
+import { handleScanPersistenceMessage } from "../handlers/scanPersistence.handler";
+import { log } from "../../utils/logger.util";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
@@ -11,7 +11,7 @@ const STREAM_NAME = 'ceramic-scan-completed-stream';
  * @function startRabbitSqlConsumer
  * @returns {Promise<void>}
  */
-export const startRabbitSqlConsumer = async (): Promise<void> => {
+export const startRabbitmqSqlConsumer = async (): Promise<void> => {
     try {
         const channel = getRabbitChannel();
         if (!channel) {
@@ -38,7 +38,7 @@ export const startRabbitSqlConsumer = async (): Promise<void> => {
                     const payload = JSON.parse(messageVal);
                     log.info('RabbitMQ SQL Worker', `Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
 
-                    await handleSqlMessage(payload);
+                    await handleScanPersistenceMessage(payload);
                     log.success('RabbitMQ SQL Worker', `SQL & Leaderboard terupdate untuk scan_id: ${payload.scan_id}`);
 
                     channel.ack(msg);

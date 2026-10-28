@@ -1,6 +1,6 @@
 import mongoose, {Document, Schema} from 'mongoose';
 
-export interface IAnalyticsDocument extends Document {
+export interface IScanAnalyticsDocument extends Document {
     scan_id: string;
     user_id?: number;
     prediction: string;
@@ -21,4 +21,7 @@ const AnalyticsSchema: Schema = new Schema({
 AnalyticsSchema.index({ user_id: 1, created_at: -1 });
 
 
-export const AnalyticsModel = mongoose.model<IAnalyticsDocument>('Analytics', AnalyticsSchema, 'scan_analytics');
+export const ScanAnalyticsModel = mongoose.model<IScanAnalyticsDocument>('Analytics', AnalyticsSchema, 'scan_analytics');
+
+export type IAnalyticsDocument = IScanAnalyticsDocument;
+export const AnalyticsModel = ScanAnalyticsModel;

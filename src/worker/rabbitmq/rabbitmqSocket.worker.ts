@@ -1,6 +1,6 @@
 import { getRabbitChannel } from "../../config/rabbitmqClient";
-import { handleSocketMessage } from "../handlers/socket.handler";
-import { log } from "../../utils/logger";
+import { handleScanBroadcastMessage } from "../handlers/scanBroadcast.handler";
+import { log } from "../../utils/logger.util";
 
 const STREAM_NAME = 'ceramic-scan-completed-stream';
 
@@ -11,7 +11,7 @@ const STREAM_NAME = 'ceramic-scan-completed-stream';
  * @function startRabbitSocketConsumer
  * @returns {Promise<void>}
  */
-export const startRabbitSocketConsumer = async (): Promise<void> => {
+export const startRabbitmqSocketConsumer = async (): Promise<void> => {
     try {
         const channel = getRabbitChannel();
         if (!channel) {
@@ -38,7 +38,7 @@ export const startRabbitSocketConsumer = async (): Promise<void> => {
                     const payload = JSON.parse(messageVal);
                     log.info('RabbitMQ Socket Worker', `Mengirim notifikasi scan_id: ${payload.scan_id}`);
 
-                    await handleSocketMessage(payload);
+                    await handleScanBroadcastMessage(payload);
                     log.success('RabbitMQ Socket Worker', `Notifikasi terkirim untuk scan_id: ${payload.scan_id}`);
 
                     channel.ack(msg);
