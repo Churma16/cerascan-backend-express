@@ -5,7 +5,7 @@ import { getSocket } from "../config/websocketClient";
 import { sseClient } from "../config/sseClient";
 import { UserQuotaModel } from "../models";
 import { UserQuotaAttributes } from "../models/userQuota.model";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 export interface InitializeUserQuotaOptions {
     userId: number;
@@ -269,6 +269,33 @@ export class QuotaService {
                 updateOnDuplicate: ["used_quota"]
             });
         }
+    }
+
+    async getUserQuotaDetails(userId: number) {
+        const userQuota = await this.repository.findByUserId(userId);
+        if (!userQuota) return null;
+
+        const redis = getRedisClient();
+        const quotaKey = `user:${userId}:remaining_quota`;
+        let remainingQuotaStr = await redis.get(quotaKey);
+
+        if (remainingQuotaStr === null) {
+            const calculatedRemaining = userQuota.total_quota - userQuota.used_quota;
+            remainingQuotaStr = calculatedRemaining >= 0 ? calculatedRemaining.toString() : "0";
+            await redis.set(quotaKey, remainingQuotaStr, "EX", 86400);
+        }
+
+        const remainingQuota = parseInt(remainingQuotaStr, 10);
+        const usedQuota = Math.max(0, userQuota.total_quota - remainingQuota);
+        const isQuotaLow = userQuota.total_quota > 0 && (remainingQuota / userQuota.total_quota <= 0.2 || remainingQuota <= 200);
+
+        return {
+            total_quota: userQuota.total_quota,
+            used_quota: usedQuota,
+            remaining_quota: remainingQuota,
+            is_quota_low: isQuotaLow,
+            next_reset_date: userQuota.next_reset_date
+        };
     }
 }
 

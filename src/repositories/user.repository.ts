@@ -56,6 +56,10 @@ export class UserRepository {
         }
         return false;
     }
+
+    async count(options?: any): Promise<number> {
+        return (await (User as any).count(options)) as number;
+    }
 }
 
 export const userRepository = new UserRepository();

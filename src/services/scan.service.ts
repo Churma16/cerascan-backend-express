@@ -1,9 +1,10 @@
 import * as fs from "fs";
 import { scanRepository, ScanRepository } from "../repositories/scan.repository";
-import { generateId } from "../utils/generator.util";
+import { generateId } from "../utils/idGenerator.util";
 import { storageService } from "./storage.service";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
+import { analyticsService } from "./analytics.service";
 import { Scan } from "../models";
 
 export interface InitiateSingleScanInput {
@@ -129,7 +130,7 @@ export class ScanService {
         return { pendingScans, quotaExceeded: false };
     }
 
-    async getScanHistory(options: GetScanHistoryOptions = {}): Promise<Scan[] | PaginatedResult<Scan>> {
+    async getScanHistory(options: GetScanHistoryOptions = {}): Promise<any[] | PaginatedResult<any>> {
         const { limit = 50, userId, page } = options;
         const whereClause: any = {};
         if (userId !== undefined && userId !== null) {
@@ -145,19 +146,43 @@ export class ScanService {
                 offset
             });
 
+            const enrichedRows = await Promise.all(
+                paginatedResults.rows.map(scan => this.attachFileUrl(scan))
+            );
+
             return {
-                rows: paginatedResults.rows,
+                rows: enrichedRows,
                 count: paginatedResults.count,
                 page,
                 limit
             };
         }
 
-        return await this.repository.findAll({
+        const scans = await this.repository.findAll({
             where: whereClause,
             order: [["created_at", "DESC"]],
             limit
         });
+
+        return await Promise.all(scans.map(scan => this.attachFileUrl(scan)));
+    }
+
+    private async attachFileUrl(scan: Scan): Promise<any> {
+        const scanJson: any = typeof scan.toJSON === "function" ? scan.toJSON() : { ...scan };
+        if (scanJson.saved_file_name && scanJson.saved_file_name.includes("scans-")) {
+            scanJson.file_url = await storageService.getPresignedUrl(scanJson.saved_file_name);
+        } else if (scanJson.saved_file_name) {
+            scanJson.file_url = `${process.env.BACKEND_URL || "http://localhost:3000"}/uploads/${scanJson.saved_file_name}`;
+        }
+        return scanJson;
+    }
+
+    async getScanTrend(
+        limitDays: number = 7,
+        userId?: number,
+        userRole?: string
+    ): Promise<Array<{ date: string; total_scan: number; defect_count: number }>> {
+        return await analyticsService.getScanTrend(limitDays, userId, userRole);
     }
 
     async deleteScanById(scanId: number): Promise<boolean> {

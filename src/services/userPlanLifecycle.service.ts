@@ -2,7 +2,7 @@ import { Transaction } from "sequelize";
 import sequelize from "../config/databaseClient";
 import { User, Plan, Subscription, UserQuotaModel } from "../models";
 import { quotaService } from "./quota.service";
-import { log } from "../utils/logger";
+import { log } from "../utils/logger.util";
 
 export interface AssignPlanOptions {
     acquisitionMethod?: string;

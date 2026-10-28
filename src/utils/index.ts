@@ -1,4 +1,4 @@
-export * from "./generator.util";
+export * from "./idGenerator.util";
 export * from "./time.util";
 export * from "./order.util";
 export * from "./response.util";
