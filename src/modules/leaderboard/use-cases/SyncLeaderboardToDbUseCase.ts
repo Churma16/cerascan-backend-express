@@ -1,5 +1,5 @@
-import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
-import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
+import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
+import { LeaderboardCacheService } from "../infrastructure/leaderboardCache.service";
 import { ILeaderboardArchiveRepository } from "../domain/ILeaderboardArchiveRepository";
 import { SequelizeLeaderboardArchiveRepository } from "../infrastructure/SequelizeLeaderboardArchiveRepository";
 
@@ -17,7 +17,7 @@ export class SyncLeaderboardToDbUseCase {
         let keyExists = await redis.exists(redisRankKey);
         if (!keyExists) {
             console.log(`[Cron] Redis key ${redisRankKey} not found, rebuilding from DB before sync...`);
-            await LeaderboardHelper.rebuildLeaderboardCache(redis, currentPeriod);
+            await LeaderboardCacheService.rebuildLeaderboardCache(redis, currentPeriod);
         }
 
         const activeUserIds = await redis.sendCommand(['ZREVRANGE', redisRankKey, '0', '-1']) as string[];

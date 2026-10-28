@@ -1,5 +1,5 @@
 import amqp from 'amqplib';
-import { log } from '../utils/logger';
+import { log } from '../utils/logger.util';
 
 let rabbitConnection: any = null;
 let rabbitChannel: any = null;

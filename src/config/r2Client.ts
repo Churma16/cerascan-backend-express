@@ -1,5 +1,5 @@
 import { S3Client } from '@aws-sdk/client-s3';
-import { log } from '../utils/logger';
+import { log } from '../utils/logger.util';
 import dotenv from 'dotenv';
 
 dotenv.config();

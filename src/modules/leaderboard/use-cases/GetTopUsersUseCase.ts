@@ -1,6 +1,6 @@
 import { getRedisClient } from "../../../config/redisClient";
-import { getCurrentMonthIdIndonesia } from "../../../utils/time.helper";
-import { LeaderboardHelper } from "../infrastructure/leaderboard.helper";
+import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
+import { LeaderboardCacheService } from "../infrastructure/leaderboardCache.service";
 import { calculateDefectRatio } from "../domain/leaderboard.domain";
 import { IUserRepository } from "../../user/domain/IUserRepository";
 import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
@@ -21,7 +21,7 @@ export class GetTopUsersUseCase {
             let keyExists = await redis.exists(redisRankKey);
             if (!keyExists) {
                 console.log(`[Leaderboard] No data found for key: ${redisRankKey}, rebuilding cache...`);
-                await LeaderboardHelper.rebuildLeaderboardCache(redis, currentPeriod);
+                await LeaderboardCacheService.rebuildLeaderboardCache(redis, currentPeriod);
                 keyExists = await redis.exists(redisRankKey);
             }
 
