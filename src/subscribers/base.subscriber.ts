@@ -1,6 +1,6 @@
 import {getRabbitChannel} from "../config/rabbitmqClient";
 import {RabbitmqPublisher} from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
-import {log} from "../utils/logger";
+import { log } from "../utils/logger.util";
 import { NotificationService } from "../services/notification.service";
 import { DeadLetterMessage } from "../models";
 

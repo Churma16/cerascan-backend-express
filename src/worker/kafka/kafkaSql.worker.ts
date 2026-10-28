@@ -1,6 +1,6 @@
 import { kafka } from "../../config/kafkaClient";
-import { handleSqlMessage } from "../handlers/sql.handler";
-import { log } from "../../utils/logger";
+import { handleScanPersistenceMessage } from "../handlers/scanPersistence.handler";
+import { log } from "../../utils/logger.util";
 
 const consumer = kafka.consumer({ groupId: 'ceramic-sql-group' });
 const TOPIC_NAME = 'ceramic-scan-completed';
@@ -29,7 +29,7 @@ export const startSqlConsumer = async (): Promise<void> => {
                     const payload = JSON.parse(messageVal);
                     log.info('Kafka SQL Worker', `Menyimpan hasil prediksi scan_id: ${payload.scan_id}`);
 
-                    await handleSqlMessage(payload);
+                    await handleScanPersistenceMessage(payload);
                     log.success('Kafka SQL Worker', `SQL & Leaderboard terupdate untuk scan_id: ${payload.scan_id}`);
                 } catch (err: any) {
                     log.error('Kafka SQL Worker', `Gagal memproses pesan: ${err.message}`);

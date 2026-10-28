@@ -1,6 +1,6 @@
 import { kafka } from "../../config/kafkaClient";
-import { handleSocketMessage } from "../handlers/socket.handler";
-import { log } from "../../utils/logger";
+import { handleScanBroadcastMessage } from "../handlers/scanBroadcast.handler";
+import { log } from "../../utils/logger.util";
 
 const consumer = kafka.consumer({ groupId: 'ceramic-socket-group' });
 const TOPIC_NAME = 'ceramic-scan-completed';
@@ -29,7 +29,7 @@ export const startSocketConsumer = async (): Promise<void> => {
                     const payload = JSON.parse(messageVal);
                     log.info('Kafka Socket Worker', `Mengirim notifikasi scan_id: ${payload.scan_id}`);
 
-                    await handleSocketMessage(payload);
+                    await handleScanBroadcastMessage(payload);
                     log.success('Kafka Socket Worker', `Notifikasi terkirim untuk scan_id: ${payload.scan_id}`);
                 } catch (err: any) {
                     log.error('Kafka Socket Worker', `Gagal memproses pesan: ${err.message}`);

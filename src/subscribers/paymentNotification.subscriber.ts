@@ -3,9 +3,9 @@ import { BaseRabbitSubscriber } from "./base.subscriber";
 
 
 
-export class PaymentSocketSubscriber extends BaseRabbitSubscriber {
+export class PaymentNotificationSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';
-    protected readonly queueName = 'payment_socket_notifier_queue';
+    protected readonly queueName = 'payment_notification_queue';
     protected readonly routingKeys = ['payment.success', 'payment.failed'];
 
     protected getMessageId(eventData: any, routingKey: string): string {

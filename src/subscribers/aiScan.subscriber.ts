@@ -1,12 +1,11 @@
 import { NotificationService } from "../services/notification.service";
 import { BaseRabbitSubscriber } from "./base.subscriber";
-import { PythonMlGrpcClient } from "../services/pythonMlClient.service";
+import { PythonMlGrpcClient } from "../services/pythonMlGrpc.service";
 import { scanService } from "../services/scan.service";
 import { quotaService } from "../services/quota.service";
-import { getRedisClient } from "../config/redisClient";
 import { storageService } from "../services/storage.service";
-import { log } from "../utils/logger";
-import { RecordCompletedScanUseCase } from "../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { StreamPublisher } from "../transport/stream/stream.publisher";
+import { log } from "../utils/logger.util";
 
 export class AiScanSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = "cerascan_events";
@@ -28,62 +27,15 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
         const imageBuffer = await storageService.downloadFile(eventData.r2_object_key);
         const predictionResult = await PythonMlGrpcClient.predictImage(imageBuffer, eventData.original_name);
         const inferenceDurationMs = Date.now() - startTime;
-        const inferenceTimeString = `${inferenceDurationMs}ms`;
 
-        // 1. Update SQL Database status to success
-        if (eventData.db_id) {
-            await scanService.markScanAsSuccess(
-                eventData.db_id,
-                predictionResult.prediction,
-                predictionResult.confidence_score,
-                inferenceTimeString
-            );
-        }
-
-        // 2. Update Leaderboard if user is registered
-        if (eventData.user_id && predictionResult.prediction) {
-            try {
-                const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
-                await recordCompletedScanUseCase.execute(eventData.user_id, predictionResult.prediction);
-            } catch (leaderboardError) {
-                console.error("[AI Worker] Gagal memperbarui leaderboard:", leaderboardError);
-            }
-        }
-
-        // 3. Record MongoDB analytics & invalidate Redis dashboard cache
-        try {
-            await scanService.recordScanAnalytics({
-                scan_id: eventData.scan_id,
-                user_id: eventData.user_id || 0,
-                prediction: predictionResult.prediction,
-                confidence_score: predictionResult.confidence_score,
-                inference_time: inferenceDurationMs
-            });
-
-            const redisClient = getRedisClient();
-            if (eventData.user_id) {
-                await redisClient.del(`dashboard:kpi:${eventData.user_id}`);
-                await redisClient.del(`dashboard:trend:${eventData.user_id}`);
-            } else {
-                await redisClient.del("dashboard:kpi");
-                await redisClient.del("dashboard:trend");
-            }
-        } catch (analyticsError) {
-            console.error("[AI Worker] Gagal mencatat analitik scan:", analyticsError);
-        }
-
-        // 4. Emit real-time notification to client via Socket.io
-        try {
-            await NotificationService.emitScanCompleted({
-                db_id: eventData.db_id,
-                scan_id: eventData.scan_id,
-                prediction: predictionResult.prediction,
-                confidence: predictionResult.confidence_score,
-                inference_time: inferenceTimeString
-            });
-        } catch (socketError) {
-            console.error("[AI Worker] Gagal memancarkan event socket scan_completed:", socketError);
-        }
+        await StreamPublisher.publishScanCompleted({
+            scan_id: eventData.scan_id,
+            user_id: eventData.user_id,
+            db_id: eventData.db_id,
+            prediction: predictionResult.prediction,
+            confidence_score: predictionResult.confidence_score,
+            inference_time: inferenceDurationMs
+        });
 
         log.success("AI Worker", `Selesai Scan ${eventData.scan_id}. Hasil: ${predictionResult.prediction} (${predictionResult.confidence_score}%)`);
     }
