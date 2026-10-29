@@ -1,6 +1,5 @@
-import { EmailService } from "../services/email.service";
-import { BaseRabbitSubscriber } from "./base.subscriber";
-
+import { EmailService } from "../../services/email.service";
+import { BaseRabbitSubscriber } from "../base.subscriber";
 
 export class PaymentEmailSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';
@@ -8,7 +7,7 @@ export class PaymentEmailSubscriber extends BaseRabbitSubscriber {
     protected readonly routingKeys = ['payment.success'];
 
     protected getMessageId(eventData: any, routingKey: string): string {
-        return `${eventData.orderId}`;
+        return `${eventData?.orderId || 'unknown'}`;
     }
 
     protected async processMessage(eventData: any, routingKey: string): Promise<void> {

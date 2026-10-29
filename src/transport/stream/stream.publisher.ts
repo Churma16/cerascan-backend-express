@@ -1,8 +1,8 @@
 import { getRabbitChannel } from "../../config/rabbitmqClient";
 import { getKafkaProducer } from "../../config/kafkaClient";
-import { handleScanPersistenceMessage } from "../../worker/handlers/scanPersistence.handler";
-import { handleAnalyticsMessage } from "../../worker/handlers/analytics.handler";
-import { handleScanBroadcastMessage } from "../../worker/handlers/scanBroadcast.handler";
+import { handleScanPersistenceMessage } from "../../subscribers/streams/handlers/scanPersistence.handler";
+import { handleAnalyticsMessage } from "../../subscribers/streams/handlers/scanAnalytics.handler";
+import { handleScanBroadcastMessage } from "../../subscribers/streams/handlers/scanBroadcast.handler";
 import { log } from "../../utils/logger.util";
 
 export interface ScanCompletedPayload {

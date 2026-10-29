@@ -1,15 +1,8 @@
-import { scanService } from "../../services/scan.service";
-import { RecordCompletedScanUseCase } from "../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { scanService } from "../../../services/scan.service";
+import { RecordCompletedScanUseCase } from "../../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
 
 /**
  * Antarmuka payload data untuk pembaruan database SQL dan leaderboard.
- *
- * @interface SqlPayload
- * @property {number|string} [db_id] - ID entitas rekaman scan di database SQL
- * @property {string} [prediction] - Hasil prediksi kecacatan dari model AI
- * @property {number} [confidence_score] - Skor kepercayaan/akurasi dari model AI
- * @property {string|number} [inference_time] - Durasi inferensi AI
- * @property {number} [user_id] - ID pengguna pemilik scan
  */
 export interface ScanPersistencePayload {
     db_id?: number | string;
@@ -21,11 +14,6 @@ export interface ScanPersistencePayload {
 
 /**
  * Menangani pemrosesan pesan untuk penyimpanan ke database SQL dan pembaruan leaderboard.
- *
- * @async
- * @function handleScanPersistenceMessage
- * @param {ScanPersistencePayload} payload - Data payload hasil scan yang akan disimpan.
- * @returns {Promise<void>}
  */
 export const handleScanPersistenceMessage = async (payload: ScanPersistencePayload): Promise<void> => {
     if (payload.db_id) {

@@ -1,17 +1,10 @@
-import { scanService } from "../../services/scan.service";
-import { getRedisClient } from "../../config/redisClient";
+import { scanService } from "../../../services/scan.service";
+import { getRedisClient } from "../../../config/redisClient";
 
 /**
  * Antarmuka payload data analitik scan.
- *
- * @interface AnalyticsPayload
- * @property {string} scan_id - ID unik transaksi scan
- * @property {number} user_id - ID pengguna yang melakukan scan
- * @property {string} prediction - Hasil prediksi kecacatan
- * @property {number} confidence_score - Tingkat kepercayaan/akurasi model AI
- * @property {number|string} inference_time - Durasi eksekusi inferensi AI
  */
-export interface AnalyticsPayload {
+export interface ScanAnalyticsPayload {
     scan_id: string;
     user_id: number;
     prediction: string;
@@ -21,15 +14,10 @@ export interface AnalyticsPayload {
 
 /**
  * Menangani pemrosesan pesan analitik scan.
- * Fungsi ini mencatat riwayat scan ke MongoDB, memperbarui akumulasi KPI harian pengguna,
+ * Mencatat riwayat scan ke MongoDB, memperbarui akumulasi KPI harian pengguna,
  * dan membersihkan cache Redis terkait dashboard.
- *
- * @async
- * @function handleAnalyticsMessage
- * @param {AnalyticsPayload} payload - Payload data analitik hasil scan AI.
- * @returns {Promise<void>}
  */
-export const handleAnalyticsMessage = async (payload: AnalyticsPayload): Promise<void> => {
+export const handleScanAnalyticsMessage = async (payload: ScanAnalyticsPayload): Promise<void> => {
     const inferenceTimeNum = typeof payload.inference_time === 'number' 
         ? payload.inference_time 
         : parseInt(String(payload.inference_time)) || 0;
@@ -57,3 +45,6 @@ export const handleAnalyticsMessage = async (payload: AnalyticsPayload): Promise
         console.error('[Analytics Handler] Gagal menghapus cache Redis:', redisError.message);
     }
 };
+
+export type AnalyticsPayload = ScanAnalyticsPayload;
+export const handleAnalyticsMessage = handleScanAnalyticsMessage;

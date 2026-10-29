@@ -1,12 +1,12 @@
-import { AiScanSubscriber } from "./aiScan.subscriber";
-import { PaymentFulfillmentSubscriber } from "./paymentFulfillment.subscriber";
-import { PaymentEmailSubscriber } from "./paymentEmail.subscriber";
-import { PaymentNotificationSubscriber } from "./paymentNotification.subscriber";
-import { startScanStreamWorkers } from "../worker/scanStreamWorkerManager";
+import { AiScanSubscriber } from "./queue/aiScan.subscriber";
+import { PaymentFulfillmentSubscriber } from "./queue/paymentFulfillment.subscriber";
+import { PaymentEmailSubscriber } from "./queue/paymentEmail.subscriber";
+import { PaymentNotificationSubscriber } from "./queue/paymentNotification.subscriber";
+import { startScanStreamWorkers } from "./streams/scanStreamManager";
 import { log } from "../utils/logger.util";
 
 /**
- * Memulai seluruh RabbitMQ Event Subscribers dan Stream Workers
+ * Memulai seluruh AMQP Task Queue Subscribers dan Stream Workers
  * sesuai dengan konfigurasi environment (Kafka di dev, RabbitMQ Streams di prod).
  *
  * @async
@@ -30,7 +30,7 @@ export const startAllSubscribers = async (): Promise<void> => {
         const aiScanSubscriber = new AiScanSubscriber();
         await aiScanSubscriber.start();
 
-        // 2. Inisialisasi Stream Workers (Kafka untuk development, RabbitMQ Streams untuk production)
+        // 2. Inisialisasi Stream Workers (Kafka di development, RabbitMQ Streams di production)
         await startScanStreamWorkers();
 
         log.success("Subscribers", "Seluruh subscribers dan stream workers berhasil diaktifkan.");

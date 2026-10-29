@@ -1,7 +1,5 @@
-import { NotificationService } from "../services/notification.service";
-import { BaseRabbitSubscriber } from "./base.subscriber";
-
-
+import { NotificationService } from "../../services/notification.service";
+import { BaseRabbitSubscriber } from "../base.subscriber";
 
 export class PaymentNotificationSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = 'cerascan_events';

@@ -1,14 +1,7 @@
-import { NotificationService } from "../../services/notification.service";
+import { NotificationService } from "../../../services/notification.service";
 
 /**
  * Antarmuka payload data untuk pemancaran event WebSocket dan SSE.
- *
- * @interface ScanBroadcastPayload
- * @property {number|string} [db_id] - ID entitas rekaman scan di database SQL
- * @property {string} [scan_id] - ID unik transaksi scan
- * @property {string} [prediction] - Hasil prediksi kecacatan
- * @property {number} [confidence_score] - Skor akurasi model AI
- * @property {string|number} [inference_time] - Durasi inferensi AI
  */
 export interface ScanBroadcastPayload {
     db_id?: number | string;
@@ -20,11 +13,6 @@ export interface ScanBroadcastPayload {
 
 /**
  * Menangani pemrosesan pesan untuk mengirimkan notifikasi real-time via WebSocket dan SSE.
- *
- * @async
- * @function handleScanBroadcastMessage
- * @param {ScanBroadcastPayload} payload - Data payload hasil scan yang akan dipancarkan ke client.
- * @returns {Promise<void>}
  */
 export const handleScanBroadcastMessage = async (payload: ScanBroadcastPayload): Promise<void> => {
     if (payload.db_id) {
@@ -45,6 +33,5 @@ export const handleScanBroadcastMessage = async (payload: ScanBroadcastPayload):
     }
 };
 
-// Backward compatibility aliases
 export type SocketPayload = ScanBroadcastPayload;
 export const handleSocketMessage = handleScanBroadcastMessage;

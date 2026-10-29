@@ -1,11 +1,11 @@
-import { NotificationService } from "../services/notification.service";
-import { BaseRabbitSubscriber } from "./base.subscriber";
-import { PythonMlGrpcClient } from "../services/pythonMlGrpc.service";
-import { scanService } from "../services/scan.service";
-import { quotaService } from "../services/quota.service";
-import { storageService } from "../services/storage.service";
-import { StreamPublisher } from "../transport/stream/stream.publisher";
-import { log } from "../utils/logger.util";
+import { NotificationService } from "../../services/notification.service";
+import { BaseRabbitSubscriber } from "../base.subscriber";
+import { PythonMlGrpcClient } from "../../services/pythonMlGrpc.service";
+import { scanService } from "../../services/scan.service";
+import { quotaService } from "../../services/quota.service";
+import { storageService } from "../../services/storage.service";
+import { StreamPublisher } from "../../transport/stream/stream.publisher";
+import { log } from "../../utils/logger.util";
 
 export class AiScanSubscriber extends BaseRabbitSubscriber {
     protected readonly exchangeName = "cerascan_events";
