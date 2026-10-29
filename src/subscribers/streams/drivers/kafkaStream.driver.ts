@@ -17,29 +17,39 @@ export class KafkaStreamDriver implements IStreamConsumerDriver {
         }
 
         for (const consumerDef of consumers) {
-            try {
-                const consumer = kafka.consumer({ groupId: consumerDef.groupId });
-                await consumer.connect();
-                await consumer.subscribe({ topic: streamTarget, fromBeginning: false });
+            await this.registerConsumer(streamTarget, consumerDef);
+        }
+    }
 
-                await consumer.run({
-                    eachMessage: async ({ message }) => {
-                        const messageString = message.value?.toString();
-                        if (!messageString) return;
+    private async registerConsumer(streamTarget: string, consumerDef: StreamConsumerItem): Promise<void> {
+        try {
+            const consumer = kafka.consumer({ groupId: consumerDef.groupId });
+            await consumer.connect();
+            await consumer.subscribe({ topic: streamTarget, fromBeginning: false });
 
-                        try {
-                            const payload = JSON.parse(messageString);
-                            await consumerDef.handler(payload);
-                        } catch (err: any) {
-                            log.error(`Kafka Stream [${consumerDef.name}]`, `Gagal memproses pesan: ${err.message}`);
-                        }
-                    }
-                });
+            await consumer.run({
+                eachMessage: async ({ message }) => {
+                    await this.processMessage(message, consumerDef);
+                }
+            });
 
-                log.info("Kafka Stream Driver", `Consumer aktif: [${consumerDef.name}] di topik '${streamTarget}'`);
-            } catch (error: any) {
-                log.error(`Kafka Stream Driver`, `Gagal mendaftarkan consumer [${consumerDef.name}]: ${error.message}`);
-            }
+            log.info("Kafka Stream Driver", `Consumer aktif: [${consumerDef.name}] di topik '${streamTarget}'`);
+        } catch (error: any) {
+            log.error("Kafka Stream Driver", `Gagal mendaftarkan consumer [${consumerDef.name}]: ${error.message}`);
+        }
+    }
+
+    private async processMessage(message: any, consumerDef: StreamConsumerItem): Promise<void> {
+        const messageString = message.value?.toString();
+        if (!messageString) {
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(messageString);
+            await consumerDef.handler(payload);
+        } catch (err: any) {
+            log.error(`Kafka Stream [${consumerDef.name}]`, `Gagal memproses pesan: ${err.message}`);
         }
     }
 }

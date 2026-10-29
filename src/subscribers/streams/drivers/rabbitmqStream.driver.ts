@@ -23,34 +23,47 @@ export class RabbitMQStreamDriver implements IStreamConsumerDriver {
         await channel.prefetch(100);
 
         for (const consumerDef of consumers) {
-            try {
-                await channel.consume(
-                    streamTarget,
-                    async (msg: any) => {
-                        if (!msg) return;
+            await this.registerConsumer(channel, streamTarget, consumerDef);
+        }
+    }
 
-                        try {
-                            const contentString = msg.content.toString();
-                            if (contentString) {
-                                const payload = JSON.parse(contentString);
-                                await consumerDef.handler(payload);
-                            }
-                            channel.ack(msg);
-                        } catch (err: any) {
-                            log.error(`RabbitMQ Stream [${consumerDef.name}]`, `Gagal memproses pesan: ${err.message}`);
-                            channel.nack(msg, false, false);
-                        }
-                    },
-                    {
-                        noAck: false,
-                        arguments: { "x-stream-offset": "next" }
-                    }
-                );
+    private async registerConsumer(channel: any, streamTarget: string, consumerDef: StreamConsumerItem): Promise<void> {
+        try {
+            await channel.consume(
+                streamTarget,
+                async (msg: any) => {
+                    await this.processMessage(channel, msg, consumerDef);
+                },
+                {
+                    noAck: false,
+                    arguments: { "x-stream-offset": "next" }
+                }
+            );
 
-                log.info("RabbitMQ Stream Driver", `Consumer aktif: [${consumerDef.name}] di '${streamTarget}'`);
-            } catch (error: any) {
-                log.error("RabbitMQ Stream Driver", `Gagal mendaftarkan consumer [${consumerDef.name}]: ${error.message}`);
-            }
+            log.info("RabbitMQ Stream Driver", `Consumer aktif: [${consumerDef.name}] di '${streamTarget}'`);
+        } catch (error: any) {
+            log.error("RabbitMQ Stream Driver", `Gagal mendaftarkan consumer [${consumerDef.name}]: ${error.message}`);
+        }
+    }
+
+    private async processMessage(channel: any, msg: any, consumerDef: StreamConsumerItem): Promise<void> {
+        if (!msg) {
+            return;
+        }
+
+        const contentString = msg.content?.toString();
+        if (!contentString) {
+            channel.ack(msg);
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(contentString);
+            await consumerDef.handler(payload);
+            channel.ack(msg);
+        } catch (err: any) {
+            log.error(`RabbitMQ Stream [${consumerDef.name}]`, `Gagal memproses pesan: ${err.message}`);
+            channel.nack(msg, false, false);
         }
     }
 }
