@@ -1,15 +1,17 @@
-import { analyticsService } from "../../services/analytics.service";
+import { GetModelInsightKpiQueryHandler } from "./queries/GetModelInsightKpiQuery";
 
 export class ModelInsightService {
+    private static modelInsightHandler = new GetModelInsightKpiQueryHandler();
+
     static async getModelInsightKPI(days: number = 30) {
-        return await analyticsService.getModelInsightKPI(days);
+        return await this.modelInsightHandler.getModelInsightMetrics(days);
     }
 
     static async getPredictionDistribution(days: number = 30) {
-        return await analyticsService.getPredictionDistribution(days);
+        return await this.modelInsightHandler.getPredictionDistribution(days);
     }
 
     static async getConfidenceDistribution(days: number = 30) {
-        return await analyticsService.getConfidenceDistribution(days);
+        return await this.modelInsightHandler.getConfidenceDistribution(days);
     }
 }
