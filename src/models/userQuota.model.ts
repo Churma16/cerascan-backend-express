@@ -1,6 +1,5 @@
-import {DataTypes, Model} from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/databaseClient";
-import User from "./user.model";
 
 export interface UserQuotaAttributes {
     id?: number;
@@ -55,8 +54,4 @@ UserQuotaModel.init(
     }
 );
 
-User.hasOne(UserQuotaModel, {foreignKey: 'user_id', as: 'quota'});
-UserQuotaModel.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
-
 export default UserQuotaModel;
-

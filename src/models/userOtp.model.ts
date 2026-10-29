@@ -1,6 +1,5 @@
-import {DataTypes, Model} from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/databaseClient";
-import User from "./user.model";
 
 export interface UserOtpAttributes {
     id?: number;
@@ -52,8 +51,5 @@ UserOtpModel.init(
         timestamps: true,
     }
 );
-
-User.hasMany(UserOtpModel, {foreignKey: 'user_id', as: 'otps'});
-UserOtpModel.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
 
 export default UserOtpModel;

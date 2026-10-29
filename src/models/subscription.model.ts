@@ -1,7 +1,7 @@
-import {DataTypes, Model} from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/databaseClient";
-import User from "./user.model";
-import Plan from "./plan.model";
+import type User from "./user.model";
+import type Plan from "./plan.model";
 
 export interface SubscriptionAttributes {
     id?: number;
@@ -54,7 +54,6 @@ Subscription.init(
         acquisition_method: {
             type: DataTypes.STRING,
             allowNull: false,
-            defaultValue: 'midtrans_payment'
         },
         start_date: {
             type: DataTypes.DATE,
@@ -76,10 +75,4 @@ Subscription.init(
     }
 );
 
-User.hasMany(Subscription, {foreignKey: 'user_id', as: 'subscriptions'});
-Subscription.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
-Plan.hasMany(Subscription, {foreignKey: 'plan_id', as: 'subscriptions'});
-Subscription.belongsTo(Plan, {foreignKey: 'plan_id', as: 'plan'});
-
 export default Subscription;
-

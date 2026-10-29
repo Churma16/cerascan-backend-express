@@ -7,31 +7,10 @@ import UserQuotaModel from './userQuota.model';
 import Payment from './payment.model';
 import LeaderboardArchive from './leaderboardArchive.model';
 import DeadLetterMessage from './deadLetterMessage.model';
+import { setupAssociations } from './associations';
 
-User.belongsTo(Plan, {
-    foreignKey: 'plan_id',
-    as: 'active_plan',
-});
-
-Plan.hasMany(User, {
-    foreignKey: 'plan_id',
-    as: 'users',
-});
-
-User.hasOne(UserQuotaModel, {
-    foreignKey: 'user_id',
-    as: 'user_quota',
-})
-
-UserQuotaModel.belongsTo(User, {
-    foreignKey: 'user_id',
-    as: 'owner',
-})
-
-User.hasMany(Payment, {foreignKey: 'user_id', as: 'payments'});
-Payment.belongsTo(User, {foreignKey: 'user_id', as: 'user'});
-Plan.hasMany(Payment, {foreignKey: 'plan_id', as: 'payments'});
-Payment.belongsTo(Plan, {foreignKey: 'plan_id', as: 'plan'});
+// Inisialisasi seluruh asosiasi Sequelize secara terpusat
+setupAssociations();
 
 export {
     User,
@@ -43,6 +22,5 @@ export {
     Payment,
     LeaderboardArchive,
     DeadLetterMessage,
+    setupAssociations
 };
-
-

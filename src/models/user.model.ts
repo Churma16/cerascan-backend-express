@@ -1,7 +1,7 @@
-import {DataTypes, Model} from "sequelize";
+import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/databaseClient";
-import Plan from "./plan.model";
-import UserQuotaModel from "./userQuota.model";
+import type Plan from "./plan.model";
+import type UserQuotaModel from "./userQuota.model";
 
 export interface UserAttributes {
     id?: number;
@@ -9,7 +9,7 @@ export interface UserAttributes {
     email: string;
     password?: string;
     googleId?: string | null;
-    avatar?: string | null; // Google Account Avatar
+    avatar?: string | null;
     role: 'admin' | 'operator' | 'user';
     sub_tier: 'free' | 'paid';
     plan_id: number;
