@@ -44,12 +44,17 @@ export class PaymentController {
         }
     }
 
-    static async getById(req: Request, res: Response) {
+    static async getById(req: AuthRequest, res: Response) {
         try {
             const { id } = req.params as unknown as PaymentIdParamDto;
             const payment = await paymentService.getPaymentById(id);
             if (!payment) {
                 return sendResponse(res, 404, "Pembayaran tidak ditemukan");
+            }
+
+            const currentUser = req.user;
+            if (currentUser?.role !== "admin" && payment.user_id !== currentUser?.id) {
+                return sendResponse(res, 403, "Akses ditolak");
             }
 
             return sendResponse(res, 200, "Data pembayaran berhasil diambil", payment);
@@ -58,12 +63,17 @@ export class PaymentController {
         }
     }
 
-    static async getByOrderId(req: Request, res: Response) {
+    static async getByOrderId(req: AuthRequest, res: Response) {
         try {
             const { order_id } = req.params as unknown as OrderIdParamDto;
             const payment = await paymentService.getPaymentByOrderId(order_id);
             if (!payment) {
                 return sendResponse(res, 404, "Pembayaran tidak ditemukan");
+            }
+
+            const currentUser = req.user;
+            if (currentUser?.role !== "admin" && payment.user_id !== currentUser?.id) {
+                return sendResponse(res, 403, "Akses ditolak");
             }
 
             return sendResponse(res, 200, "Data pembayaran berhasil diambil", payment);

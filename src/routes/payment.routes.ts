@@ -17,11 +17,11 @@ router.post("/webhook", PaymentController.handleWebhook);
 router.get("/me", requireAuth, PaymentController.getCurrentUserPaymentHistories);
 router.get("/kpi", requireAuth, PaymentController.getPaymentKpi);
 router.get("/", requireAuth, requireRole(["admin"]), PaymentController.getAll);
-router.post("/", requireRole(["admin"]), PaymentController.create);
-router.get("/users/:user_id", requireRole(["admin"]), validate({ params: userIdParamSchema }), PaymentController.getByUserId);
-router.get("/orders/:order_id", validate({ params: orderIdParamSchema }), PaymentController.getByOrderId);
-router.get("/:id", validate({ params: paymentIdParamSchema }), PaymentController.getById);
-router.put("/:id/status", requireRole(["admin"]), validate({ params: paymentIdParamSchema }), PaymentController.updateStatus);
-router.delete("/:id", requireRole(["admin"]), validate({ params: paymentIdParamSchema }), PaymentController.delete);
+router.post("/", requireAuth, requireRole(["admin"]), PaymentController.create);
+router.get("/users/:user_id", requireAuth, requireRole(["admin"]), validate({ params: userIdParamSchema }), PaymentController.getByUserId);
+router.get("/orders/:order_id", requireAuth, validate({ params: orderIdParamSchema }), PaymentController.getByOrderId);
+router.get("/:id", requireAuth, validate({ params: paymentIdParamSchema }), PaymentController.getById);
+router.put("/:id/status", requireAuth, requireRole(["admin"]), validate({ params: paymentIdParamSchema }), PaymentController.updateStatus);
+router.delete("/:id", requireAuth, requireRole(["admin"]), validate({ params: paymentIdParamSchema }), PaymentController.delete);
 
 export default router;
