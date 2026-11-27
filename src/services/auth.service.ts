@@ -70,7 +70,7 @@ export class AuthService {
             full_name: data.full_name!,
             email: data.email!,
             password: hashedPassword,
-            role: data.role || "user",
+            role: "user",
             sub_tier: "free",
             plan_id: 1
         });
@@ -97,7 +97,7 @@ export class AuthService {
             full_name: data.full_name!,
             email: data.email!,
             password: hashedPassword,
-            role: data.role || "user",
+            role: "user",
             sub_tier: "free",
             plan_id: 1
         });
