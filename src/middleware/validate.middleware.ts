@@ -25,10 +25,30 @@ export const validate = (target: ZodSchema | RequestValidationTargets) => {
                 req.body = target.body.parse(req.body);
             }
             if (target.query) {
-                req.query = target.query.parse(req.query) as any;
+                const parsedQuery = target.query.parse(req.query);
+                try {
+                    req.query = parsedQuery as any;
+                } catch {
+                    Object.defineProperty(req, "query", {
+                        value: parsedQuery,
+                        writable: true,
+                        configurable: true,
+                        enumerable: true
+                    });
+                }
             }
             if (target.params) {
-                req.params = target.params.parse(req.params) as any;
+                const parsedParams = target.params.parse(req.params);
+                try {
+                    req.params = parsedParams as any;
+                } catch {
+                    Object.defineProperty(req, "params", {
+                        value: parsedParams,
+                        writable: true,
+                        configurable: true,
+                        enumerable: true
+                    });
+                }
             }
             next();
         } catch (error: any) {

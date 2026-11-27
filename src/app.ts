@@ -15,6 +15,7 @@ import quotaRoutes from "./routes/quota.routes";
 import modelInsightRoutes from "./routes/modelInsight.routes";
 import sseRoutes from "./transport/sse/sse.routes";
 import metricsRoutes from "./routes/metrics.routes";
+import baselineRoutes from "./routes/baseline.routes";
 import { metricsMiddleware } from "./middleware/metrics.middleware";
 import passport from "passport";
 
@@ -49,6 +50,9 @@ app.use("/api/leaderboards", leaderboardRoutes);
 app.use("/api/user-quotas", quotaRoutes);
 app.use("/api/model-insights", modelInsightRoutes);
 app.use("/api/sse", sseRoutes);
+if (process.env.ENABLE_BASELINE_ROUTES === "true") {
+    app.use("/api/baseline", baselineRoutes);
+}
 app.use("/metrics", metricsRoutes);
 
 app.get("/", (req: Request, res: Response) => {

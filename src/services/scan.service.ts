@@ -145,7 +145,7 @@ export class ScanService {
             const offset = (page - 1) * limit;
             const paginatedResults = await this.repository.findAndCountAll({
                 where: whereClause,
-                order: [["created_at", "DESC"]],
+                order: [["createdAt", "DESC"]],
                 limit,
                 offset
             });
@@ -164,7 +164,7 @@ export class ScanService {
 
         const scans = await this.repository.findAll({
             where: whereClause,
-            order: [["created_at", "DESC"]],
+            order: [["createdAt", "DESC"]],
             limit
         });
 
