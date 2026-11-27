@@ -6,7 +6,5 @@ node_modules
 
 uploads
 /dist/
-.env.example
-.env.example
 
 .scannerwork/
