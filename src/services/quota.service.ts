@@ -161,7 +161,12 @@ export class QuotaService {
             return false;
         }
 
-        await redis.decrBy(quotaKey, totalImages);
+        const newRemaining = await redis.decrBy(quotaKey, totalImages);
+        if (newRemaining < 0) {
+            await redis.incrBy(quotaKey, totalImages);
+            return false;
+        }
+
         this.broadcastLiveQuota(userId).catch(error => {
             console.error("[Quota] Gagal memancarkan update kuota live:", error);
         });
