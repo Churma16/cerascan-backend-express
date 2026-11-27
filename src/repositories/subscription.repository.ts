@@ -1,4 +1,4 @@
-import { Transaction, FindOptions, CreationAttributes } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes, Op } from "sequelize";
 import { Subscription } from "../models";
 import { SubscriptionAttributes } from "../models/subscription.model";
 
@@ -23,6 +23,18 @@ export class SubscriptionRepository {
         return await Subscription.findAll({
             where: {
                 status: "active"
+            },
+            transaction
+        });
+    }
+
+    async findExpiredActive(referenceDate: Date = new Date(), transaction?: Transaction): Promise<Subscription[]> {
+        return await Subscription.findAll({
+            where: {
+                status: "active",
+                end_date: {
+                    [Op.lte]: referenceDate
+                }
             },
             transaction
         });

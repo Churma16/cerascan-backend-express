@@ -135,16 +135,11 @@ export class UserPlanLifecycleService {
      * Mengembalikan user berbayar yang kedaluwarsa ke Free Plan secara otomatis.
      */
     static async downgradeExpiredUsers(referenceDate: Date = new Date()): Promise<number> {
-        const activeSubscriptions = await this.subRepo.findAllActive();
+        const expiredSubscriptions = await this.subRepo.findExpiredActive(referenceDate);
 
         let downgradedCount = 0;
 
-        for (const subscription of activeSubscriptions) {
-            const isExpired = subscription.end_date && new Date(subscription.end_date) <= referenceDate;
-            if (!isExpired) {
-                continue;
-            }
-
+        for (const subscription of expiredSubscriptions) {
             if (subscription.plan_id > 1) {
                 try {
                     await this.assignPlan(subscription.user_id, 1, {
