@@ -65,7 +65,7 @@ export class AiScanSubscriber extends BaseRabbitSubscriber {
         }
 
         try {
-            if (eventData.user_id) {
+            if (eventData.user_id && eventData.quota_deducted !== false) {
                 await quotaService.refundUserQuota(eventData.user_id);
                 log.info("AI Worker", `Kuota user ${eventData.user_id} berhasil dikembalikan (+1) karena gagal scan.`);
             }

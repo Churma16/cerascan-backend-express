@@ -54,6 +54,18 @@ export class ScanService {
     }
 
     async initiateSingleScan(input: InitiateSingleScanInput): Promise<Scan> {
+        if (input.userId) {
+            const hasQuota = await quotaService.checkAndDecrementQuota(input.userId, 1);
+            if (!hasQuota) {
+                if (input.file?.path && fs.existsSync(input.file.path)) {
+                    try {
+                        fs.unlinkSync(input.file.path);
+                    } catch (_) {}
+                }
+                throw new Error("Kuota scan Anda telah habis");
+            }
+        }
+
         const folderName = input.folderName || (process.env.NODE_ENV === "production" ? "scans-prod/" : "scans-dev/");
         const fileBuffer = this.extractFileBuffer(input.file);
         const r2ObjectKey = await storageService.uploadFile(fileBuffer, input.file.mimetype, folderName);
