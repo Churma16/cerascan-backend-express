@@ -6,14 +6,17 @@ export function normalizeRoute(req: Request): string {
         return `${req.baseUrl || ""}${req.route.path}`;
     }
 
-    const rawPath = req.originalUrl?.split("?")[0] || req.path || "unknown";
-    return rawPath
-        .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ":id")
-        .replace(/\/\d+(?=\/|$)/g, "/:id");
+    const path = req.originalUrl?.split("?")[0] || req.path || "";
+    if (path.startsWith("/uploads")) {
+        return "/uploads/:file";
+    }
+
+    return "unmatched";
 }
 
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction) {
-    if (req.path === "/metrics" || req.originalUrl === "/metrics") {
+    const url = req.originalUrl || req.url || "";
+    if (url.startsWith("/metrics") || url.startsWith("/api/sse")) {
         return next();
     }
 

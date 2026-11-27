@@ -1,4 +1,5 @@
 import client from "prom-client";
+import { sseClient } from "./sseClient";
 
 export const metricsRegistry = new client.Registry();
 
@@ -26,4 +27,7 @@ export const activeSseConnections = new client.Gauge({
     name: "active_sse_connections",
     help: "Current number of active Server-Sent Events (SSE) connections",
     registers: [metricsRegistry],
+    collect() {
+        this.set(sseClient.getActiveConnectionCount());
+    },
 });

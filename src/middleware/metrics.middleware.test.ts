@@ -13,31 +13,34 @@ describe("Metrics Middleware", () => {
             expect(normalizeRoute(req)).toBe("/api/users/:id");
         });
 
-        it("should sanitize numeric IDs from unmatched path", () => {
+        it("should normalize static upload paths to /uploads/:file", () => {
             const req = {
-                originalUrl: "/api/scans/42/details",
+                originalUrl: "/uploads/scans/V1StGXR8_Z5jdHi6B.png",
             } as unknown as Request;
 
-            expect(normalizeRoute(req)).toBe("/api/scans/:id/details");
+            expect(normalizeRoute(req)).toBe("/uploads/:file");
         });
 
-        it("should sanitize UUIDs from unmatched path", () => {
+        it("should return 'unmatched' for arbitrary non-matched routes to avoid cardinality explosion", () => {
             const req = {
-                originalUrl: "/api/items/123e4567-e89b-12d3-a456-426614174000",
+                originalUrl: "/wp-login.php?param=evil",
             } as unknown as Request;
 
-            expect(normalizeRoute(req)).toBe("/api/items/:id");
+            expect(normalizeRoute(req)).toBe("unmatched");
         });
     });
 
     describe("metricsMiddleware", () => {
-        it("should skip metrics collection for /metrics", () => {
-            const req = { path: "/metrics" } as Request;
+        it("should skip metrics collection for /metrics and /api/sse", () => {
+            const reqMetrics = { originalUrl: "/metrics?format=prometheus" } as Request;
+            const reqSSE = { originalUrl: "/api/sse/events" } as Request;
             const res = {} as Response;
             const next = jest.fn();
 
-            metricsMiddleware(req, res, next);
-            expect(next).toHaveBeenCalledTimes(1);
+            metricsMiddleware(reqMetrics, res, next);
+            metricsMiddleware(reqSSE, res, next);
+
+            expect(next).toHaveBeenCalledTimes(2);
         });
 
         it("should attach listener on res.finish and record metrics", () => {

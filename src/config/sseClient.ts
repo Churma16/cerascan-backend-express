@@ -29,6 +29,14 @@ class SSEClientManager {
         }
     }
 
+    public getActiveConnectionCount(): number {
+        let count = 0;
+        this.clients.forEach((userClients) => {
+            count += userClients.length;
+        });
+        return count;
+    }
+
     public broadcast(event: string, data: any) {
         const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
         this.clients.forEach((userClients) => {

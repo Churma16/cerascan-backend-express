@@ -1,4 +1,6 @@
-import { metricsRegistry, httpRequestDurationSeconds, httpRequestsTotal, activeSseConnections } from "./metrics";
+import { metricsRegistry, httpRequestDurationSeconds, activeSseConnections } from "./metrics";
+import { sseClient } from "./sseClient";
+import { Response } from "express";
 
 describe("Prometheus Metrics Config", () => {
     it("should register default cerascan metrics", async () => {
@@ -22,15 +24,13 @@ describe("Prometheus Metrics Config", () => {
         expect(durationMetric).toBeDefined();
     });
 
-    it("should increment and decrement active_sse_connections", async () => {
-        const initialValue = (await activeSseConnections.get()).values[0]?.value || 0;
+    it("should dynamically collect active_sse_connections from sseClient", async () => {
+        const mockRes = {} as Response;
+        sseClient.addClient("test-user-1", mockRes);
 
-        activeSseConnections.inc();
-        let current = (await activeSseConnections.get()).values[0]?.value;
-        expect(current).toBe(initialValue + 1);
+        const currentVal = (await activeSseConnections.get()).values[0]?.value;
+        expect(currentVal).toBeGreaterThanOrEqual(1);
 
-        activeSseConnections.dec();
-        current = (await activeSseConnections.get()).values[0]?.value;
-        expect(current).toBe(initialValue);
+        sseClient.removeClient("test-user-1", mockRes);
     });
 });
