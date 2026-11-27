@@ -21,11 +21,15 @@ export const handleSSEConnection = (req: Request, res: Response) => {
     // Daftarkan koneksi client ke manager
     sseClient.addClient(clientId, res);
 
-    // Kirim pesan koneksi berhasil (opsional, untuk memastikan stream bekerja)
-    res.write(`event: connected\ndata: ${JSON.stringify({ status: 'success', clientId })}\n\n`);
-
     // Hapus koneksi dari manager saat client memutus koneksi
     req.on('close', () => {
         sseClient.removeClient(clientId, res);
     });
+
+    // Kirim pesan koneksi berhasil (opsional, untuk memastikan stream bekerja)
+    try {
+        res.write(`event: connected\ndata: ${JSON.stringify({ status: 'success', clientId })}\n\n`);
+    } catch {
+        sseClient.removeClient(clientId, res);
+    }
 };

@@ -14,9 +14,13 @@ import leaderboardRoutes from "./routes/leaderboard.routes";
 import quotaRoutes from "./routes/quota.routes";
 import modelInsightRoutes from "./routes/modelInsight.routes";
 import sseRoutes from "./transport/sse/sse.routes";
+import metricsRoutes from "./routes/metrics.routes";
+import { metricsMiddleware } from "./middleware/metrics.middleware";
 import passport from "passport";
 
 const app: Application = express();
+
+app.use(metricsMiddleware);
 
 app.use(cors({
     origin: [
@@ -45,6 +49,7 @@ app.use("/api/leaderboards", leaderboardRoutes);
 app.use("/api/user-quotas", quotaRoutes);
 app.use("/api/model-insights", modelInsightRoutes);
 app.use("/api/sse", sseRoutes);
+app.use("/metrics", metricsRoutes);
 
 app.get("/", (req: Request, res: Response) => {
     res.json({ message: "Welcome to Ceramic AI API Gateway (TypeScript Version)" });
