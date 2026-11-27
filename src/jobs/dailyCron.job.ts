@@ -1,8 +1,8 @@
 import cron from "node-cron";
 import { getRedisClient } from "../config/redisClient";
 import { quotaService } from "../services/quota.service";
+import { userService } from "../services/user.service";
 import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
-import { DowngradeExpiredUsersUseCase } from "../modules/user/use-cases/DowngradeExpiredUsersUseCase";
 import { log } from "../utils/logger.util";
 
 /**
@@ -26,8 +26,7 @@ export class DailyCronJob {
 
                 await quotaService.syncQuotasToDatabase(redis);
 
-                const downgradeExpiredUsersUseCase = new DowngradeExpiredUsersUseCase();
-                await downgradeExpiredUsersUseCase.execute(today, redis);
+                await userService.downgradeExpiredUsers(today);
 
                 const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
                 await syncLeaderboardToDbUseCase.execute(redis);

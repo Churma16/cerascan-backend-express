@@ -1,4 +1,4 @@
-import { Transaction, FindOptions, CreationAttributes } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes, Op } from "sequelize";
 import { User, Plan } from "../models";
 
 export class UserRepository {
@@ -36,8 +36,20 @@ export class UserRepository {
         });
     }
 
+    async findByIds(ids: number[], transaction?: Transaction): Promise<User[]> {
+        return await User.findAll({
+            where: { id: { [Op.in]: ids } },
+            attributes: ["id", "full_name", "email"],
+            transaction
+        });
+    }
+
     async create(payload: CreationAttributes<User>, transaction?: Transaction): Promise<User> {
         return await User.create(payload as any, { transaction });
+    }
+
+    async save(user: User, transaction?: Transaction): Promise<User> {
+        return await user.save({ transaction });
     }
 
     async update(id: number, payload: Partial<CreationAttributes<User>>, transaction?: Transaction): Promise<number> {
@@ -45,6 +57,17 @@ export class UserRepository {
             where: { id },
             transaction
         });
+        return affectedCount;
+    }
+
+    async bulkUpdatePlan(userIds: number[], planId: number, transaction?: Transaction): Promise<number> {
+        const [affectedCount] = await User.update(
+            { plan_id: planId },
+            {
+                where: { id: { [Op.in]: userIds } },
+                transaction
+            }
+        );
         return affectedCount;
     }
 

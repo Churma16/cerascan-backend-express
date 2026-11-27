@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { AuthRequest } from '../../middleware/auth.middleware';
-import { sendResponse, sendResponseMulti } from "../../utils/response.util";
-import { UserService } from "./user.service";
+import { AuthRequest } from "../middleware/auth.middleware";
+import { sendResponse, sendResponseMulti } from "../utils/response.util";
+import { userService, UserService } from "../services/user.service";
 
 export class UserController {
     static async getAll(req: Request, res: Response) {
         try {
-            const users = await UserService.getAllUsers();
+            const users = await userService.getAllUsers();
             return sendResponseMulti(res, 200, "Daftar pengguna berhasil diambil", users);
         } catch (error: any) {
             return sendResponse(res, 401, error.message || "Unauthorized");
@@ -21,7 +21,7 @@ export class UserController {
                 return sendResponse(res, 400, "ID tidak valid");
             }
 
-            const user = await UserService.getUserById(userId);
+            const user = await userService.getUserById(userId);
             return sendResponse(res, 200, "Pengguna berhasil diambil", user);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -35,7 +35,7 @@ export class UserController {
                 return sendResponse(res, 401, "Sesi tidak valid atau pengguna tidak dikenali");
             }
 
-            const user = await UserService.getUserById(userId);
+            const user = await userService.getUserById(userId);
             return sendResponse(res, 200, "Profil berhasil diambil", user);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
@@ -50,7 +50,7 @@ export class UserController {
                 return sendResponse(res, 400, "ID tidak valid");
             }
 
-            const user = await UserService.updateUser(userId, req.body);
+            const user = await userService.updateUser(userId, req.body);
             return sendResponse(res, 200, "Pengguna berhasil diperbarui", user);
         } catch (error: any) {
             return sendResponse(res, 500, error.message || "Terjadi kesalahan pada server");
@@ -65,7 +65,7 @@ export class UserController {
                 return sendResponse(res, 400, "ID tidak valid");
             }
 
-            const user = await UserService.deleteUser(userId);
+            const user = await userService.deleteUser(userId);
             return sendResponse(res, 200, "Pengguna berhasil dihapus", user);
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");

@@ -2,14 +2,13 @@ import { getRedisClient } from "../../../config/redisClient";
 import { getCurrentMonthIdIndonesia } from "../../../utils/time.util";
 import { LeaderboardCacheService } from "../infrastructure/leaderboardCache.service";
 import { calculateDefectRatio } from "../domain/leaderboard.domain";
-import { IUserRepository } from "../../user/domain/IUserRepository";
-import { SequelizeUserRepository } from "../../user/infrastructure/SequelizeUserRepository";
+import { userRepository, UserRepository } from "../../../repositories/user.repository";
 
 export class GetTopUsersUseCase {
-    private userRepository: IUserRepository;
+    private userRepository: UserRepository;
 
-    constructor(userRepository: IUserRepository = new SequelizeUserRepository()) {
-        this.userRepository = userRepository;
+    constructor(userRepositoryInstance: UserRepository = userRepository) {
+        this.userRepository = userRepositoryInstance;
     }
 
     async execute(limit: number = 10) {
@@ -43,7 +42,7 @@ export class GetTopUsersUseCase {
             const userProfiles = await this.userRepository.findByIds(parsedUserIds);
 
             const userProfileMap = new Map();
-            userProfiles.forEach(user => userProfileMap.set(user.id, user));
+            userProfiles.forEach((user: any) => userProfileMap.set(user.id, user));
 
             // Build Leaderboard Data
             const leaderboardEntries: any = [];
