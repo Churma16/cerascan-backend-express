@@ -98,7 +98,7 @@ export class ScanRepository {
 
     async countSince(userId: number | undefined, sinceDate: Date): Promise<number> {
         const whereClause: any = {
-            created_at: {
+            createdAt: {
                 [dayjs().isValid() ? "$gte" : ">="]: sinceDate
             }
         };
