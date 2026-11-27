@@ -41,15 +41,6 @@ export class ScanService {
         if (file.buffer) {
             return file.buffer;
         }
-        if (file.path && fs.existsSync(file.path)) {
-            const buffer = fs.readFileSync(file.path);
-            try {
-                fs.unlinkSync(file.path);
-            } catch (unlinkError) {
-                console.error("[warn] Failed to remove temporary file:", file.path, unlinkError);
-            }
-            return buffer;
-        }
         throw new Error("File buffer or path not accessible.");
     }
 
