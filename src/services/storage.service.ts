@@ -1,6 +1,7 @@
 import { GetObjectCommand, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2Client } from "../config/r2Client";
+import { getRedisClient } from "../config/redisClient";
 import { nanoid } from "nanoid";
 import { log } from "../utils/logger.util";
 
@@ -57,12 +58,24 @@ export class StorageService {
 
     async getPresignedUrl(objectKey: string, expiresIn: number = 3600): Promise<string> {
         try {
+            const redis = getRedisClient();
+            const cacheKey = `presigned_url:${objectKey}`;
+            const cachedUrl = await redis.get(cacheKey);
+            if (cachedUrl) {
+                return cachedUrl;
+            }
+
             const getCommand = new GetObjectCommand({
                 Bucket: BUCKET_NAME,
                 Key: objectKey
             });
 
-            return await getSignedUrl(r2Client, getCommand, { expiresIn });
+            const presignedUrl = await getSignedUrl(r2Client, getCommand, { expiresIn });
+
+            const ttlSeconds = Math.max(expiresIn - 300, 60);
+            await redis.set(cacheKey, presignedUrl, "EX", ttlSeconds);
+
+            return presignedUrl;
         } catch (presignError) {
             const errorMessage = presignError instanceof Error ? presignError.message : String(presignError);
             log.error("StorageService", `Gagal membuat presigned URL untuk: ${objectKey}: ${errorMessage}`);
@@ -77,6 +90,12 @@ export class StorageService {
                 Key: objectKey
             });
             await r2Client.send(deleteCommand);
+
+            try {
+                const redis = getRedisClient();
+                await redis.del(`presigned_url:${objectKey}`);
+            } catch (_) {}
+
             log.info("StorageService", `File berhasil dihapus dari storage: ${objectKey}`);
         } catch (deleteError) {
             const errorMessage = deleteError instanceof Error ? deleteError.message : String(deleteError);
