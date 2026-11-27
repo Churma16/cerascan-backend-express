@@ -9,6 +9,7 @@ jest.mock("../repositories/scan.repository", () => ({
         create: jest.fn(),
         destroy: jest.fn(),
         findByPk: jest.fn(),
+        findById: jest.fn(),
         findAndCountAll: jest.fn(),
         findAll: jest.fn(),
         update: jest.fn(),
@@ -125,5 +126,55 @@ describe("ScanService - Quota Deduction in initiateSingleScan", () => {
         expect(quotaService.checkAndDecrementQuota).not.toHaveBeenCalled();
         expect(storageService.uploadFile).toHaveBeenCalled();
         expect(result.id).toBe(2);
+    });
+});
+
+describe("ScanService - deleteScanById (Issue #23)", () => {
+    let scanService: ScanService;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        scanService = new ScanService(scanRepository as any);
+    });
+
+    it("should return false if scan record does not exist", async () => {
+        (scanRepository.findById as jest.Mock).mockResolvedValue(null);
+
+        const result = await scanService.deleteScanById(999);
+
+        expect(result).toBe(false);
+        expect(scanRepository.findById).toHaveBeenCalledWith(999);
+        expect(storageService.deleteFile).not.toHaveBeenCalled();
+        expect(scanRepository.destroy).not.toHaveBeenCalled();
+    });
+
+    it("should delete file from storage before destroying DB record when saved_file_name exists", async () => {
+        (scanRepository.findById as jest.Mock).mockResolvedValue({
+            id: 123,
+            saved_file_name: "scans-dev/test-image.jpg",
+        });
+        (storageService.deleteFile as jest.Mock).mockResolvedValue(undefined);
+        (scanRepository.destroy as jest.Mock).mockResolvedValue(true);
+
+        const result = await scanService.deleteScanById(123);
+
+        expect(result).toBe(true);
+        expect(scanRepository.findById).toHaveBeenCalledWith(123);
+        expect(storageService.deleteFile).toHaveBeenCalledWith("scans-dev/test-image.jpg");
+        expect(scanRepository.destroy).toHaveBeenCalledWith(123);
+    });
+
+    it("should still destroy DB record even if storage deletion fails", async () => {
+        (scanRepository.findById as jest.Mock).mockResolvedValue({
+            id: 124,
+            saved_file_name: "scans-dev/missing-image.jpg",
+        });
+        (storageService.deleteFile as jest.Mock).mockRejectedValue(new Error("R2 error"));
+        (scanRepository.destroy as jest.Mock).mockResolvedValue(true);
+
+        const result = await scanService.deleteScanById(124);
+
+        expect(result).toBe(true);
+        expect(scanRepository.destroy).toHaveBeenCalledWith(124);
     });
 });
