@@ -195,7 +195,7 @@ export class AuthService {
         });
     }
 
-    async verifyOtp(email: string, otp: string): Promise<number> {
+    async verifyOtp(email: string, otp: string): Promise<{ user_id: number; reset_token: string }> {
         const user = await this.userRepo.findByEmail(email);
         if (!user) {
             throw new Error("Email tidak terdaftar");
@@ -218,7 +218,16 @@ export class AuthService {
             await user.save();
         }
 
-        return user.id;
+        const resetToken = jwt.sign(
+            { id: user.id, email: user.email, purpose: "reset_password" },
+            JWT_SECRET,
+            { expiresIn: "15m" }
+        );
+
+        return {
+            user_id: user.id,
+            reset_token: resetToken
+        };
     }
 
     async changePassword(userId: number, oldPasswordInput: string, newPasswordInput: string): Promise<void> {
@@ -255,8 +264,19 @@ export class AuthService {
         });
     }
 
-    async resetPassword(userId: number, newPasswordInput: string): Promise<void> {
-        const user = await this.userRepo.findByPk(userId);
+    async resetPassword(resetToken: string, newPasswordInput: string): Promise<void> {
+        let decoded: { id: number; email: string; purpose?: string };
+        try {
+            decoded = jwt.verify(resetToken, JWT_SECRET) as { id: number; email: string; purpose?: string };
+        } catch {
+            throw new Error("Token reset password tidak valid atau telah kadaluarsa");
+        }
+
+        if (decoded.purpose !== "reset_password") {
+            throw new Error("Token reset password tidak valid");
+        }
+
+        const user = await this.userRepo.findByPk(decoded.id);
         if (!user) {
             throw new Error("ID pengguna tidak valid");
         }

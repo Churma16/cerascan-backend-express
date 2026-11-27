@@ -29,7 +29,7 @@ export const verifyOtpSchema = z.object({
 });
 
 export const resetPasswordSchema = z.object({
-    id: z.union([z.number(), z.string().regex(/^\d+$/, "ID pengguna harus berupa angka")]).transform(Number),
+    reset_token: z.string().min(1, "Token reset password wajib diisi"),
     new_password: z.string().min(6, "Password baru minimal 6 karakter")
 });
 
