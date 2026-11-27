@@ -46,23 +46,23 @@ export class StreamPublisher {
                 return;
             }
 
-            await channel.assertQueue(this.RABBIT_STREAM_NAME, {
-                durable: true,
-                arguments: { "x-queue-type": "stream" }
-            });
+            const exchangeName = `${this.RABBIT_STREAM_NAME}-exchange`;
+            await channel.assertExchange(exchangeName, "fanout", { durable: true });
 
             const messagePayload = {
                 ...payload,
                 timestamp: new Date().toISOString()
             };
 
-            const success = channel.sendToQueue(
-                this.RABBIT_STREAM_NAME,
-                Buffer.from(JSON.stringify(messagePayload))
+            const success = channel.publish(
+                exchangeName,
+                "",
+                Buffer.from(JSON.stringify(messagePayload)),
+                { persistent: true }
             );
 
             if (success) {
-                log.success("StreamPublisher", `Event scan_id ${payload.scan_id} berhasil dikirim ke RabbitMQ Stream`);
+                log.success("StreamPublisher", `Event scan_id ${payload.scan_id} berhasil dikirim ke RabbitMQ Stream exchange '${exchangeName}'`);
             } else {
                 log.warn("StreamPublisher", `Buffer stream penuh, event scan_id ${payload.scan_id} mungkin tertunda`);
             }

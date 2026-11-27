@@ -15,22 +15,34 @@ export class RabbitMQStreamDriver implements IStreamConsumerDriver {
             return;
         }
 
-        await channel.assertQueue(streamTarget, {
-            durable: true,
-            arguments: { "x-queue-type": "stream" }
-        });
+        const exchangeName = `${streamTarget}-exchange`;
+        await channel.assertExchange(exchangeName, "fanout", { durable: true });
 
         await channel.prefetch(100);
 
         for (const consumerDef of consumers) {
-            await this.registerConsumer(channel, streamTarget, consumerDef);
+            await this.registerConsumer(channel, streamTarget, exchangeName, consumerDef);
         }
     }
 
-    private async registerConsumer(channel: any, streamTarget: string, consumerDef: StreamConsumerItem): Promise<void> {
+    private async registerConsumer(
+        channel: any,
+        streamTarget: string,
+        exchangeName: string,
+        consumerDef: StreamConsumerItem
+    ): Promise<void> {
         try {
+            const queueName = `${streamTarget}-${consumerDef.groupId}`;
+
+            await channel.assertQueue(queueName, {
+                durable: true,
+                arguments: { "x-queue-type": "stream" }
+            });
+
+            await channel.bindQueue(queueName, exchangeName, "");
+
             await channel.consume(
-                streamTarget,
+                queueName,
                 async (msg: any) => {
                     await this.processMessage(channel, msg, consumerDef);
                 },
@@ -40,7 +52,7 @@ export class RabbitMQStreamDriver implements IStreamConsumerDriver {
                 }
             );
 
-            log.info("RabbitMQ Stream Driver", `Consumer aktif: [${consumerDef.name}] di '${streamTarget}'`);
+            log.info("RabbitMQ Stream Driver", `Consumer aktif: [${consumerDef.name}] di queue '${queueName}'`);
         } catch (error: any) {
             log.error("RabbitMQ Stream Driver", `Gagal mendaftarkan consumer [${consumerDef.name}]: ${error.message}`);
         }
