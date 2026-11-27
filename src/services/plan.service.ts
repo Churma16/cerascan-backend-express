@@ -1,6 +1,6 @@
-import { Plan, Subscription } from "../models";
 import { planRepository, PlanRepository } from "../repositories/plan.repository";
-import { PlanAttributes } from "../models/plan.model";
+import { subscriptionRepository, SubscriptionRepository } from "../repositories/subscription.repository";
+import type { PlanAttributes } from "../models/plan.model";
 
 export const calculateRemainingDays = (endDate: Date, today: Date = new Date()): number => {
     const diffTime = endDate.getTime() - today.getTime();
@@ -23,9 +23,14 @@ export const calculateAdjustedPrice = (newPrice: number, residualValue: number):
 
 export class PlanService {
     private planRepo: PlanRepository;
+    private subRepo: SubscriptionRepository;
 
-    constructor(planRepo: PlanRepository = planRepository) {
+    constructor(
+        planRepo: PlanRepository = planRepository,
+        subRepo: SubscriptionRepository = subscriptionRepository
+    ) {
         this.planRepo = planRepo;
+        this.subRepo = subRepo;
     }
 
     async createPlan(payload: { name: string; price: number; scan_quota: number; duration_days: number }): Promise<PlanAttributes> {
@@ -65,13 +70,7 @@ export class PlanService {
     }
 
     async calculateUpgradePrice(userId: number, newPlanId: number) {
-        const activeSubscription = await Subscription.findOne({
-            where: {
-                user_id: userId,
-                status: "active"
-            },
-            include: ["plan"]
-        });
+        const activeSubscription = await this.subRepo.findActiveByUserId(userId);
 
         const targetPlan = await this.planRepo.findByPk(newPlanId);
         if (!targetPlan) {

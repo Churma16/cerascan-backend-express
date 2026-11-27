@@ -1,5 +1,5 @@
-import { Plan } from "../models";
 import { userRepository, UserRepository } from "../repositories/user.repository";
+import { planRepository, PlanRepository } from "../repositories/plan.repository";
 import { resend } from "../config/resendClient";
 import { log } from "../utils/logger.util";
 
@@ -13,6 +13,7 @@ export const formatIDRCurrency = (price: number): string => {
 
 export class EmailService {
     private static userRepo: UserRepository = userRepository;
+    private static planRepo: PlanRepository = planRepository;
 
     static async sendPaymentEmail(orderId: string): Promise<void> {
         try {
@@ -23,7 +24,7 @@ export class EmailService {
             const user = await this.userRepo.findByPk(userId);
             if (!user) throw new Error(`User ID ${userId} tidak ditemukan`);
 
-            const plan = await Plan.findByPk(planId);
+            const plan = await this.planRepo.findByPk(planId);
             const planName = plan ? plan.name : "Premium";
             const planPrice = plan ? plan.price : 5000;
 

@@ -1,10 +1,21 @@
-import { Transaction, FindOptions, CreationAttributes } from "sequelize";
+import { Transaction, FindOptions, CreationAttributes, Op } from "sequelize";
 import { UserQuotaModel } from "../models";
 
 export class QuotaRepository {
     async findByUserId(userId: number, transaction?: Transaction): Promise<UserQuotaModel | null> {
         return await UserQuotaModel.findOne({
             where: { user_id: userId },
+            transaction
+        });
+    }
+
+    async findByUserIds(userIds: number[], transaction?: Transaction): Promise<UserQuotaModel[]> {
+        return await UserQuotaModel.findAll({
+            where: {
+                user_id: {
+                    [Op.in]: userIds
+                }
+            },
             transaction
         });
     }

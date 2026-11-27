@@ -1,17 +1,22 @@
 import { DlqService } from "./dlq.service";
-import { DeadLetterMessage, Scan } from "../models";
+import { dlqRepository } from "../repositories/dlq.repository";
+import { scanRepository } from "../repositories/scan.repository";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
 import { NotificationService } from "./notification.service";
 import { getRabbitChannel } from "../config/rabbitmqClient";
 
-jest.mock("../models", () => ({
-    DeadLetterMessage: {
-        findAll: jest.fn(),
-        findOne: jest.fn(),
-        update: jest.fn(),
+jest.mock("../repositories/dlq.repository", () => ({
+    dlqRepository: {
+        findDeadMessages: jest.fn(),
+        findDeadMessageByIdOrMessageId: jest.fn(),
+        updateStatus: jest.fn(),
+        purgeAllDead: jest.fn(),
+        save: jest.fn(),
     },
-    Scan: {
+}));
+jest.mock("../repositories/scan.repository", () => ({
+    scanRepository: {
         update: jest.fn(),
     },
 }));
@@ -51,35 +56,35 @@ describe("DlqService", () => {
                     createdAt: new Date(),
                 }),
             };
-            (DeadLetterMessage.findAll as jest.Mock).mockResolvedValue([mockRecord]);
+            (dlqRepository.findDeadMessages as jest.Mock).mockResolvedValue([mockRecord]);
 
             const result = await dlqService.getDlqMessages(10, true, 50);
 
-            expect(DeadLetterMessage.findAll).toHaveBeenCalledWith({
-                where: { status: "dead" },
-                order: [["createdAt", "DESC"]],
+            expect(dlqRepository.findDeadMessages).toHaveBeenCalledWith({
+                userId: undefined,
                 limit: 50,
+                order: "DESC",
             });
             expect(result).toHaveLength(1);
             expect(result[0].messageId).toBe("msg-123");
         });
 
         it("should filter by user_id for non-admin", async () => {
-            (DeadLetterMessage.findAll as jest.Mock).mockResolvedValue([]);
+            (dlqRepository.findDeadMessages as jest.Mock).mockResolvedValue([]);
 
             await dlqService.getDlqMessages(10, false, 50);
 
-            expect(DeadLetterMessage.findAll).toHaveBeenCalledWith({
-                where: { status: "dead", user_id: 10 },
-                order: [["createdAt", "DESC"]],
+            expect(dlqRepository.findDeadMessages).toHaveBeenCalledWith({
+                userId: 10,
                 limit: 50,
+                order: "DESC",
             });
         });
     });
 
     describe("retryDlqMessage", () => {
         it("should return false if message is not found", async () => {
-            (DeadLetterMessage.findOne as jest.Mock).mockResolvedValue(null);
+            (dlqRepository.findDeadMessageByIdOrMessageId as jest.Mock).mockResolvedValue(null);
 
             const result = await dlqService.retryDlqMessage("msg-999", 10, true);
 
@@ -90,7 +95,7 @@ describe("DlqService", () => {
             const mockRecord = {
                 user_id: 20,
             };
-            (DeadLetterMessage.findOne as jest.Mock).mockResolvedValue(mockRecord);
+            (dlqRepository.findDeadMessageByIdOrMessageId as jest.Mock).mockResolvedValue(mockRecord);
 
             await expect(dlqService.retryDlqMessage("msg-123", 10, false)).rejects.toThrow("403 Forbidden");
         });
@@ -102,19 +107,20 @@ describe("DlqService", () => {
                 user_id: 10,
                 payload: { db_id: 5 },
                 status: "dead",
-                save: jest.fn().mockResolvedValue(true),
             };
-            (DeadLetterMessage.findOne as jest.Mock).mockResolvedValue(mockRecord);
+            (dlqRepository.findDeadMessageByIdOrMessageId as jest.Mock).mockResolvedValue(mockRecord);
+            (dlqRepository.save as jest.Mock).mockResolvedValue(mockRecord);
+            (scanRepository.update as jest.Mock).mockResolvedValue(1);
             (quotaService.checkAndDecrementQuota as jest.Mock).mockResolvedValue(true);
             (RabbitmqPublisher.publishEvent as jest.Mock).mockResolvedValue(true);
 
             const result = await dlqService.retryDlqMessage("msg-123", 10, false);
 
             expect(quotaService.checkAndDecrementQuota).toHaveBeenCalledWith(10);
-            expect(Scan.update).toHaveBeenCalledWith({ prediction: "processing" }, { where: { id: 5 } });
+            expect(scanRepository.update).toHaveBeenCalledWith(5, { prediction: "processing" });
             expect(RabbitmqPublisher.publishEvent).toHaveBeenCalledWith("scan.process", { db_id: 5 });
             expect(mockRecord.status).toBe("retried");
-            expect(mockRecord.save).toHaveBeenCalled();
+            expect(dlqRepository.save).toHaveBeenCalledWith(mockRecord);
             expect(NotificationService.emitDlqUpdated).toHaveBeenCalledWith({
                 action: "remove",
                 data: { messageId: "msg-123", routingKey: "scan.process" },
@@ -131,9 +137,10 @@ describe("DlqService", () => {
                 user_id: 10,
                 payload: { db_id: 1 },
                 status: "dead",
-                save: jest.fn().mockResolvedValue(true),
             };
-            (DeadLetterMessage.findAll as jest.Mock).mockResolvedValue([mockRecord1]);
+            (dlqRepository.findDeadMessages as jest.Mock).mockResolvedValue([mockRecord1]);
+            (dlqRepository.save as jest.Mock).mockResolvedValue(mockRecord1);
+            (scanRepository.update as jest.Mock).mockResolvedValue(1);
             (quotaService.checkAndDecrementQuota as jest.Mock).mockResolvedValue(true);
             (RabbitmqPublisher.publishEvent as jest.Mock).mockResolvedValue(true);
 
@@ -153,14 +160,11 @@ describe("DlqService", () => {
                 purgeQueue: jest.fn().mockResolvedValue(true),
             };
             (getRabbitChannel as jest.Mock).mockReturnValue(mockChannel);
-            (DeadLetterMessage.update as jest.Mock).mockResolvedValue([1]);
+            (dlqRepository.purgeAllDead as jest.Mock).mockResolvedValue(1);
 
             await dlqService.purgeDlq();
 
-            expect(DeadLetterMessage.update).toHaveBeenCalledWith(
-                { status: "purged" },
-                { where: { status: "dead" } }
-            );
+            expect(dlqRepository.purgeAllDead).toHaveBeenCalled();
             expect(mockChannel.purgeQueue).toHaveBeenCalledWith("payment_dead_letter_queue");
             expect(NotificationService.emitDlqUpdated).toHaveBeenCalledWith({
                 action: "purge",

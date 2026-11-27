@@ -74,8 +74,11 @@ describe("PaymentService", () => {
             findAll: jest.fn(),
             findById: jest.fn(),
             create: jest.fn(),
+            findOrCreate: jest.fn(),
+            save: jest.fn(),
             update: jest.fn(),
-            destroy: jest.fn()
+            destroy: jest.fn(),
+            getMonthlyRevenueStats: jest.fn(),
         } as unknown as jest.Mocked<PaymentRepository>;
 
         mockUserRepo = {
@@ -263,17 +266,19 @@ describe("PaymentService", () => {
                 status: "settlement",
                 save: jest.fn().mockResolvedValue(true)
             };
-            (Payment.findOrCreate as jest.Mock).mockResolvedValue([mockCreatedPaymentRecord, true]);
+            mockPaymentRepo.findOrCreate.mockResolvedValue([mockCreatedPaymentRecord, true] as any);
             (UserPlanLifecycleService.assignPlan as jest.Mock).mockResolvedValue(true);
 
             await paymentService.processPaymentWebhookEvent(validEventData);
 
             expect(sequelize.transaction).toHaveBeenCalled();
-            expect(Payment.findOrCreate).toHaveBeenCalledWith(
+            expect(mockPaymentRepo.findOrCreate).toHaveBeenCalledWith(
+                validEventData.orderId,
                 expect.objectContaining({
-                    where: { order_id: validEventData.orderId },
-                    transaction: mockDbTransaction
-                })
+                    user_id: 101,
+                    plan_id: 2
+                }),
+                mockDbTransaction
             );
             expect(UserPlanLifecycleService.assignPlan).toHaveBeenCalledWith(
                 101,
@@ -296,7 +301,7 @@ describe("PaymentService", () => {
                 status: "settlement",
                 save: jest.fn().mockResolvedValue(true)
             };
-            (Payment.findOrCreate as jest.Mock).mockResolvedValue([mockPaymentRecord, true]);
+            mockPaymentRepo.findOrCreate.mockResolvedValue([mockPaymentRecord, true] as any);
             (UserPlanLifecycleService.assignPlan as jest.Mock).mockRejectedValue(
                 new Error("Database write lock timeout")
             );
@@ -385,13 +390,9 @@ describe("PaymentService", () => {
 
     describe("getPaymentKpi", () => {
         it("should calculate revenue growth correctly when previous month has revenue", async () => {
-            mockPaymentRepo.findAll
-                .mockResolvedValueOnce([
-                    { total_revenue: "150000", successful_trx: "3", pending_trx: "1" }
-                ] as any)
-                .mockResolvedValueOnce([
-                    { total_revenue: "100000" }
-                ] as any);
+            mockPaymentRepo.getMonthlyRevenueStats
+                .mockResolvedValueOnce({ total_revenue: 150000, successful_trx: 3, pending_trx: 1 })
+                .mockResolvedValueOnce({ total_revenue: 100000, successful_trx: 2, pending_trx: 0 });
 
             const kpiResult = await paymentService.getPaymentKpi();
 
@@ -403,13 +404,9 @@ describe("PaymentService", () => {
         });
 
         it("should handle 100% growth when previous month revenue was zero", async () => {
-            mockPaymentRepo.findAll
-                .mockResolvedValueOnce([
-                    { total_revenue: "50000", successful_trx: "1", pending_trx: "0" }
-                ] as any)
-                .mockResolvedValueOnce([
-                    { total_revenue: "0" }
-                ] as any);
+            mockPaymentRepo.getMonthlyRevenueStats
+                .mockResolvedValueOnce({ total_revenue: 50000, successful_trx: 1, pending_trx: 0 })
+                .mockResolvedValueOnce({ total_revenue: 0, successful_trx: 0, pending_trx: 0 });
 
             const kpiResult = await paymentService.getPaymentKpi();
 

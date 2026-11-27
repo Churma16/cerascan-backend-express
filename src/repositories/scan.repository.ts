@@ -1,4 +1,4 @@
-import { Transaction, FindOptions, Order, CreationAttributes } from "sequelize";
+import { Transaction, FindOptions, Order, CreationAttributes, Op } from "sequelize";
 import dayjs from "dayjs";
 import { Scan } from "../models";
 import { ScanAttributes } from "../models/scan.model";
@@ -76,6 +76,24 @@ export class ScanRepository {
             return true;
         }
         return false;
+    }
+
+    async findUserScansBetween(startDate: Date, endDate: Date, transaction?: Transaction): Promise<Array<{ user_id: number; prediction: string }>> {
+        const scans: any = await Scan.findAll({
+            where: {
+                createdAt: {
+                    [Op.gte]: startDate,
+                    [Op.lt]: endDate,
+                },
+                user_id: {
+                    [Op.ne]: null as any,
+                },
+            },
+            attributes: ["user_id", "prediction"],
+            raw: true,
+            transaction,
+        });
+        return scans;
     }
 
     async countSince(userId: number | undefined, sinceDate: Date): Promise<number> {

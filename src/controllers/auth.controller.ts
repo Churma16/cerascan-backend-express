@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { authService } from "../services/auth.service";
 import { sendResponse } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
-import { UserAttributes } from "../models/user.model";
 import {
     RegisterDto,
     LoginDto,
@@ -64,7 +63,7 @@ export class AuthController {
     }
 
     static async googleCallback(req: Request, res: Response) {
-        const authenticatedUser = req.user as UserAttributes;
+        const authenticatedUser = req.user as { id?: number; role?: string; plan_id?: number } | undefined;
         if (!authenticatedUser) {
             return res.redirect(`${FRONTEND_URL}/login?error=auth_failed`);
         }

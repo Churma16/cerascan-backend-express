@@ -19,6 +19,15 @@ export class SubscriptionRepository {
         return await Subscription.findAll(options);
     }
 
+    async findAllActive(transaction?: Transaction): Promise<Subscription[]> {
+        return await Subscription.findAll({
+            where: {
+                status: "active"
+            },
+            transaction
+        });
+    }
+
     async findActiveByUserId(userId: number, transaction?: Transaction): Promise<Subscription | null> {
         return await Subscription.findOne({
             where: {
@@ -39,6 +48,20 @@ export class SubscriptionRepository {
         });
     }
 
+    async cancelActiveSubscriptionsByUserId(userId: number, transaction?: Transaction): Promise<number> {
+        const [affectedCount] = await Subscription.update(
+            { status: "canceled" },
+            {
+                where: {
+                    user_id: userId,
+                    status: "active"
+                },
+                transaction
+            }
+        );
+        return affectedCount;
+    }
+
     async create(payload: CreationAttributes<Subscription>, transaction?: Transaction): Promise<Subscription> {
         return await Subscription.create(payload as any, { transaction });
     }
@@ -46,6 +69,10 @@ export class SubscriptionRepository {
     async update(payload: Partial<CreationAttributes<Subscription>>, options: { where: any; transaction?: Transaction }): Promise<number> {
         const [affectedCount] = await Subscription.update(payload, options);
         return affectedCount;
+    }
+
+    async save(subscription: Subscription, transaction?: Transaction): Promise<Subscription> {
+        return await subscription.save({ transaction });
     }
 
     async destroy(id: number, transaction?: Transaction): Promise<boolean> {

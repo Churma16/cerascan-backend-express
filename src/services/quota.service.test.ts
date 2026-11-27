@@ -60,6 +60,7 @@ describe("QuotaService", () => {
 
         mockQuotaRepository = {
             findByUserId: jest.fn(),
+            findByUserIds: jest.fn(),
             findOne: jest.fn(),
             findAll: jest.fn(),
             create: jest.fn(),

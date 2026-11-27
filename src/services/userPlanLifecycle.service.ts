@@ -1,6 +1,9 @@
 import { Transaction } from "sequelize";
 import sequelize from "../config/databaseClient";
-import { User, Plan, Subscription, UserQuotaModel } from "../models";
+import type { User, Subscription, UserQuotaModel } from "../models";
+import { planRepository, PlanRepository } from "../repositories/plan.repository";
+import { userRepository, UserRepository } from "../repositories/user.repository";
+import { subscriptionRepository, SubscriptionRepository } from "../repositories/subscription.repository";
 import { quotaService } from "./quota.service";
 import { log } from "../utils/logger.util";
 
@@ -12,6 +15,10 @@ export interface AssignPlanOptions {
 }
 
 export class UserPlanLifecycleService {
+    private static planRepo: PlanRepository = planRepository;
+    private static userRepo: UserRepository = userRepository;
+    private static subRepo: SubscriptionRepository = subscriptionRepository;
+
     /**
      * Menetapkan atau memperbarui paket pengguna (Free, Pro, Enterprise).
      * Mengelola sinkronisasi atomik pada:
@@ -33,9 +40,7 @@ export class UserPlanLifecycleService {
         const transactionInstance = options.transaction || (await sequelize.transaction());
 
         try {
-            const selectedPlan = await Plan.findByPk(planId, {
-                transaction: transactionInstance,
-            });
+            const selectedPlan = await this.planRepo.findByPk(planId, transactionInstance);
 
             if (!selectedPlan) {
                 throw new Error(`Plan dengan ID ${planId} tidak ditemukan.`);
@@ -44,9 +49,7 @@ export class UserPlanLifecycleService {
             const isFreePlan = selectedPlan.id === 1;
             const subscriptionTier: 'free' | 'paid' = isFreePlan ? 'free' : 'paid';
 
-            const user = await User.findByPk(userId, {
-                transaction: transactionInstance,
-            });
+            const user = await this.userRepo.findByPk(userId, transactionInstance);
 
             if (!user) {
                 throw new Error(`Pengguna dengan ID ${userId} tidak ditemukan.`);
@@ -54,25 +57,16 @@ export class UserPlanLifecycleService {
 
             user.plan_id = selectedPlan.id;
             user.sub_tier = subscriptionTier;
-            await user.save({ transaction: transactionInstance });
+            await this.userRepo.save(user, transactionInstance);
 
             const durationDays = options.customDurationDays || selectedPlan.duration_days || 30;
             const startDate = new Date();
             const endDate = new Date();
             endDate.setDate(endDate.getDate() + durationDays);
 
-            await Subscription.update(
-                { status: 'canceled' },
-                {
-                    where: {
-                        user_id: userId,
-                        status: 'active',
-                    },
-                    transaction: transactionInstance,
-                }
-            );
+            await this.subRepo.cancelActiveSubscriptionsByUserId(userId, transactionInstance);
 
-            const newSubscription = await Subscription.create(
+            const newSubscription = await this.subRepo.create(
                 {
                     user_id: userId,
                     plan_id: selectedPlan.id,
@@ -82,7 +76,7 @@ export class UserPlanLifecycleService {
                     acquisition_method: options.acquisitionMethod || (isFreePlan ? 'free_registration' : 'midtrans_payment'),
                     note: options.note || (isFreePlan ? 'Default free plan' : 'Paid subscription plan'),
                 },
-                { transaction: transactionInstance }
+                transactionInstance
             );
 
             const userQuota = await quotaService.initializeUserQuota({
@@ -141,15 +135,11 @@ export class UserPlanLifecycleService {
      * Mengembalikan user berbayar yang kedaluwarsa ke Free Plan secara otomatis.
      */
     static async downgradeExpiredUsers(referenceDate: Date = new Date()): Promise<number> {
-        const expiredSubscriptions = await Subscription.findAll({
-            where: {
-                status: 'active',
-            },
-        });
+        const activeSubscriptions = await this.subRepo.findAllActive();
 
         let downgradedCount = 0;
 
-        for (const subscription of expiredSubscriptions) {
+        for (const subscription of activeSubscriptions) {
             if (subscription.end_date && new Date(subscription.end_date) <= referenceDate) {
                 if (subscription.plan_id > 1) {
                     try {
@@ -175,7 +165,7 @@ export class UserPlanLifecycleService {
                         const updatedEndDate = new Date(referenceDate);
                         updatedEndDate.setDate(updatedEndDate.getDate() + 30);
                         subscription.end_date = updatedEndDate;
-                        await subscription.save();
+                        await this.subRepo.save(subscription);
                     } catch (freeResetError) {
                         log.error(
                             'UserPlanService',

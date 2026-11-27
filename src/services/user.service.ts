@@ -1,7 +1,7 @@
 import { Transaction } from "sequelize";
-import { User } from "../models";
+import type { User } from "../models";
 import { userRepository, UserRepository } from "../repositories/user.repository";
-import { UserAttributes } from "../models/user.model";
+import type { UserAttributes } from "../models/user.model";
 import { hashPassword } from "../utils/auth.util";
 import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
 

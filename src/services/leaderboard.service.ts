@@ -1,4 +1,3 @@
-import { Op } from "sequelize";
 import { getRedisClient } from "../config/redisClient";
 import { getCurrentMonthIdIndonesia } from "../utils/time.util";
 import { scanRepository, ScanRepository } from "../repositories/scan.repository";
@@ -40,17 +39,7 @@ export class LeaderboardService {
         const startDate = new Date(Date.UTC(year, month - 1, 1) - 7 * 60 * 60 * 1000);
         const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, 1) - 7 * 60 * 60 * 1000);
 
-        const scans = await this.scanRepo.findAll({
-            where: {
-                createdAt: {
-                    [Op.gte]: startDate,
-                    [Op.lt]: endDate,
-                },
-                user_id: {
-                    [Op.ne]: null as any,
-                },
-            },
-        });
+        const scans = await this.scanRepo.findUserScansBetween(startDate, endDate);
 
         if (scans.length === 0) {
             console.log(`[Leaderboard] No scan history found in DB for period: ${period}`);
