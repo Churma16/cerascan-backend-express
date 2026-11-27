@@ -50,7 +50,9 @@ app.use("/api/leaderboards", leaderboardRoutes);
 app.use("/api/user-quotas", quotaRoutes);
 app.use("/api/model-insights", modelInsightRoutes);
 app.use("/api/sse", sseRoutes);
-app.use("/api/baseline", baselineRoutes);
+if (process.env.ENABLE_BASELINE_ROUTES === "true") {
+    app.use("/api/baseline", baselineRoutes);
+}
 app.use("/metrics", metricsRoutes);
 
 app.get("/", (req: Request, res: Response) => {

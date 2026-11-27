@@ -146,9 +146,6 @@ export class BaselineController {
 
             const startTime = Date.now();
             const response = await axios.post(pythonRestUrl, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data"
-                },
                 timeout: 10000
             });
             const inferenceDurationMs = Date.now() - startTime;
@@ -177,12 +174,11 @@ export class BaselineController {
             }
 
             const baselineUploadDir = path.join(process.cwd(), "uploads", "baseline");
-            if (!fs.existsSync(baselineUploadDir)) {
-                fs.mkdirSync(baselineUploadDir, { recursive: true });
-            }
+            await fs.promises.mkdir(baselineUploadDir, { recursive: true });
 
             const timestamp = Date.now();
-            const targetFilename = `local_${timestamp}_${req.file.originalname || "tile.png"}`;
+            const safeFilename = path.basename(req.file.originalname || "tile.png");
+            const targetFilename = `local_${timestamp}_${safeFilename}`;
             const targetPath = path.join(baselineUploadDir, targetFilename);
 
             // Synchronous disk write I/O blocking

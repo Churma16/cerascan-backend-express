@@ -1,10 +1,20 @@
 import express from "express";
+import fs from "fs";
+import path from "path";
 import request from "supertest";
 import baselineRoutes from "./baseline.routes";
 
 const testApp = express();
 testApp.use(express.json());
 testApp.use("/api/baseline", baselineRoutes);
+
+const createdLocalFiles: string[] = [];
+
+afterAll(async () => {
+    for (const filePath of createdLocalFiles) {
+        await fs.promises.rm(filePath, { force: true });
+    }
+});
 
 describe("Baseline Routes Tests", () => {
     describe("POST /api/baseline/scans/sync", () => {
@@ -68,6 +78,9 @@ describe("Baseline Routes Tests", () => {
             expect(response.status).toBe(201);
             expect(response.body.data.storage_type).toBe("local_disk");
             expect(response.body.data.file_name).toContain("local_");
+            if (response.body.data.local_path) {
+                createdLocalFiles.push(path.resolve(response.body.data.local_path));
+            }
         });
     });
 });
