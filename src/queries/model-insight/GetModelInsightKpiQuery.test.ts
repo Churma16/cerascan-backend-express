@@ -1,5 +1,5 @@
 import { GetModelInsightKpiQueryHandler } from "./GetModelInsightKpiQuery";
-import { AnalyticsRepository } from "../../../repositories/analytics.repository";
+import { AnalyticsRepository } from "../../repositories/analytics.repository";
 
 describe("GetModelInsightKpiQueryHandler", () => {
     let handler: GetModelInsightKpiQueryHandler;

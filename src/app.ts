@@ -5,14 +5,14 @@ import path from "path";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import scanRoutes from "./routes/scan.routes";
-import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 import dlqRoutes from "./routes/dlq.routes";
 import paymentRoutes from "./routes/payment.routes";
 import planRoutes from "./routes/plan.routes";
 import subscriptionRoutes from "./routes/subscription.routes";
 import leaderboardRoutes from "./routes/leaderboard.routes";
 import quotaRoutes from "./routes/quota.routes";
-import modelInsightRoutes from "./modules/model-insight/modelInsight.routes";
+import modelInsightRoutes from "./routes/modelInsight.routes";
 import sseRoutes from "./transport/sse/sse.routes";
 import passport from "passport";
 

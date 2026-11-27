@@ -1,4 +1,4 @@
-import { GetModelInsightKpiQueryHandler } from "./queries/GetModelInsightKpiQuery";
+import { GetModelInsightKpiQueryHandler } from "../queries/model-insight/GetModelInsightKpiQuery";
 
 export class ModelInsightService {
     private static modelInsightHandler = new GetModelInsightKpiQueryHandler();

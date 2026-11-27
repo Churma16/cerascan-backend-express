@@ -1,9 +1,9 @@
 import dayjs from "dayjs";
-import { getNowIndonesiaTime } from "../../../utils/time.util";
-import { scanRepository, ScanRepository } from "../../../repositories/scan.repository";
-import { quotaService, QuotaService } from "../../../services/quota.service";
-import { subscriptionService, SubscriptionService } from "../../../services/subscription.service";
-import { getRedisClient } from "../../../config/redisClient";
+import { getNowIndonesiaTime } from "../../utils/time.util";
+import { scanRepository, ScanRepository } from "../../repositories/scan.repository";
+import { quotaService, QuotaService } from "../../services/quota.service";
+import { subscriptionService, SubscriptionService } from "../../services/subscription.service";
+import { getRedisClient } from "../../config/redisClient";
 import {
     calculateTrendPercentageText,
     DashboardKpiResponseDto

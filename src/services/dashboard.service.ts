@@ -1,7 +1,7 @@
-import { GetAdminDashboardKpiQueryHandler } from "./queries/GetAdminDashboardKpiQuery";
-import { GetUserDashboardKpiQueryHandler } from "./queries/GetUserDashboardKpiQuery";
-import { GetScanTrendQueryHandler, ScanTrendItemDto } from "./queries/GetScanTrendQuery";
-import { DashboardKpiResponseDto } from "./queries/dashboardKpi.types";
+import { GetAdminDashboardKpiQueryHandler } from "../queries/dashboard/GetAdminDashboardKpiQuery";
+import { GetUserDashboardKpiQueryHandler } from "../queries/dashboard/GetUserDashboardKpiQuery";
+import { GetScanTrendQueryHandler, ScanTrendItemDto } from "../queries/dashboard/GetScanTrendQuery";
+import { DashboardKpiResponseDto } from "../queries/dashboard/dashboardKpi.types";
 
 export class DashboardService {
     private static adminKpiHandler = new GetAdminDashboardKpiQueryHandler();

@@ -1,9 +1,9 @@
 import { ModelInsightMetrics } from "../repositories/analytics.repository";
-import { GetModelInsightKpiQueryHandler } from "../modules/model-insight/queries/GetModelInsightKpiQuery";
-import { GetScanTrendQueryHandler, ScanTrendItemDto } from "../modules/dashboard/queries/GetScanTrendQuery";
-import { GetAdminDashboardKpiQueryHandler } from "../modules/dashboard/queries/GetAdminDashboardKpiQuery";
-import { GetUserDashboardKpiQueryHandler } from "../modules/dashboard/queries/GetUserDashboardKpiQuery";
-import { DashboardKpiResponseDto } from "../modules/dashboard/queries/dashboardKpi.types";
+import { GetModelInsightKpiQueryHandler } from "../queries/model-insight/GetModelInsightKpiQuery";
+import { GetScanTrendQueryHandler, ScanTrendItemDto } from "../queries/dashboard/GetScanTrendQuery";
+import { GetAdminDashboardKpiQueryHandler } from "../queries/dashboard/GetAdminDashboardKpiQuery";
+import { GetUserDashboardKpiQueryHandler } from "../queries/dashboard/GetUserDashboardKpiQuery";
+import { DashboardKpiResponseDto } from "../queries/dashboard/dashboardKpi.types";
 
 export class AnalyticsService {
     private modelInsightHandler: GetModelInsightKpiQueryHandler;

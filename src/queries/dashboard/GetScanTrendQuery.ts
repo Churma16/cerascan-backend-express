@@ -1,6 +1,6 @@
-import { getNowIndonesiaTime } from "../../../utils/time.util";
-import { analyticsRepository, AnalyticsRepository } from "../../../repositories/analytics.repository";
-import { getRedisClient } from "../../../config/redisClient";
+import { getNowIndonesiaTime } from "../../utils/time.util";
+import { analyticsRepository, AnalyticsRepository } from "../../repositories/analytics.repository";
+import { getRedisClient } from "../../config/redisClient";
 
 export interface ScanTrendItemDto {
     date: string;

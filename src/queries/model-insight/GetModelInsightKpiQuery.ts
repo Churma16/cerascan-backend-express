@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
-import { getNowIndonesiaTime } from "../../../utils/time.util";
-import { analyticsRepository, AnalyticsRepository, ModelInsightMetrics } from "../../../repositories/analytics.repository";
+import { getNowIndonesiaTime } from "../../utils/time.util";
+import { analyticsRepository, AnalyticsRepository, ModelInsightMetrics } from "../../repositories/analytics.repository";
 
 export interface PredictionDistributionItemDto {
     prediction: string;

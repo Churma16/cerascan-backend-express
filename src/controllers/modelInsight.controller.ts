@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { sendResponse } from "../../utils/response.util";
-import { ModelInsightService } from "./modelInsight.service";
+import { sendResponse } from "../utils/response.util";
+import { ModelInsightService } from "../services/modelInsight.service";
 
 export class ModelInsightController {
     static async getModelInsightKPI(req: Request, res: Response) {

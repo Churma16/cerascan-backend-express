@@ -1,8 +1,8 @@
 import { GetScanTrendQueryHandler } from "./GetScanTrendQuery";
-import { AnalyticsRepository } from "../../../repositories/analytics.repository";
-import { getRedisClient } from "../../../config/redisClient";
+import { AnalyticsRepository } from "../../repositories/analytics.repository";
+import { getRedisClient } from "../../config/redisClient";
 
-jest.mock("../../../config/redisClient");
+jest.mock("../../config/redisClient");
 
 describe("GetScanTrendQueryHandler", () => {
     let handler: GetScanTrendQueryHandler;
