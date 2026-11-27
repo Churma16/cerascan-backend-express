@@ -304,6 +304,21 @@ describe("QuotaService", () => {
             expect(mockRedisClient.decrBy).toHaveBeenCalledWith(quotaKey, 1);
         });
 
+        it("should return false and rollback via incrBy when race condition causes negative quota after decrBy", async () => {
+            const targetUserId = 101;
+            const quotaKey = `user:${targetUserId}:remaining_quota`;
+
+            mockRedisClient.get.mockResolvedValue("1");
+            mockRedisClient.decrBy.mockResolvedValue(-1);
+            mockRedisClient.incrBy.mockResolvedValue(0);
+
+            const checkResult = await quotaService.checkAndDecrementQuota(targetUserId, 1);
+
+            expect(checkResult).toBe(false);
+            expect(mockRedisClient.decrBy).toHaveBeenCalledWith(quotaKey, 1);
+            expect(mockRedisClient.incrBy).toHaveBeenCalledWith(quotaKey, 1);
+        });
+
         it("should return false on cache miss when database record does not exist", async () => {
             const targetUserId = 105;
 
