@@ -164,4 +164,39 @@ describe("LeaderboardService", () => {
             ]);
         });
     });
+
+    describe("rebuildLeaderboardCache", () => {
+        it("should rebuild Redis sorted set and stats hashes from DB scans", async () => {
+            const pipeline = {
+                del: jest.fn().mockReturnThis(),
+                zAdd: jest.fn().mockReturnThis(),
+                hSet: jest.fn().mockReturnThis(),
+                expire: jest.fn().mockReturnThis(),
+                exec: jest.fn().mockResolvedValue([]),
+            };
+            mockRedis.multi.mockReturnValue(pipeline as any);
+
+            mockScanRepo.findAll.mockResolvedValue([
+                { user_id: 1, prediction: "crack" } as any,
+                { user_id: 1, prediction: "normal" } as any,
+                { user_id: 2, prediction: "normal" } as any,
+            ]);
+
+            await leaderboardService.rebuildLeaderboardCache(mockRedis as any, currentPeriod);
+
+            expect(pipeline.del).toHaveBeenCalledWith(`leaderboard:rank:${currentPeriod}`);
+            expect(pipeline.zAdd).toHaveBeenCalledWith(`leaderboard:rank:${currentPeriod}`, [
+                { score: 2, value: "1" },
+            ]);
+            expect(pipeline.zAdd).toHaveBeenCalledWith(`leaderboard:rank:${currentPeriod}`, [
+                { score: 1, value: "2" },
+            ]);
+            expect(pipeline.hSet).toHaveBeenCalledWith(`leaderboard:stats:${currentPeriod}:user:1`, "total_scans", "2");
+            expect(pipeline.hSet).toHaveBeenCalledWith(`leaderboard:stats:${currentPeriod}:user:1`, "defect_scans", "1");
+            expect(pipeline.hSet).toHaveBeenCalledWith(`leaderboard:stats:${currentPeriod}:user:2`, "total_scans", "1");
+            expect(pipeline.hSet).toHaveBeenCalledWith(`leaderboard:stats:${currentPeriod}:user:2`, "defect_scans", "0");
+            expect(pipeline.expire).toHaveBeenCalledWith(`leaderboard:rank:${currentPeriod}`, 86400 * 60);
+            expect(pipeline.exec).toHaveBeenCalled();
+        });
+    });
 });

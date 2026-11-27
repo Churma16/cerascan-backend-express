@@ -71,24 +71,23 @@ export class LeaderboardService {
         }
 
         const pipeline = redis.multi();
-        const totalLeaderboardKey = `leaderboard:${period}:total_scans`;
-        const defectLeaderboardKey = `leaderboard:${period}:defect_scans`;
+        const redisRankKey = `leaderboard:rank:${period}`;
 
-        pipeline.del(totalLeaderboardKey);
-        pipeline.del(defectLeaderboardKey);
+        pipeline.del(redisRankKey);
 
         for (const [userIdStr, stats] of Object.entries(userStatsMap)) {
             const userId = parseInt(userIdStr);
+            const userStatsKey = `leaderboard:stats:${period}:user:${userId}`;
+
             if (stats.total_scans > 0) {
-                pipeline.zAdd(totalLeaderboardKey, [{ score: stats.total_scans, value: userId.toString() }]);
+                pipeline.zAdd(redisRankKey, [{ score: stats.total_scans, value: userId.toString() }]);
             }
-            if (stats.defect_scans > 0) {
-                pipeline.zAdd(defectLeaderboardKey, [{ score: stats.defect_scans, value: userId.toString() }]);
-            }
+            pipeline.hSet(userStatsKey, "total_scans", stats.total_scans.toString());
+            pipeline.hSet(userStatsKey, "defect_scans", stats.defect_scans.toString());
+            pipeline.expire(userStatsKey, 86400 * 60);
         }
 
-        pipeline.expire(totalLeaderboardKey, 86400 * 60);
-        pipeline.expire(defectLeaderboardKey, 86400 * 60);
+        pipeline.expire(redisRankKey, 86400 * 60);
 
         await pipeline.exec();
         console.log(`[Leaderboard] Successfully rebuilt cache for ${Object.keys(userStatsMap).length} users in ${period}`);

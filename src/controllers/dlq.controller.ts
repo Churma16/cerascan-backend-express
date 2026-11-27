@@ -16,6 +16,9 @@ export class DLQController {
             const messages = await dlqService.getDlqMessages(requestUserId, requestUserRole === "admin", 100);
             return sendResponseMulti(res, 200, "Daftar antrean gagal berhasil diambil", messages);
         } catch (error: any) {
+            if (error.message?.includes("403") || error.statusCode === 403) {
+                return sendResponse(res, 403, error.message);
+            }
             return sendResponse(res, 500, error.message);
         }
     }
@@ -41,6 +44,9 @@ export class DLQController {
                 return sendResponse(res, 404, `Pesan dengan ID ${id} tidak ditemukan di antrean gagal atau Anda tidak memiliki akses.`);
             }
         } catch (error: any) {
+            if (error.message?.includes("403") || error.statusCode === 403) {
+                return sendResponse(res, 403, error.message);
+            }
             return sendResponse(res, 500, error.message);
         }
     }
@@ -57,6 +63,9 @@ export class DLQController {
             const result = await dlqService.retryAllDlqMessages(requestUserId, requestUserRole === "admin");
             return sendResponse(res, 200, `${result.successCount} pesan berhasil dikirim ulang. ${result.skippedCount} pesan dilewati.`);
         } catch (error: any) {
+            if (error.message?.includes("403") || error.statusCode === 403) {
+                return sendResponse(res, 403, error.message);
+            }
             return sendResponse(res, 500, error.message);
         }
     }
@@ -66,6 +75,9 @@ export class DLQController {
             await dlqService.purgeDlq();
             return sendResponse(res, 200, "Seluruh antrean gagal berhasil dibersihkan");
         } catch (error: any) {
+            if (error.message?.includes("403") || error.statusCode === 403) {
+                return sendResponse(res, 403, error.message);
+            }
             return sendResponse(res, 500, error.message);
         }
     }
