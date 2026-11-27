@@ -60,17 +60,6 @@ export class UserRepository {
         return affectedCount;
     }
 
-    async bulkUpdatePlan(userIds: number[], planId: number, transaction?: Transaction): Promise<number> {
-        const [affectedCount] = await User.update(
-            { plan_id: planId },
-            {
-                where: { id: { [Op.in]: userIds } },
-                transaction
-            }
-        );
-        return affectedCount;
-    }
-
     async destroy(id: number, transaction?: Transaction): Promise<boolean> {
         const targetUser = await User.findByPk(id, { transaction });
         if (targetUser) {

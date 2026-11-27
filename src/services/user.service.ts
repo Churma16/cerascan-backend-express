@@ -48,24 +48,16 @@ export class UserService {
         return userJSON;
     }
 
-    async deleteUser(userId: number, transaction?: Transaction): Promise<User> {
-        const user = await this.userRepo.findById(userId, transaction);
-        if (!user) {
+    async deleteUser(userId: number, transaction?: Transaction): Promise<boolean> {
+        const isDeleted = await this.userRepo.destroy(userId, transaction);
+        if (!isDeleted) {
             throw new Error("User tidak ditemukan");
         }
-        await this.userRepo.destroy(userId, transaction);
-        return user;
+        return true;
     }
 
-    async upgradeUserTier(userId: number, planId: number, transaction?: Transaction): Promise<User> {
-        const user = await this.userRepo.findByPk(userId, transaction);
-        if (!user) {
-            throw new Error("User tidak ditemukan");
-        }
-
-        user.plan_id = planId;
-        await this.userRepo.save(user, transaction);
-        return user;
+    async upgradeUserTier(userId: number, planId: number, transaction?: Transaction): Promise<any> {
+        return await UserPlanLifecycleService.assignPlan(userId, planId, { transaction });
     }
 
     async downgradeExpiredUsers(today: Date = new Date()): Promise<{ updatedUsersCount: number; updatedSubsCount: number }> {

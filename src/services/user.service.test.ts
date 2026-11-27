@@ -40,7 +40,6 @@ describe("UserService", () => {
             create: jest.fn(),
             save: jest.fn(),
             update: jest.fn(),
-            bulkUpdatePlan: jest.fn(),
             destroy: jest.fn(),
             count: jest.fn()
         } as unknown as jest.Mocked<UserRepository>;
@@ -99,41 +98,35 @@ describe("UserService", () => {
 
     describe("deleteUser", () => {
         it("should delete user when user exists", async () => {
-            mockUserRepo.findById.mockResolvedValue(mockUserData as any);
             mockUserRepo.destroy.mockResolvedValue(true);
 
             const result = await userService.deleteUser(1);
 
             expect(mockUserRepo.destroy).toHaveBeenCalledWith(1, undefined);
-            expect(result.id).toBe(1);
+            expect(result).toBe(true);
         });
 
         it("should throw error when user does not exist", async () => {
-            mockUserRepo.findById.mockResolvedValue(null);
+            mockUserRepo.destroy.mockResolvedValue(false);
 
             await expect(userService.deleteUser(999)).rejects.toThrow("User tidak ditemukan");
         });
     });
 
     describe("upgradeUserTier", () => {
-        it("should update user plan_id and save", async () => {
-            const userInstance = {
-                id: 1,
-                plan_id: 1
+        it("should delegate plan assignment to UserPlanLifecycleService", async () => {
+            const mockAssignmentResult = {
+                user: mockUserData,
+                subscription: {} as any,
+                userQuota: {} as any,
+                remainingQuota: 50
             };
-            mockUserRepo.findByPk.mockResolvedValue(userInstance as any);
-            mockUserRepo.save.mockResolvedValue({ ...userInstance, plan_id: 2 } as any);
+            (UserPlanLifecycleService.assignPlan as jest.Mock).mockResolvedValue(mockAssignmentResult as any);
 
             const result = await userService.upgradeUserTier(1, 2);
 
-            expect(userInstance.plan_id).toBe(2);
-            expect(mockUserRepo.save).toHaveBeenCalledWith(userInstance, undefined);
-        });
-
-        it("should throw error if user not found", async () => {
-            mockUserRepo.findByPk.mockResolvedValue(null);
-
-            await expect(userService.upgradeUserTier(999, 2)).rejects.toThrow("User tidak ditemukan");
+            expect(UserPlanLifecycleService.assignPlan).toHaveBeenCalledWith(1, 2, { transaction: undefined });
+            expect(result).toEqual(mockAssignmentResult);
         });
     });
 

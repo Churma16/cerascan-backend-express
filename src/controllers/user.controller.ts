@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { sendResponse, sendResponseMulti } from "../utils/response.util";
-import { userService, UserService } from "../services/user.service";
+import { userService } from "../services/user.service";
 
 export class UserController {
     static async getAll(req: Request, res: Response) {
@@ -65,8 +65,8 @@ export class UserController {
                 return sendResponse(res, 400, "ID tidak valid");
             }
 
-            const user = await userService.deleteUser(userId);
-            return sendResponse(res, 200, "Pengguna berhasil dihapus", user);
+            await userService.deleteUser(userId);
+            return sendResponse(res, 200, "Pengguna berhasil dihapus");
         } catch (error: any) {
             return sendResponse(res, 404, error.message || "Terjadi kesalahan pada server");
         }
