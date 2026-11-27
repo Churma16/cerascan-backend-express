@@ -1,6 +1,5 @@
 import { Op, Transaction } from "sequelize";
 import { DeadLetterMessage } from "../models";
-import { DeadLetterMessageAttributes } from "../models/deadLetterMessage.model";
 
 export interface FindDeadMessagesOptions {
     userId?: number;
@@ -10,7 +9,7 @@ export interface FindDeadMessagesOptions {
 
 export class DlqRepository {
     async findDeadMessages(options: FindDeadMessagesOptions = {}): Promise<DeadLetterMessage[]> {
-        const { userId, limit = 100, order = "DESC" } = options;
+        const { userId, limit, order = "DESC" } = options;
         const where: any = {
             status: "dead"
         };
@@ -22,7 +21,7 @@ export class DlqRepository {
         return await DeadLetterMessage.findAll({
             where,
             order: [["createdAt", order]],
-            limit
+            ...(limit !== undefined ? { limit } : {})
         });
     }
 
@@ -38,21 +37,6 @@ export class DlqRepository {
             },
             order: [["createdAt", "DESC"]]
         });
-    }
-
-    async updateStatus(
-        id: number,
-        status: "dead" | "retried" | "purged",
-        transaction?: Transaction
-    ): Promise<number> {
-        const [affectedCount] = await DeadLetterMessage.update(
-            { status },
-            {
-                where: { id },
-                transaction
-            }
-        );
-        return affectedCount;
     }
 
     async purgeAllDead(transaction?: Transaction): Promise<number> {

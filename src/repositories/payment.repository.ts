@@ -9,7 +9,7 @@ export interface MonthlyRevenueAggregate {
 
 export class PaymentRepository {
     async findById(id: number, transaction?: Transaction): Promise<Payment | null> {
-        return await Payment.findByPk(id, { transaction });
+        return await this.findByPk(id, transaction);
     }
 
     async findByPk(id: number, transaction?: Transaction): Promise<Payment | null> {
@@ -63,7 +63,7 @@ export class PaymentRepository {
 
     async getMonthlyRevenueStats(startDate: Date, endDate?: Date): Promise<MonthlyRevenueAggregate> {
         const where: any = {
-            created_at: endDate ? { [Op.gte]: startDate, [Op.lt]: endDate } : { [Op.gte]: startDate }
+            createdAt: endDate ? { [Op.gte]: startDate, [Op.lt]: endDate } : { [Op.gte]: startDate }
         };
 
         const result: any = await Payment.findAll({

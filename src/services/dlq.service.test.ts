@@ -10,7 +10,6 @@ jest.mock("../repositories/dlq.repository", () => ({
     dlqRepository: {
         findDeadMessages: jest.fn(),
         findDeadMessageByIdOrMessageId: jest.fn(),
-        updateStatus: jest.fn(),
         purgeAllDead: jest.fn(),
         save: jest.fn(),
     },
@@ -146,6 +145,10 @@ describe("DlqService", () => {
 
             const result = await dlqService.retryAllDlqMessages(10, false);
 
+            expect(dlqRepository.findDeadMessages).toHaveBeenCalledWith({
+                userId: 10,
+                order: "ASC",
+            });
             expect(result).toEqual({ successCount: 1, skippedCount: 0 });
             expect(NotificationService.emitDlqUpdated).toHaveBeenCalledWith({
                 action: "bulk_retry",
