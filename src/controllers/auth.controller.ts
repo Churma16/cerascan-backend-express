@@ -101,10 +101,8 @@ export class AuthController {
     static async verifyOtp(req: Request, res: Response) {
         try {
             const { email, otp } = req.body as VerifyOtpDto;
-            const verifiedUserId = await authService.verifyOtp(email, otp);
-            return sendResponse(res, 200, "OTP valid, silakan lanjutkan untuk reset password", {
-                user_id: verifiedUserId
-            });
+            const result = await authService.verifyOtp(email, otp);
+            return sendResponse(res, 200, "OTP valid, silakan lanjutkan untuk reset password", result);
         } catch (error: any) {
             return sendResponse(res, 400, error.message);
         }
@@ -112,8 +110,8 @@ export class AuthController {
 
     static async resetPassword(req: Request, res: Response) {
         try {
-            const { id, new_password } = req.body as ResetPasswordDto;
-            await authService.resetPassword(id, new_password);
+            const { reset_token, new_password } = req.body as ResetPasswordDto;
+            await authService.resetPassword(reset_token, new_password);
             return sendResponse(res, 200, "Password Anda berhasil diperbarui. Silakan login kembali.");
         } catch (error: any) {
             return sendResponse(res, 400, error.message);
