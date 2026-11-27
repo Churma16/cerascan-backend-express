@@ -144,16 +144,18 @@ export class AuthService {
         let user = await this.userRepo.findByEmail(userEmail);
 
         if (user) {
-            if (!user.googleId) {
-                user.googleId = profile.id;
-                if (!user.avatar && profile.photos && profile.photos.length > 0) {
-                    user.avatar = profile.photos[0].value;
-                }
-                if (!user.verified_at) {
-                    user.verified_at = new Date();
-                }
-                await user.save();
+            if (user.googleId) {
+                return user;
             }
+
+            user.googleId = profile.id;
+            if (!user.avatar && profile.photos && profile.photos.length > 0) {
+                user.avatar = profile.photos[0].value;
+            }
+            if (!user.verified_at) {
+                user.verified_at = new Date();
+            }
+            await user.save();
             return user;
         }
 

@@ -87,44 +87,45 @@ export abstract class BaseRabbitSubscriber {
                     if (retryCount < this.maxRetries) {
                         this.retryMap.set(messageId, retryCount + 1);
                         channel.nack(msg, false, true);
-                    } else {
-                        try {
-                            const rawUserId = eventData?.user_id;
-                            const parsedUserId = (typeof rawUserId === 'number' && !isNaN(rawUserId)) ? rawUserId : null;
-                            const trackingMessageId = String(eventData?.orderId || eventData?.db_id || eventData?.scan_id || messageId || 'unknown');
-
-                            await DeadLetterMessage.create({
-                                message_id: trackingMessageId,
-                                routing_key: routingKey,
-                                queue_name: this.queueName,
-                                user_id: parsedUserId,
-                                payload: eventData || {},
-                                error_message: errorMsg,
-                                retry_count: this.maxRetries,
-                                status: 'dead',
-                            });
-                        } catch (dbPersistenceError) {
-                            log.error(
-                                `Worker ${this.queueName}`,
-                                `Gagal mencatat DLQ ke database: ${dbPersistenceError instanceof Error ? dbPersistenceError.message : String(dbPersistenceError)}`
-                            );
-                        }
-
-                        try {
-                            await this.onMaxRetriesExhausted(eventData, routingKey, error);
-                        } catch (hookError) {
-                            log.error(
-                                `Worker ${this.queueName}`, 
-                                `Error saat menjalankan onMaxRetriesExhausted: ${hookError instanceof Error ? hookError.message : String(hookError)}`
-                            );
-                        }
-
-                        channel.nack(msg, false, false);
-                        log.error(`Worker ${this.queueName}`, `Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
-                        this.retryMap.delete(messageId);
-
-                        await NotificationService.emitDlqUpdated({ action: 'add', data: { messageId, routingKey } });
+                        return;
                     }
+
+                    try {
+                        const rawUserId = eventData?.user_id;
+                        const parsedUserId = (typeof rawUserId === 'number' && !isNaN(rawUserId)) ? rawUserId : null;
+                        const trackingMessageId = String(eventData?.orderId || eventData?.db_id || eventData?.scan_id || messageId || 'unknown');
+
+                        await DeadLetterMessage.create({
+                            message_id: trackingMessageId,
+                            routing_key: routingKey,
+                            queue_name: this.queueName,
+                            user_id: parsedUserId,
+                            payload: eventData || {},
+                            error_message: errorMsg,
+                            retry_count: this.maxRetries,
+                            status: 'dead',
+                        });
+                    } catch (dbPersistenceError) {
+                        log.error(
+                            `Worker ${this.queueName}`,
+                            `Gagal mencatat DLQ ke database: ${dbPersistenceError instanceof Error ? dbPersistenceError.message : String(dbPersistenceError)}`
+                        );
+                    }
+
+                    try {
+                        await this.onMaxRetriesExhausted(eventData, routingKey, error);
+                    } catch (hookError) {
+                        log.error(
+                            `Worker ${this.queueName}`, 
+                            `Error saat menjalankan onMaxRetriesExhausted: ${hookError instanceof Error ? hookError.message : String(hookError)}`
+                        );
+                    }
+
+                    channel.nack(msg, false, false);
+                    log.error(`Worker ${this.queueName}`, `Gagal setelah ${this.maxRetries} retry, masuk ke DLX`);
+                    this.retryMap.delete(messageId);
+
+                    await NotificationService.emitDlqUpdated({ action: 'add', data: { messageId, routingKey } });
                 }
             }, {noAck: false});
 

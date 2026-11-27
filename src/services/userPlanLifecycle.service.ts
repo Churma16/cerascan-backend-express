@@ -140,39 +140,42 @@ export class UserPlanLifecycleService {
         let downgradedCount = 0;
 
         for (const subscription of activeSubscriptions) {
-            if (subscription.end_date && new Date(subscription.end_date) <= referenceDate) {
-                if (subscription.plan_id > 1) {
-                    try {
-                        await this.assignPlan(subscription.user_id, 1, {
-                            acquisitionMethod: 'cron_expired_downgrade',
-                            note: 'Otomatis diturunkan ke Free Plan karena masa aktif habis',
-                        });
-                        downgradedCount++;
-                        log.info(
-                            'UserPlanService',
-                            `User ID ${subscription.user_id} otomatis di-downgrade ke Free Plan karena masa aktif habis.`
-                        );
-                    } catch (downgradeError) {
-                        log.error(
-                            'UserPlanService',
-                            `Gagal melakukan downgrade otomatis untuk user ${subscription.user_id}:`,
-                            downgradeError
-                        );
-                    }
-                } else {
-                    try {
-                        await this.resetQuota(subscription.user_id);
-                        const updatedEndDate = new Date(referenceDate);
-                        updatedEndDate.setDate(updatedEndDate.getDate() + 30);
-                        subscription.end_date = updatedEndDate;
-                        await this.subRepo.save(subscription);
-                    } catch (freeResetError) {
-                        log.error(
-                            'UserPlanService',
-                            `Gagal mereset kuota bulanan Free Plan untuk user ${subscription.user_id}:`,
-                            freeResetError
-                        );
-                    }
+            const isExpired = subscription.end_date && new Date(subscription.end_date) <= referenceDate;
+            if (!isExpired) {
+                continue;
+            }
+
+            if (subscription.plan_id > 1) {
+                try {
+                    await this.assignPlan(subscription.user_id, 1, {
+                        acquisitionMethod: 'cron_expired_downgrade',
+                        note: 'Otomatis diturunkan ke Free Plan karena masa aktif habis',
+                    });
+                    downgradedCount++;
+                    log.info(
+                        'UserPlanService',
+                        `User ID ${subscription.user_id} otomatis di-downgrade ke Free Plan karena masa aktif habis.`
+                    );
+                } catch (downgradeError) {
+                    log.error(
+                        'UserPlanService',
+                        `Gagal melakukan downgrade otomatis untuk user ${subscription.user_id}:`,
+                        downgradeError
+                    );
+                }
+            } else {
+                try {
+                    await this.resetQuota(subscription.user_id);
+                    const updatedEndDate = new Date(referenceDate);
+                    updatedEndDate.setDate(updatedEndDate.getDate() + 30);
+                    subscription.end_date = updatedEndDate;
+                    await this.subRepo.save(subscription);
+                } catch (freeResetError) {
+                    log.error(
+                        'UserPlanService',
+                        `Gagal mereset kuota bulanan Free Plan untuk user ${subscription.user_id}:`,
+                        freeResetError
+                    );
                 }
             }
         }

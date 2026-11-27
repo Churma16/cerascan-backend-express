@@ -23,19 +23,19 @@ export interface DashboardKpiResponseDto {
 }
 
 export function calculateTrendPercentageText(totalScansLastMonth: number, totalScansThisMonth: number): string {
-    if (totalScansLastMonth > 0) {
-        const differenceCount = totalScansThisMonth - totalScansLastMonth;
-        const percentageValue = Math.round((differenceCount / totalScansLastMonth) * 100);
-        if (percentageValue > 0) {
-            return `Naik ${percentageValue}% dari bulan lalu`;
-        }
-        if (percentageValue < 0) {
-            return `Turun ${Math.abs(percentageValue)}% dari bulan lalu`;
-        }
-        return "Stabil dari bulan lalu";
+    if (totalScansLastMonth <= 0) {
+        return totalScansThisMonth > 0 ? "Naik 100% dari bulan lalu" : "Stabil dari bulan lalu";
     }
-    if (totalScansThisMonth > 0) {
-        return "Naik 100% dari bulan lalu";
+
+    const differenceCount = totalScansThisMonth - totalScansLastMonth;
+    const percentageValue = Math.round((differenceCount / totalScansLastMonth) * 100);
+
+    if (percentageValue > 0) {
+        return `Naik ${percentageValue}% dari bulan lalu`;
     }
+    if (percentageValue < 0) {
+        return `Turun ${Math.abs(percentageValue)}% dari bulan lalu`;
+    }
+
     return "Stabil dari bulan lalu";
 }
