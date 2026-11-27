@@ -190,6 +190,19 @@ export class ScanService {
     }
 
     async deleteScanById(scanId: number): Promise<boolean> {
+        const scan = await this.repository.findById(scanId);
+        if (!scan) {
+            return false;
+        }
+
+        if (scan.saved_file_name) {
+            try {
+                await storageService.deleteFile(scan.saved_file_name);
+            } catch (storageError) {
+                console.error("[warn] Failed to delete file from storage during scan deletion:", storageError);
+            }
+        }
+
         return await this.repository.destroy(scanId);
     }
 
