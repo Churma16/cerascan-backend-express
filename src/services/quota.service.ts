@@ -223,7 +223,32 @@ export class QuotaService {
     }
 
     async syncQuotasToDatabase(redisClient: any): Promise<void> {
-        const keys = await redisClient.keys("user:*:remaining_quota");
+        const keys: string[] = [];
+
+        if (typeof redisClient.scanIterator === "function") {
+            for await (const key of redisClient.scanIterator({
+                MATCH: "user:*:remaining_quota",
+                COUNT: 100
+            })) {
+                keys.push(typeof key === "string" ? key : key.toString());
+            }
+        } else if (typeof redisClient.scan === "function") {
+            let cursor = "0";
+            do {
+                const reply = await redisClient.scan(cursor, "MATCH", "user:*:remaining_quota", "COUNT", "100");
+                cursor = Array.isArray(reply) ? String(reply[0]) : String(reply.cursor);
+                const batchKeys = Array.isArray(reply) ? reply[1] : reply.keys;
+                if (Array.isArray(batchKeys)) {
+                    keys.push(...batchKeys);
+                }
+            } while (cursor !== "0");
+        } else {
+            const fallbackKeys = await redisClient.keys("user:*:remaining_quota");
+            if (Array.isArray(fallbackKeys)) {
+                keys.push(...fallbackKeys);
+            }
+        }
+
         if (!keys || keys.length === 0) {
             return;
         }
