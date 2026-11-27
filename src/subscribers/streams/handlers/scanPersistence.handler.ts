@@ -1,5 +1,5 @@
 import { scanService } from "../../../services/scan.service";
-import { RecordCompletedScanUseCase } from "../../../modules/leaderboard/use-cases/RecordCompletedScanUseCase";
+import { leaderboardService } from "../../../services/leaderboard.service";
 
 /**
  * Antarmuka payload data untuk pembaruan database SQL dan leaderboard.
@@ -32,8 +32,7 @@ export const handleScanPersistenceMessage = async (payload: ScanPersistencePaylo
     }
 
     if (payload.user_id && payload.prediction) {
-        const recordCompletedScanUseCase = new RecordCompletedScanUseCase();
-        await recordCompletedScanUseCase.execute(payload.user_id, payload.prediction);
+        await leaderboardService.recordCompletedScan(payload.user_id, payload.prediction);
     }
 };
 
