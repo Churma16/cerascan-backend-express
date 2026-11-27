@@ -7,8 +7,8 @@ import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
 import { EmailService } from "./email.service";
 import { hashPassword, comparePassword, generateOtp } from "../utils/auth.util";
 import { generateToken } from "../utils/jwt.util";
-import { User } from "../models";
-import { UserAttributes } from "../models/user.model";
+import type { User } from "../models";
+import type { UserAttributes } from "../models/user.model";
 import { log } from "../utils/logger.util";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_key";
@@ -185,11 +185,11 @@ export class AuthService {
         }
     }
 
-    buildAuthToken(user: UserAttributes): string {
+    buildAuthToken(user: { id?: number; role?: string; plan_id?: number }): string {
         return generateToken({
-            id: user.id,
-            role: user.role,
-            plan_id: user.plan_id
+            id: user.id || 0,
+            role: user.role || "user",
+            plan_id: user.plan_id || 1
         });
     }
 

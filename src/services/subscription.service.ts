@@ -2,8 +2,8 @@ import { Transaction } from "sequelize";
 import { subscriptionRepository, SubscriptionRepository } from "../repositories/subscription.repository";
 import { planRepository, PlanRepository } from "../repositories/plan.repository";
 import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
-import { Subscription } from "../models";
-import { SubscriptionAttributes } from "../models/subscription.model";
+import type { Subscription } from "../models";
+import type { SubscriptionAttributes } from "../models/subscription.model";
 
 export interface CreateSubscriptionOptions {
     userId: number;

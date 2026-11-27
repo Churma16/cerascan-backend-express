@@ -1,6 +1,5 @@
-import { Op, WhereOptions } from "sequelize";
-import { DeadLetterMessage, Scan } from "../models";
-import { DeadLetterMessageAttributes } from "../models/deadLetterMessage.model";
+import { dlqRepository, DlqRepository } from "../repositories/dlq.repository";
+import { scanRepository, ScanRepository } from "../repositories/scan.repository";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
 import { NotificationService } from "./notification.service";
@@ -9,20 +8,22 @@ import { log } from "../utils/logger.util";
 
 export class DlqService {
     private static readonly DLQ_QUEUE_NAME = "payment_dead_letter_queue";
+    private dlqRepo: DlqRepository;
+    private scanRepo: ScanRepository;
+
+    constructor(
+        dlqRepo: DlqRepository = dlqRepository,
+        scanRepo: ScanRepository = scanRepository
+    ) {
+        this.dlqRepo = dlqRepo;
+        this.scanRepo = scanRepo;
+    }
 
     async getDlqMessages(requestUserId: number, isAdmin: boolean, limit: number = 100): Promise<any[]> {
-        const whereClause: WhereOptions<DeadLetterMessageAttributes> = {
-            status: "dead",
-        };
-
-        if (!isAdmin) {
-            whereClause.user_id = requestUserId;
-        }
-
-        const deadLetterRecords = await DeadLetterMessage.findAll({
-            where: whereClause,
-            order: [["createdAt", "DESC"]],
+        const deadLetterRecords = await this.dlqRepo.findDeadMessages({
+            userId: !isAdmin ? requestUserId : undefined,
             limit,
+            order: "DESC",
         });
 
         return deadLetterRecords.map((record) => {
@@ -42,19 +43,7 @@ export class DlqService {
     }
 
     async retryDlqMessage(targetId: string, requestUserId: number, isAdmin: boolean): Promise<boolean> {
-        const numericId = Number(targetId);
-        const whereClause: WhereOptions<DeadLetterMessageAttributes> = {
-            status: "dead",
-            [Op.or]: [
-                { message_id: targetId },
-                ...(!isNaN(numericId) ? [{ id: numericId }] : [])
-            ]
-        };
-
-        const deadLetterRecord = await DeadLetterMessage.findOne({
-            where: whereClause,
-            order: [["createdAt", "DESC"]],
-        });
+        const deadLetterRecord = await this.dlqRepo.findDeadMessageByIdOrMessageId(targetId);
 
         if (!deadLetterRecord) {
             return false;
@@ -77,10 +66,7 @@ export class DlqService {
 
         if (parsedPayload.db_id) {
             try {
-                await Scan.update(
-                    { prediction: "processing" },
-                    { where: { id: parsedPayload.db_id } }
-                );
+                await this.scanRepo.update(parsedPayload.db_id, { prediction: "processing" });
                 log.info(
                     "DLQ Service",
                     `Status DB diubah kembali ke 'processing' untuk ID: ${parsedPayload.db_id}`
@@ -93,7 +79,7 @@ export class DlqService {
         await RabbitmqPublisher.publishEvent(targetRoutingKey, parsedPayload);
 
         deadLetterRecord.status = "retried";
-        await deadLetterRecord.save();
+        await this.dlqRepo.save(deadLetterRecord);
 
         await NotificationService.emitDlqUpdated({
             action: "remove",
@@ -108,17 +94,9 @@ export class DlqService {
     }
 
     async retryAllDlqMessages(requestUserId: number, isAdmin: boolean): Promise<{ successCount: number; skippedCount: number }> {
-        const whereClause: WhereOptions<DeadLetterMessageAttributes> = {
-            status: "dead",
-        };
-
-        if (!isAdmin) {
-            whereClause.user_id = requestUserId;
-        }
-
-        const deadLetterRecords = await DeadLetterMessage.findAll({
-            where: whereClause,
-            order: [["createdAt", "ASC"]],
+        const deadLetterRecords = await this.dlqRepo.findDeadMessages({
+            userId: !isAdmin ? requestUserId : undefined,
+            order: "ASC",
         });
 
         let successCount = 0;
@@ -139,10 +117,7 @@ export class DlqService {
 
             if (parsedPayload.db_id) {
                 try {
-                    await Scan.update(
-                        { prediction: "processing" },
-                        { where: { id: parsedPayload.db_id } }
-                    );
+                    await this.scanRepo.update(parsedPayload.db_id, { prediction: "processing" });
                     log.info(
                         "DLQ Service",
                         `Status DB diubah kembali ke 'processing' untuk ID: ${parsedPayload.db_id}`
@@ -155,7 +130,7 @@ export class DlqService {
             const isPublished = await RabbitmqPublisher.publishEvent(targetRoutingKey, parsedPayload);
             if (isPublished) {
                 record.status = "retried";
-                await record.save();
+                await this.dlqRepo.save(record);
                 successCount++;
             } else {
                 skippedCount++;
@@ -174,10 +149,7 @@ export class DlqService {
 
     async purgeDlq(): Promise<void> {
         try {
-            await DeadLetterMessage.update(
-                { status: "purged" },
-                { where: { status: "dead" } }
-            );
+            await this.dlqRepo.purgeAllDead();
             log.info("DLQ Service", "Seluruh record DLQ berstatus dead berhasil diubah menjadi purged.");
         } catch (dbError) {
             log.error("DLQ Service", "Gagal memperbarui status record DLQ di database:", dbError);

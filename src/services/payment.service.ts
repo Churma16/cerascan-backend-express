@@ -1,4 +1,4 @@
-import { literal, Op, CreationAttributes } from "sequelize";
+import { CreationAttributes } from "sequelize";
 import sequelize from "../config/databaseClient";
 import { snap } from "../config/midtransClient";
 import { paymentRepository, PaymentRepository } from "../repositories/payment.repository";
@@ -6,8 +6,8 @@ import { userRepository, UserRepository } from "../repositories/user.repository"
 import { planRepository, PlanRepository } from "../repositories/plan.repository";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { UserPlanLifecycleService } from "./userPlanLifecycle.service";
-import { Payment } from "../models";
-import { PaymentAttributes } from "../models/payment.model";
+import type { Payment } from "../models";
+import type { PaymentAttributes } from "../models/payment.model";
 import { log } from "../utils/logger.util";
 
 export interface CreateCheckoutResult {
@@ -155,9 +155,9 @@ export class PaymentService {
         const dbTransaction = await sequelize.transaction();
 
         try {
-            const [paymentRecord, created] = await Payment.findOrCreate({
-                where: { order_id: eventData.orderId },
-                defaults: {
+            const [paymentRecord, created] = await this.paymentRepo.findOrCreate(
+                eventData.orderId,
+                {
                     user_id: userId,
                     plan_id: planId,
                     order_id: eventData.orderId,
@@ -166,15 +166,15 @@ export class PaymentService {
                     payment_type: eventData.payment_type,
                     status: eventData.status || "settlement"
                 },
-                transaction: dbTransaction
-            });
+                dbTransaction
+            );
 
             if (!created) {
                 paymentRecord.status = eventData.status || "settlement";
                 paymentRecord.transaction_id = eventData.transactionId || paymentRecord.transaction_id;
                 paymentRecord.payment_type = eventData.payment_type || paymentRecord.payment_type;
                 paymentRecord.amount = eventData.amount || paymentRecord.amount;
-                await paymentRecord.save({ transaction: dbTransaction });
+                await this.paymentRepo.save(paymentRecord, dbTransaction);
             }
 
             await UserPlanLifecycleService.assignPlan(userId, planId, {
@@ -233,49 +233,13 @@ export class PaymentService {
         const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        const thisMonthKpi: any = await this.paymentRepo.findAll({
-            attributes: [
-                [
-                    literal(`SUM(CASE WHEN status IN ('settlement', 'capture', 'success') THEN amount ELSE 0 END)`),
-                    "total_revenue"
-                ],
-                [
-                    literal(`SUM(CASE WHEN status IN ('settlement', 'capture', 'success') THEN 1 ELSE 0 END)`),
-                    "successful_trx"
-                ],
-                [
-                    literal(`SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END)`),
-                    "pending_trx"
-                ]
-            ],
-            where: {
-                created_at: {
-                    [Op.gte]: startOfThisMonth
-                }
-            },
-            raw: true
-        });
+        const thisMonthKpi = await this.paymentRepo.getMonthlyRevenueStats(startOfThisMonth);
+        const lastMonthKpi = await this.paymentRepo.getMonthlyRevenueStats(startOfLastMonth, startOfThisMonth);
 
-        const lastMonthKpi: any = await this.paymentRepo.findAll({
-            attributes: [
-                [
-                    literal(`SUM(CASE WHEN status IN ('settlement', 'capture', 'success') THEN amount ELSE 0 END)`),
-                    "total_revenue"
-                ]
-            ],
-            where: {
-                created_at: {
-                    [Op.gte]: startOfLastMonth,
-                    [Op.lt]: startOfThisMonth
-                }
-            },
-            raw: true
-        });
-
-        const currentRevenue = Number(thisMonthKpi[0]?.total_revenue || 0);
-        const lastRevenue = Number(lastMonthKpi[0]?.total_revenue || 0);
-        const successfulTrx = Number(thisMonthKpi[0]?.successful_trx || 0);
-        const pendingTrx = Number(thisMonthKpi[0]?.pending_trx || 0);
+        const currentRevenue = thisMonthKpi.total_revenue;
+        const lastRevenue = lastMonthKpi.total_revenue;
+        const successfulTrx = thisMonthKpi.successful_trx;
+        const pendingTrx = thisMonthKpi.pending_trx;
 
         let growthPercentage = 0;
         if (lastRevenue > 0) {

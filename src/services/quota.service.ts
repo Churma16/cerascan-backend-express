@@ -1,10 +1,10 @@
-import { Op, Transaction, CreationAttributes } from "sequelize";
+import { Transaction, CreationAttributes } from "sequelize";
 import { quotaRepository, QuotaRepository } from "../repositories/quota.repository";
 import { getRedisClient } from "../config/redisClient";
 import { getSocket } from "../config/websocketClient";
 import { sseClient } from "../config/sseClient";
-import { UserQuotaModel } from "../models";
-import { UserQuotaAttributes } from "../models/userQuota.model";
+import type { UserQuotaModel } from "../models";
+import type { UserQuotaAttributes } from "../models/userQuota.model";
 import { log } from "../utils/logger.util";
 
 export interface InitializeUserQuotaOptions {
@@ -245,9 +245,7 @@ export class QuotaService {
             return;
         }
 
-        const userQuotas = await this.repository.findAll({
-            where: { user_id: { [Op.in]: userIds } }
-        });
+        const userQuotas = await this.repository.findByUserIds(userIds);
 
         const quotasToUpdate: Array<CreationAttributes<UserQuotaModel>> = [];
 

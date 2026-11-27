@@ -5,7 +5,7 @@ import { storageService } from "./storage.service";
 import { RabbitmqPublisher } from "../transport/rabbitmq/infrastructure/rabbitmq.publisher";
 import { quotaService } from "./quota.service";
 import { analyticsService } from "./analytics.service";
-import { Scan } from "../models";
+import type { Scan } from "../models";
 
 export interface InitiateSingleScanInput {
     userId: number | undefined;

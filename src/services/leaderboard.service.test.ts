@@ -31,6 +31,7 @@ describe("LeaderboardService", () => {
         jest.clearAllMocks();
         mockScanRepo = {
             findAll: jest.fn(),
+            findUserScansBetween: jest.fn(),
         } as unknown as jest.Mocked<ScanRepository>;
 
         mockUserRepo = {
@@ -133,7 +134,7 @@ describe("LeaderboardService", () => {
 
         it("should return empty array if key does not exist and rebuild produces no data", async () => {
             mockRedis.exists.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
-            mockScanRepo.findAll.mockResolvedValue([]);
+            mockScanRepo.findUserScansBetween.mockResolvedValue([]);
 
             const result = await leaderboardService.getMonthlyLeaderboard(10);
 
@@ -176,7 +177,7 @@ describe("LeaderboardService", () => {
             };
             mockRedis.multi.mockReturnValue(pipeline as any);
 
-            mockScanRepo.findAll.mockResolvedValue([
+            mockScanRepo.findUserScansBetween.mockResolvedValue([
                 { user_id: 1, prediction: "crack" } as any,
                 { user_id: 1, prediction: "normal" } as any,
                 { user_id: 2, prediction: "normal" } as any,
