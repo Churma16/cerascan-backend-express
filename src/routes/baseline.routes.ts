@@ -14,7 +14,8 @@ router.get("/dashboard/no-cache", BaselineController.getDashboardNoCache);
 router.get("/scans/poll-status", BaselineController.pollScanStatus);
 router.get("/scans/poll-status/:scanId", BaselineController.pollScanStatus);
 
-// Baseline 04: REST HTTP/1.1 Inference (gRPC Protobuf Alternative)
+// Benchmark 04: Pure gRPC HTTP/2 vs REST HTTP/1.1 Inference
+router.post("/scans/grpc-inference", uploadMiddleware.single("image"), BaselineController.grpcInferenceScan);
 router.post("/scans/rest-inference", uploadMiddleware.single("image"), BaselineController.restInferenceScan);
 
 // Baseline 05: Local Disk File Storage (Cloudflare R2 Alternative)

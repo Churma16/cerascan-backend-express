@@ -35,6 +35,15 @@ describe("Baseline Routes Tests", () => {
         });
     });
 
+    describe("POST /api/baseline/scans/grpc-inference", () => {
+        it("should return 400 if no image file is uploaded", async () => {
+            const response = await request(testApp).post("/api/baseline/scans/grpc-inference");
+
+            expect(response.status).toBe(400);
+            expect(response.body.meta.message).toContain("Tidak ada file gambar");
+        });
+    });
+
     describe("POST /api/baseline/scans/fail-and-forget", () => {
         it("should simulate fatal worker crash returning status 500", async () => {
             const response = await request(testApp).post("/api/baseline/scans/fail-and-forget");

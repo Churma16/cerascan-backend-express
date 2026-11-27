@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import dayjs from "dayjs";
+import { fn, col, Op, literal } from "sequelize";
 import { sendResponse } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { PythonMlGrpcClient } from "../services/pythonMlGrpc.service";
@@ -112,10 +113,17 @@ export class BaselineController {
                 return sendResponse(res, 400, "Parameter scanId wajib disertakan");
             }
 
-            const scanRecord = await Scan.findOne({
-                where: { scan_id: String(scanId) },
+            const queryOptions: any = {
                 attributes: ["id", "scan_id", "prediction", "confidence", "inference_time", "updatedAt"]
-            });
+            };
+
+            if (String(scanId) === "latest") {
+                queryOptions.order = [["createdAt", "DESC"]];
+            } else {
+                queryOptions.where = { scan_id: String(scanId) };
+            }
+
+            const scanRecord = await Scan.findOne(queryOptions);
 
             if (!scanRecord) {
                 return sendResponse(res, 404, "Data scan tidak ditemukan");
@@ -124,6 +132,34 @@ export class BaselineController {
             return sendResponse(res, 200, "Status scan berhasil diambil", scanRecord);
         } catch (error: any) {
             return sendResponse(res, 500, `Baseline Poll Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Benchmark 04 Counterpart: Pure gRPC HTTP/2 Direct Inference
+     * Calls Python ML via gRPC binary Protobuf directly without R2/RabbitMQ/DB
+     * for pure apples-to-apples comparison against restInferenceScan.
+     */
+    static async grpcInferenceScan(req: AuthRequest, res: Response): Promise<Response> {
+        try {
+            if (!req.file) {
+                return sendResponse(res, 400, "Tidak ada file gambar yang diunggah");
+            }
+
+            const startTime = Date.now();
+            const predictionResult = await PythonMlGrpcClient.predictImage(
+                req.file.buffer,
+                req.file.originalname || "tile.png"
+            );
+            const inferenceDurationMs = Date.now() - startTime;
+
+            return sendResponse(res, 200, "Inference via gRPC HTTP/2 Berhasil", {
+                ...predictionResult,
+                client_inference_time_ms: inferenceDurationMs,
+                protocol: "HTTP/2 gRPC Protobuf"
+            });
+        } catch (error: any) {
+            return sendResponse(res, 502, `gRPC Direct Inference Error: ${error.message}`);
         }
     }
 
@@ -202,19 +238,42 @@ export class BaselineController {
      */
     static async getDashboardMonolith(req: Request, res: Response): Promise<Response> {
         try {
-            // Direct relational scan on transactional MySQL table
-            const totalScans = await Scan.count();
-            const defectScans = await Scan.count({
-                where: {
-                    prediction: ["crack", "scratch", "stain"]
-                }
-            });
+            const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf("month").toDate();
+            const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").startOf("month").toDate();
+            const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").endOf("month").toDate();
 
-            return sendResponse(res, 200, "Monolithic MySQL aggregation completed", {
+            // Full relational aggregation directly on active MySQL scan_histories table (no CQRS read-model)
+            const [totalPlatformUsers, overallAgg, currentMonthCount, lastMonthCount] = await Promise.all([
+                userRepository.count(),
+                Scan.findOne({
+                    attributes: [
+                        [fn("COUNT", col("id")), "totalScans"],
+                        [fn("AVG", col("confidence")), "avgConfidence"],
+                        [literal("SUM(CASE WHEN prediction IN ('crack', 'scratch', 'stain') THEN 1 ELSE 0 END)"), "defectScans"]
+                    ],
+                    raw: true
+                }) as any,
+                Scan.count({
+                    where: { createdAt: { [Op.gte]: startOfCurrentMonth } }
+                }),
+                Scan.count({
+                    where: { createdAt: { [Op.between]: [startOfLastMonth, endOfLastMonth] } }
+                })
+            ]);
+
+            const totalScans = Number(overallAgg?.totalScans) || 0;
+            const defectScans = Number(overallAgg?.defectScans) || 0;
+            const avgConfidence = Number(overallAgg?.avgConfidence) || 0;
+
+            return sendResponse(res, 200, "Monolithic MySQL full KPI aggregation completed", {
                 total_scans: totalScans,
+                total_users: totalPlatformUsers,
+                average_scan_accuracy: Number(avgConfidence.toFixed(2)),
                 defect_scans: defectScans,
-                defect_ratio: totalScans > 0 ? (defectScans / totalScans).toFixed(3) : 0,
-                architecture_mode: "monolithic_single_table_scan"
+                total_scans_this_month: currentMonthCount,
+                scan_change_text: calculateTrendPercentageText(lastMonthCount, currentMonthCount),
+                defect_ratio: totalScans > 0 ? Number(((defectScans / totalScans) * 100).toFixed(1)) : 0,
+                architecture_mode: "monolithic_mysql_full_aggregation"
             });
         } catch (error: any) {
             return sendResponse(res, 500, `Baseline Monolith Error: ${error.message}`);
