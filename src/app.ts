@@ -3,7 +3,7 @@ import cors from "cors";
 import path from "path";
 
 import authRoutes from "./routes/auth.routes";
-import userRoutes from "./modules/user/user.routes";
+import userRoutes from "./routes/user.routes";
 import scanRoutes from "./routes/scan.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import dlqRoutes from "./modules/dlq/dlq.routes";
