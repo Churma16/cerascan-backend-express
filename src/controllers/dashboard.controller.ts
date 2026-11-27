@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import { sendResponse, sendResponseMulti } from "../../utils/response.util";
-import { scanService } from "../../services/scan.service";
-import { AuthRequest } from "../../middleware/auth.middleware";
-import { DashboardService } from "./dashboard.service";
+import { sendResponse, sendResponseMulti } from "../utils/response.util";
+import { scanService } from "../services/scan.service";
+import { AuthRequest } from "../middleware/auth.middleware";
+import { DashboardService } from "../services/dashboard.service";
 
 export class DashboardController {
     static async getDashboardKpi(req: AuthRequest, res: Response) {

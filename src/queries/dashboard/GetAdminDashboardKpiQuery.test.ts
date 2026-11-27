@@ -1,9 +1,9 @@
 import { GetAdminDashboardKpiQueryHandler } from "./GetAdminDashboardKpiQuery";
-import { UserRepository } from "../../../repositories/user.repository";
-import { ScanRepository } from "../../../repositories/scan.repository";
-import { getRedisClient } from "../../../config/redisClient";
+import { UserRepository } from "../../repositories/user.repository";
+import { ScanRepository } from "../../repositories/scan.repository";
+import { getRedisClient } from "../../config/redisClient";
 
-jest.mock("../../../config/redisClient");
+jest.mock("../../config/redisClient");
 
 describe("GetAdminDashboardKpiQueryHandler", () => {
     let handler: GetAdminDashboardKpiQueryHandler;

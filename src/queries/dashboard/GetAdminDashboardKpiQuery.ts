@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
-import { getNowIndonesiaTime } from "../../../utils/time.util";
-import { userRepository, UserRepository } from "../../../repositories/user.repository";
-import { scanRepository, ScanRepository } from "../../../repositories/scan.repository";
-import { getRedisClient } from "../../../config/redisClient";
+import { getNowIndonesiaTime } from "../../utils/time.util";
+import { userRepository, UserRepository } from "../../repositories/user.repository";
+import { scanRepository, ScanRepository } from "../../repositories/scan.repository";
+import { getRedisClient } from "../../config/redisClient";
 import {
     calculateTrendPercentageText,
     DashboardKpiResponseDto

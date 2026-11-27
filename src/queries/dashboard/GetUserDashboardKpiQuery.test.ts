@@ -1,10 +1,10 @@
 import { GetUserDashboardKpiQueryHandler } from "./GetUserDashboardKpiQuery";
-import { ScanRepository } from "../../../repositories/scan.repository";
-import { QuotaService } from "../../../services/quota.service";
-import { SubscriptionService } from "../../../services/subscription.service";
-import { getRedisClient } from "../../../config/redisClient";
+import { ScanRepository } from "../../repositories/scan.repository";
+import { QuotaService } from "../../services/quota.service";
+import { SubscriptionService } from "../../services/subscription.service";
+import { getRedisClient } from "../../config/redisClient";
 
-jest.mock("../../../config/redisClient");
+jest.mock("../../config/redisClient");
 
 describe("GetUserDashboardKpiQueryHandler", () => {
     let handler: GetUserDashboardKpiQueryHandler;
