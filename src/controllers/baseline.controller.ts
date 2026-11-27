@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import axios from "axios";
 import dayjs from "dayjs";
-import { fn, col, Op, literal } from "sequelize";
+import { fn, col, Op, literal, Transaction } from "sequelize";
 import { sendResponse } from "../utils/response.util";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { PythonMlGrpcClient } from "../services/pythonMlGrpc.service";
@@ -12,6 +12,9 @@ import { userRepository } from "../repositories/user.repository";
 import { scanRepository } from "../repositories/scan.repository";
 import { getNowIndonesiaTime } from "../utils/time.util";
 import { calculateTrendPercentageText } from "../queries/dashboard/dashboardKpi.types";
+import sequelize from "../config/databaseClient";
+import { UserQuotaModel } from "../models";
+import { quotaService } from "../services/quota.service";
 
 export class BaselineController {
     /**
@@ -305,6 +308,85 @@ export class BaselineController {
             });
         } catch (error: any) {
             return sendResponse(res, 500, `Baseline Single Loop Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Baseline 09: MySQL Row-Locked Quota Decrement (Redis Atomic Write-Behind Alternative)
+     * Uses SELECT ... FOR UPDATE on a single user_id row to prevent overselling under concurrency.
+     */
+    static async mysqlLockedQuotaDecrement(req: Request, res: Response): Promise<Response> {
+        const userId = Number(req.body?.userId) || 1;
+        const amount = Number(req.body?.amount) || 1;
+
+        try {
+            const result = await sequelize.transaction(async (transaction: Transaction) => {
+                const userQuota = await UserQuotaModel.findOne({
+                    where: { user_id: userId },
+                    transaction,
+                    lock: transaction.LOCK.UPDATE
+                });
+
+                if (!userQuota) {
+                    return { allowed: false, status: 404, message: `User quota tidak ditemukan untuk user ${userId}` };
+                }
+
+                const remaining = userQuota.total_quota - userQuota.used_quota;
+                if (remaining < amount) {
+                    return { allowed: false, status: 429, message: "Kuota habis (MySQL locked)" };
+                }
+
+                userQuota.used_quota += amount;
+                await userQuota.save({ transaction });
+
+                return { allowed: true, status: 200, remaining: remaining - amount };
+            });
+
+            if (!result.allowed) {
+                return sendResponse(res, result.status, result.message || "Kuota habis");
+            }
+
+            return sendResponse(res, 200, "MySQL locked quota decremented", {
+                userId,
+                remaining: result.remaining
+            });
+        } catch (error: any) {
+            return sendResponse(res, 500, `MySQL Locked Quota Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Production Benchmark 09: Redis Atomic Quota Decrement + Write-Behind
+     * Uses redis.decrBy + compensating incrBy without locking MySQL rows.
+     */
+    static async redisAtomicQuotaDecrement(req: Request, res: Response): Promise<Response> {
+        const userId = Number(req.body?.userId) || 1;
+        const amount = Number(req.body?.amount) || 1;
+
+        try {
+            const allowed = await quotaService.checkAndDecrementQuota(userId, amount);
+            if (!allowed) {
+                return sendResponse(res, 429, "Kuota habis (Redis atomic)");
+            }
+
+            return sendResponse(res, 200, "Redis atomic quota decremented", { userId });
+        } catch (error: any) {
+            return sendResponse(res, 500, `Redis Atomic Quota Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Benchmark 09 Helper: Reset both MySQL and Redis quota for deterministic burst testing.
+     */
+    static async resetBenchmarkQuota(req: Request, res: Response): Promise<Response> {
+        const userId = Number(req.body?.userId) || 1;
+        const totalQuota = Number(req.body?.totalQuota) || 10000;
+
+        try {
+            await quotaService.initializeUserQuota({ userId, totalQuota });
+            return sendResponse(res, 200, "Benchmark quota reset", { userId, totalQuota });
+        } catch (error: any) {
+            return sendResponse(res, 500, `Reset Benchmark Quota Error: ${error.message}`);
         }
     }
 }

@@ -30,4 +30,9 @@ router.post("/scans/fail-and-forget", BaselineController.failAndForgetScan);
 // Baseline 08: Single Scan for Client Looping Benchmark (Batch Alternative)
 router.post("/scans/single-loop", uploadMiddleware.single("image"), BaselineController.singleLoopScan);
 
+// Benchmark 09: MySQL Row-Locked Quota vs Redis Atomic Quota + Write-Behind
+router.post("/quota/mysql-locked", BaselineController.mysqlLockedQuotaDecrement);
+router.post("/quota/redis-atomic", BaselineController.redisAtomicQuotaDecrement);
+router.post("/quota/reset", BaselineController.resetBenchmarkQuota);
+
 export default router;
