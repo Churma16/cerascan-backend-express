@@ -12,11 +12,13 @@ export class PythonMlGrpcClient {
     static async predictImage(imageBuffer: Buffer, originalName: string): Promise<GrpcPredictionResult> {
         return new Promise((resolve, reject) => {
             try {
+                const grpcDeadline = new Date(Date.now() + (Number(process.env.GRPC_TIMEOUT_MS) || 10000));
                 grpcCeramicClient.Predict(
                     {
                         image_data: imageBuffer,
                         file_name: originalName
                     },
+                    { deadline: grpcDeadline },
                     (error: any, response: GrpcPredictionResult) => {
                         if (error) {
                             if (error.code === 14) {
