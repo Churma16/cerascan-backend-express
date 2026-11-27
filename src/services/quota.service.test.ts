@@ -363,4 +363,41 @@ describe("QuotaService", () => {
             expect(sseClient.emitToUser).toHaveBeenCalledWith("101", "quota_update", "15");
         });
     });
+
+    describe("syncQuotasToDatabase", () => {
+        it("should use scanIterator to non-blockingly fetch keys and update database", async () => {
+            async function* mockScanIterator() {
+                yield "user:101:remaining_quota";
+                yield "user:102:remaining_quota";
+            }
+
+            const mockRedis = {
+                scanIterator: jest.fn().mockImplementation(mockScanIterator),
+                mGet: jest.fn().mockResolvedValue(["8", "15"])
+            };
+
+            mockQuotaRepository.findByUserIds.mockResolvedValue([
+                { id: 1, user_id: 101, total_quota: 10, used_quota: 0 } as any,
+                { id: 2, user_id: 102, total_quota: 20, used_quota: 0 } as any
+            ]);
+
+            await quotaService.syncQuotasToDatabase(mockRedis);
+
+            expect(mockRedis.scanIterator).toHaveBeenCalledWith({
+                MATCH: "user:*:remaining_quota",
+                COUNT: 100
+            });
+            expect(mockRedis.mGet).toHaveBeenCalledWith([
+                "user:101:remaining_quota",
+                "user:102:remaining_quota"
+            ]);
+            expect(mockQuotaRepository.bulkCreate).toHaveBeenCalledWith(
+                [
+                    { id: 1, user_id: 101, total_quota: 10, used_quota: 2 },
+                    { id: 2, user_id: 102, total_quota: 20, used_quota: 5 }
+                ],
+                { updateOnDuplicate: ["used_quota"] }
+            );
+        });
+    });
 });
