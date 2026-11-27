@@ -2,7 +2,7 @@ import cron from "node-cron";
 import { getRedisClient } from "../config/redisClient";
 import { quotaService } from "../services/quota.service";
 import { userService } from "../services/user.service";
-import { SyncLeaderboardToDbUseCase } from "../modules/leaderboard/use-cases/SyncLeaderboardToDbUseCase";
+import { leaderboardService } from "../services/leaderboard.service";
 import { log } from "../utils/logger.util";
 
 /**
@@ -28,8 +28,7 @@ export class DailyCronJob {
 
                 await userService.downgradeExpiredUsers(today);
 
-                const syncLeaderboardToDbUseCase = new SyncLeaderboardToDbUseCase();
-                await syncLeaderboardToDbUseCase.execute(redis);
+                await leaderboardService.syncLeaderboardToDb(redis);
 
                 log.success("Cron", "Tugas malam selesai. Database dan Redis berhasil disinkronkan!");
             } catch (error) {
