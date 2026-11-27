@@ -21,16 +21,17 @@ export class CacheMiddleware {
             try {
                 const cachedData = await getRedisClient().get(cacheKey);
 
-                if (cachedData) {
-                    console.log(`Hit Cache: ${cacheKey}`);
-                    const parsedData = JSON.parse(cachedData);
-
-                    if (isMulti) {
-                        return sendResponseMulti(res, 200, "Data berhasil diambil dari cache", parsedData);
-                    }
-                    return sendResponse(res, 200, "Data berhasil diambil dari cache", parsedData, 'cache');
+                if (!cachedData) {
+                    return next();
                 }
-                next();
+
+                console.log(`Hit Cache: ${cacheKey}`);
+                const parsedData = JSON.parse(cachedData);
+
+                if (isMulti) {
+                    return sendResponseMulti(res, 200, "Data berhasil diambil dari cache", parsedData);
+                }
+                return sendResponse(res, 200, "Data berhasil diambil dari cache", parsedData, 'cache');
             } catch (error) {
                 console.error('Redis Cache Error:', error);
                 next();

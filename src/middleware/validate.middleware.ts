@@ -17,16 +17,18 @@ export const validate = (target: ZodSchema | RequestValidationTargets) => {
         try {
             if ("parse" in target) {
                 req.body = target.parse(req.body);
-            } else {
-                if (target.body) {
-                    req.body = target.body.parse(req.body);
-                }
-                if (target.query) {
-                    req.query = target.query.parse(req.query) as any;
-                }
-                if (target.params) {
-                    req.params = target.params.parse(req.params) as any;
-                }
+                next();
+                return;
+            }
+
+            if (target.body) {
+                req.body = target.body.parse(req.body);
+            }
+            if (target.query) {
+                req.query = target.query.parse(req.query) as any;
+            }
+            if (target.params) {
+                req.params = target.params.parse(req.params) as any;
             }
             next();
         } catch (error: any) {

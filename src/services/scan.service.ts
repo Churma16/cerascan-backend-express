@@ -89,11 +89,12 @@ export class ScanService {
 
         if (!hasAvailableQuota) {
             for (const file of files) {
-                if (file.path && fs.existsSync(file.path)) {
-                    try {
-                        fs.unlinkSync(file.path);
-                    } catch (_) {}
+                if (!file.path || !fs.existsSync(file.path)) {
+                    continue;
                 }
+                try {
+                    fs.unlinkSync(file.path);
+                } catch (_) {}
             }
             return { pendingScans: [], quotaExceeded: true };
         }

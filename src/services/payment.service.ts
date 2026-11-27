@@ -103,28 +103,29 @@ export class PaymentService {
         const transactionId = statusResponse.transaction_id;
         const amount = statusResponse.gross_amount;
         const paymentType = statusResponse.payment_type;
+        const isSuccess = (transactionStatus === "capture" || transactionStatus === "settlement") &&
+                          (fraudStatus === "accept" || !fraudStatus);
 
-        if (transactionStatus === "capture" || transactionStatus === "settlement") {
-            if (fraudStatus === "accept" || !fraudStatus) {
-                const eventData = {
-                    orderId,
-                    transactionId,
-                    amount,
-                    payment_type: paymentType,
-                    status: transactionStatus,
-                    timestamp: new Date().toISOString()
-                };
+        if (isSuccess) {
+            await RabbitmqPublisher.publishEvent("payment.success", {
+                orderId,
+                transactionId,
+                amount,
+                payment_type: paymentType,
+                status: transactionStatus,
+                timestamp: new Date().toISOString()
+            });
+            return;
+        }
 
-                await RabbitmqPublisher.publishEvent("payment.success", eventData);
-            }
-        } else if (["deny", "cancel", "expire"].includes(transactionStatus)) {
-            const eventData = {
+        if (["deny", "cancel", "expire"].includes(transactionStatus)) {
+            await RabbitmqPublisher.publishEvent("payment.failed", {
                 orderId,
                 transactionId,
                 status: transactionStatus,
                 timestamp: new Date().toISOString()
-            };
-            await RabbitmqPublisher.publishEvent("payment.failed", eventData);
+            });
+            return;
         }
     }
 
