@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import http from "http";
 import fs from "fs";
 import path from "path";
 import axios from "axios";
@@ -13,8 +14,62 @@ import { scanRepository } from "../repositories/scan.repository";
 import { getNowIndonesiaTime } from "../utils/time.util";
 import { calculateTrendPercentageText } from "../queries/dashboard/dashboardKpi.types";
 import sequelize from "../config/databaseClient";
+import { getRedisClient } from "../config/redisClient";
 import { UserQuotaModel } from "../models";
 import { quotaService } from "../services/quota.service";
+
+const restKeepAliveAgent = new http.Agent({ keepAlive: true, maxSockets: 25 });
+
+interface InProcessJob {
+    id: string;
+    fileBuffer: Buffer;
+    fileName: string;
+    receivedAt: number;
+}
+
+const inProcessJobQueue: InProcessJob[] = [];
+let isProcessingInProcessQueue = false;
+
+interface InProcessCacheEntry<T> {
+    data: T;
+    expiresAt: number;
+}
+const localMemoryCache = new Map<string, InProcessCacheEntry<any>>();
+
+function getFromLocalCache<T>(key: string): T | null {
+    const entry = localMemoryCache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+        localMemoryCache.delete(key);
+        return null;
+    }
+    return entry.data;
+}
+
+function setToLocalCache<T>(key: string, data: T, ttlSeconds: number = 60): void {
+    localMemoryCache.set(key, {
+        data,
+        expiresAt: Date.now() + (ttlSeconds * 1000)
+    });
+}
+
+async function processInProcessQueue() {
+    if (isProcessingInProcessQueue || inProcessJobQueue.length === 0) return;
+    isProcessingInProcessQueue = true;
+
+    while (inProcessJobQueue.length > 0) {
+        const job = inProcessJobQueue.shift();
+        if (job) {
+            try {
+                await PythonMlGrpcClient.predictImage(job.fileBuffer, job.fileName);
+            } catch (err) {
+                // in-process job failure
+            }
+        }
+    }
+
+    isProcessingInProcessQueue = false;
+}
 
 export class BaselineController {
     /**
@@ -52,6 +107,40 @@ export class BaselineController {
             return sendResponse(res, 200, "Scan sinkron berhasil diproses", createdScan);
         } catch (error: any) {
             return sendResponse(res, 500, `Baseline Sync Scan Gagal: ${error.message}`);
+        }
+    }
+
+    /**
+     * Baseline 01b-mid: In-Process Asynchronous Queue (RabbitMQ Alternative)
+     * Responds with 202 Accepted immediately using an in-memory Node.js queue.
+     * Proves memory buildup and lack of durability/resilience during process crashes.
+     */
+    static async inProcessQueueScan(req: AuthRequest, res: Response): Promise<Response> {
+        try {
+            if (!req.file) {
+                return sendResponse(res, 400, "Tidak ada file gambar yang diunggah");
+            }
+
+            const jobId = `mem_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+            inProcessJobQueue.push({
+                id: jobId,
+                fileBuffer: req.file.buffer,
+                fileName: req.file.originalname || "tile.png",
+                receivedAt: Date.now()
+            });
+
+            // Trigger non-blocking in-process worker
+            setImmediate(() => {
+                processInProcessQueue().catch(() => {});
+            });
+
+            return sendResponse(res, 202, "In-process memory queue accepted", {
+                job_id: jobId,
+                queue_length: inProcessJobQueue.length,
+                status: "queued_in_memory"
+            });
+        } catch (error: any) {
+            return sendResponse(res, 500, `Baseline In-Process Queue Error: ${error.message}`);
         }
     }
 
@@ -102,6 +191,67 @@ export class BaselineController {
             return sendResponse(res, 200, "Dashboard KPI dihitung langsung dari DB", payload);
         } catch (error: any) {
             return sendResponse(res, 500, `Baseline No-Cache Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Baseline 02b-mid: In-Process Local Memory Cache (Node Cache / LRU Alternative)
+     * Compares in-memory single-process cache against external distributed Redis cache.
+     * Highlights: zero network hop on single node, but lack of cross-node consistency on multi-instance.
+     */
+    static async getDashboardInProcessCache(req: Request, res: Response): Promise<Response> {
+        try {
+            const cachedPayload = getFromLocalCache("dashboard_kpi_in_process");
+            if (cachedPayload) {
+                return sendResponse(res, 200, "Dashboard KPI dari In-Process Memory Cache", {
+                    ...cachedPayload,
+                    source: "in_process_memory_cache"
+                });
+            }
+
+            const startOfCurrentMonth = dayjs(getNowIndonesiaTime()).startOf("month").toDate();
+            const startOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").startOf("month").toDate();
+            const endOfLastMonth = dayjs(getNowIndonesiaTime()).subtract(1, "month").endOf("month").toDate();
+
+            const [totalPlatformUsers, platformScanStats] = await Promise.all([
+                userRepository.count(),
+                scanRepository.getScanKpiStatistics(
+                    undefined,
+                    startOfCurrentMonth,
+                    startOfLastMonth,
+                    endOfLastMonth
+                )
+            ]);
+
+            const totalScansThisMonth = platformScanStats.totalScansThisMonth;
+            const totalScansLastMonth = platformScanStats.totalScansLastMonth;
+            const defectCountThisMonth = platformScanStats.defectCountThisMonth;
+            const scanChangeText = calculateTrendPercentageText(totalScansLastMonth, totalScansThisMonth);
+
+            const defectRate = totalScansThisMonth > 0
+                ? Number(((defectCountThisMonth / totalScansThisMonth) * 100).toFixed(1))
+                : 0;
+
+            const payload = {
+                total_scans: platformScanStats.totalScans,
+                total_users: totalPlatformUsers,
+                average_scan_accuracy: Number(platformScanStats.averageScanAccuracy) || 0,
+                unnormal_scan_count: platformScanStats.unNormalScanCount,
+                total_scans_this_month: totalScansThisMonth,
+                scan_change_text: scanChangeText,
+                defect_rate: defectRate,
+                defect_count_this_month: defectCountThisMonth,
+                active_users_this_month: platformScanStats.activeUsersThisMonth
+            };
+
+            setToLocalCache("dashboard_kpi_in_process", payload, 60);
+
+            return sendResponse(res, 200, "Dashboard KPI dari DB dan disimpan ke In-Process Cache", {
+                ...payload,
+                source: "in_process_memory_cache_miss"
+            });
+        } catch (error: any) {
+            return sendResponse(res, 500, `Baseline In-Process Cache Error: ${error.message}`);
         }
     }
 
@@ -185,6 +335,7 @@ export class BaselineController {
 
             const startTime = Date.now();
             const response = await axios.post(pythonRestUrl, formData, {
+                httpAgent: restKeepAliveAgent,
                 timeout: 10000
             });
             const inferenceDurationMs = Date.now() - startTime;
@@ -284,6 +435,33 @@ export class BaselineController {
     }
 
     /**
+     * Baseline 06b-mid: Optimized MySQL Summary / Indexed Query (CQRS Alternative)
+     * Compares full CQRS against an optimized MySQL summary query.
+     * Demonstrates that while summary queries reduce scan cost, they still compete
+     * for MySQL connection pool & lock resources with concurrent write transactions.
+     */
+    static async getDashboardIndexedSummary(req: Request, res: Response): Promise<Response> {
+        try {
+            const [results] = await sequelize.query(`
+                SELECT 
+                    (SELECT COUNT(1) FROM users) as total_users,
+                    (SELECT COUNT(1) FROM scan_histories) as total_scans,
+                    (SELECT AVG(confidence) FROM scan_histories) as avg_confidence
+            `);
+            const summary = (results as any[])?.[0] || {};
+
+            return sendResponse(res, 200, "Dashboard KPI dari MySQL Indexed Summary", {
+                total_users: Number(summary.total_users) || 0,
+                total_scans: Number(summary.total_scans) || 0,
+                average_scan_accuracy: Number(summary.avg_confidence) || 0,
+                source: "mysql_indexed_summary"
+            });
+        } catch (error: any) {
+            return sendResponse(res, 500, `MySQL Indexed Summary Error: ${error.message}`);
+        }
+    }
+
+    /**
      * Baseline 07: Fail-and-Forget Error Handling (Dead Letter Queue Alternative)
      * Simulates unhandled processing crash with direct 500 throw.
      * Proves zero fault tolerance and catastrophic data loss during worker failures.
@@ -291,6 +469,55 @@ export class BaselineController {
     static async failAndForgetScan(req: Request, res: Response): Promise<Response> {
         // Unhandled crash simulation without DLQ capture
         return sendResponse(res, 500, "Simulasi Fatal Worker Error: Request gagal diproses dan event hilang selamanya");
+    }
+
+    /**
+     * Baseline 07b-mid: In-Process Synchronous Retry 3x with Exponential Backoff
+     * Simulates realistic handling of transient downstream failures (fails 2x, succeeds on 3rd attempt).
+     * Demonstrates:
+     * 1. While synchronous retry recovers to HTTP 200 (0% error), it severely penalizes client latency (socket held ~50-80ms).
+     * 2. If the Node process crashes or restarts during retry, the in-flight job in memory is permanently lost.
+     */
+    static async inProcessRetryScan(req: Request, res: Response): Promise<Response> {
+        const jobId = `retry_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const maxRetries = 3;
+        let attempts = 0;
+        const startTime = Date.now();
+        const isPermanent = req.query.permanent === "true";
+
+        while (attempts < maxRetries) {
+            attempts++;
+            // Simulate transient downstream blip for attempts < 3
+            if (attempts < 3 || isPermanent) {
+                // Exponential backoff: 15ms, 30ms
+                await new Promise((resolve) => setTimeout(resolve, attempts * 15));
+                if (isPermanent && attempts === maxRetries) {
+                    return sendResponse(res, 500, "Permanent failure: job exhausted 3 retries (logged in-process memory only)", {
+                        jobId,
+                        attempts,
+                        status: "exhausted_retries",
+                        durability: "process_memory_only",
+                        elapsed_ms: Date.now() - startTime
+                    });
+                }
+                continue;
+            }
+
+            // Attempt 3 succeeds: recovered from transient failure
+            return sendResponse(res, 200, "Scan berhasil dipulihkan setelah 3x synchronous retry", {
+                jobId,
+                attempts,
+                status: "recovered_on_retry_3",
+                durability: "process_memory_only",
+                elapsed_ms: Date.now() - startTime
+            });
+        }
+
+        return sendResponse(res, 500, "Gagal setelah 3x in-process retry", {
+            jobId,
+            attempts,
+            elapsed_ms: Date.now() - startTime
+        });
     }
 
     /**
@@ -352,6 +579,85 @@ export class BaselineController {
             });
         } catch (error: any) {
             return sendResponse(res, 500, `MySQL Locked Quota Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Baseline 09b: MySQL Atomic Single-Statement SQL Quota Decrement
+     * Single query without multi-step transaction or FOR UPDATE lock:
+     * UPDATE user_quotas SET used_quota = used_quota + :amount WHERE user_id = :userId AND (total_quota - used_quota) >= :amount
+     */
+    static async mysqlAtomicSqlQuotaDecrement(req: Request, res: Response): Promise<Response> {
+        const userId = Number(req.body?.userId) || 1;
+        const amount = Number(req.body?.amount) || 1;
+
+        try {
+            const [, metadata] = await sequelize.query(
+                `UPDATE user_quotas 
+                 SET used_quota = used_quota + :amount 
+                 WHERE user_id = :userId AND (total_quota - used_quota) >= :amount`,
+                {
+                    replacements: { userId, amount }
+                }
+            );
+
+            const affectedRows = (metadata as any)?.affectedRows ?? 0;
+            if (affectedRows === 0) {
+                return sendResponse(res, 429, "Kuota habis (Atomic SQL)");
+            }
+
+            return sendResponse(res, 200, "Atomic SQL quota decremented", { userId });
+        } catch (error: any) {
+            return sendResponse(res, 500, `MySQL Atomic SQL Quota Error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Baseline 09c: Redis Atomic Quota + Synchronous Write-Through to MySQL
+     * Isolates the true benefit of asynchronous write-behind vs synchronous DB write.
+     */
+    static async redisWriteThroughQuotaDecrement(req: Request, res: Response): Promise<Response> {
+        const userId = Number(req.body?.userId) || 1;
+        const amount = Number(req.body?.amount) || 1;
+
+        try {
+            const redis = getRedisClient();
+            const quotaKey = `user:${userId}:remaining_quota`;
+
+            let currentQuota = await redis.get(quotaKey);
+            if (currentQuota === null) {
+                const userQuotaRecord = await UserQuotaModel.findOne({ where: { user_id: userId } });
+                if (!userQuotaRecord) {
+                    return sendResponse(res, 404, `User quota tidak ditemukan untuk user ${userId}`);
+                }
+                const remaining = userQuotaRecord.total_quota - userQuotaRecord.used_quota;
+                currentQuota = remaining.toString();
+                await redis.set(quotaKey, currentQuota, "EX", 86400);
+            }
+
+            if (parseInt(currentQuota) < amount) {
+                return sendResponse(res, 429, "Kuota habis (Redis Write-Through)");
+            }
+
+            const newRemaining = await redis.decrBy(quotaKey, amount);
+            if (newRemaining < 0) {
+                await redis.incrBy(quotaKey, amount);
+                return sendResponse(res, 429, "Kuota habis (Redis Write-Through)");
+            }
+
+            // Synchronous Write-Through directly to MySQL
+            await sequelize.query(
+                `UPDATE user_quotas 
+                 SET used_quota = used_quota + :amount 
+                 WHERE user_id = :userId`,
+                {
+                    replacements: { userId, amount }
+                }
+            );
+
+            return sendResponse(res, 200, "Redis Write-Through quota decremented", { userId, remaining: newRemaining });
+        } catch (error: any) {
+            return sendResponse(res, 500, `Redis Write-Through Quota Error: ${error.message}`);
         }
     }
 

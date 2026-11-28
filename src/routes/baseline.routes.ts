@@ -6,9 +6,11 @@ const router = Router();
 
 // Baseline 01: Direct Synchronous Scan (RabbitMQ Alternative)
 router.post("/scans/sync", uploadMiddleware.single("image"), BaselineController.syncScanImage);
+router.post("/scans/in-process-queue", uploadMiddleware.single("image"), BaselineController.inProcessQueueScan);
 
 // Baseline 02: Direct Heavy Database Query (Redis Cache Bypass)
 router.get("/dashboard/no-cache", BaselineController.getDashboardNoCache);
+router.get("/dashboard/in-process-cache", BaselineController.getDashboardInProcessCache);
 
 // Baseline 03: Polling Status (SSE Alternative)
 router.get("/scans/poll-status", BaselineController.pollScanStatus);
@@ -23,15 +25,19 @@ router.post("/scans/local-disk", uploadMiddleware.single("image"), BaselineContr
 
 // Baseline 06: Monolithic Database Queries (CQRS & Polyglot Alternative)
 router.get("/dashboard/monolith", BaselineController.getDashboardMonolith);
+router.get("/dashboard/indexed-summary", BaselineController.getDashboardIndexedSummary);
 
 // Baseline 07: Fail-and-Forget Error Handling (Dead Letter Queue Alternative)
 router.post("/scans/fail-and-forget", BaselineController.failAndForgetScan);
+router.post("/scans/retry-and-log", BaselineController.inProcessRetryScan);
 
 // Baseline 08: Single Scan for Client Looping Benchmark (Batch Alternative)
 router.post("/scans/single-loop", uploadMiddleware.single("image"), BaselineController.singleLoopScan);
 
 // Benchmark 09: MySQL Row-Locked Quota vs Redis Atomic Quota + Write-Behind
 router.post("/quota/mysql-locked", BaselineController.mysqlLockedQuotaDecrement);
+router.post("/quota/atomic-sql", BaselineController.mysqlAtomicSqlQuotaDecrement);
+router.post("/quota/redis-write-through", BaselineController.redisWriteThroughQuotaDecrement);
 router.post("/quota/redis-atomic", BaselineController.redisAtomicQuotaDecrement);
 router.post("/quota/reset", BaselineController.resetBenchmarkQuota);
 
